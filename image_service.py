@@ -1,261 +1,131 @@
-"""Image upload and processing service with validation and compression."""
-from typing import Dict, Any, Optional, Set
+"""Image upload service using Cloudinary for cloud storage."""
 import os
-import uuid
-from datetime import datetime
-from werkzeug.utils import secure_filename
-from werkzeug.datastructures import FileStorage
+from typing import Optional
+import cloudinary
+import cloudinary.uploader
 from flask import current_app
-from PIL import Image
 
 
 class ImageUploadException(Exception):
-    """Custom exception for image upload errors."""
+    """Raised when an image upload fails."""
     pass
 
 
+# Configure Cloudinary from environment variables
+cloudinary.config(
+    cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
+    api_key=os.getenv('CLOUDINARY_API_KEY'),
+    api_secret=os.getenv('CLOUDINARY_API_SECRET'),
+    secure=True
+)
+
+
 class ImageUploadService:
-    """Centralized service for handling image uploads with validation and compression."""
-    
-    ALLOWED_EXTENSIONS: Set[str] = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
-    MAX_IMAGE_SIZE_MB: int = 25  # Maximum file size in MB
-    MAX_IMAGE_DIMENSION: int = 10000  # Maximum pixel dimension to prevent zip bombs
-    
+    """Handles image uploads to Cloudinary."""
+
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+    MAX_IMAGE_SIZE_MB = 25
+    MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
+
     @staticmethod
-    def is_allowed(filename: Optional[str]) -> bool:
-        """Check if file extension is allowed.
-        
+    def _allowed_file(filename: str) -> bool:
+        """Check if file extension is allowed."""
+        return (
+            '.' in filename and
+            filename.rsplit('.', 1)[1].lower() in ImageUploadService.ALLOWED_EXTENSIONS
+        )
+
+    @staticmethod
+    def upload_and_compress(file, prefix: str = 'img') -> dict:
+        """Upload an image to Cloudinary.
+
         Args:
-            filename: The filename to check
-            
+            file: FileStorage object from Flask
+            prefix: Folder/prefix for organizing uploads (e.g. 'package', 'review')
+
         Returns:
-            True if extension is allowed, False otherwise
-        """
-        if not filename:
-            return False
-        ext = os.path.splitext(filename)[1].lower()
-        return ext in ImageUploadService.ALLOWED_EXTENSIONS
-    
-    @staticmethod
-    def validate_file_size(file: Optional[FileStorage]) -> None:
-        """Validate that file size is within limits.
-        
-        Args:
-            file: FileStorage object from request.files
-        
+            dict with 'path' (full URL), 'size_kb', 'uploaded_at'
+
         Raises:
-            ImageUploadException: If file is too large
+            ImageUploadException: if validation or upload fails
         """
-        if not file:
-            return
-        
-        # Get file size
-        file.seek(0, os.SEEK_END)
-        file_size_bytes = file.tell()
-        file.seek(0)
-        
-        max_size_bytes = ImageUploadService.MAX_IMAGE_SIZE_MB * 1024 * 1024
-        if file_size_bytes > max_size_bytes:
-            raise ImageUploadException(
-                f'File too large. Maximum size: {ImageUploadService.MAX_IMAGE_SIZE_MB}MB '
-                f'(your file: {file_size_bytes / (1024 * 1024):.1f}MB)'
-            )
-    
-    @staticmethod
-    def validate_image_format(file: FileStorage) -> None:
-        """Validate that file is actually a valid image and not disguised executable.
-        
-        Args:
-            file: FileStorage object from request.files
-        
-        Raises:
-            ImageUploadException: If file is not a valid image
-        """
-        try:
-            file.seek(0)
-            with Image.open(file) as img:
-                # Check dimensions to prevent decompression bombs
-                if max(img.size) > ImageUploadService.MAX_IMAGE_DIMENSION:
-                    raise ImageUploadException(
-                        f'Image dimensions too large. Max: {ImageUploadService.MAX_IMAGE_DIMENSION}px'
-                    )
-                # Validate it's an actual image format
-                img.verify()
-            file.seek(0)
-        except ImageUploadException:
-            raise
-        except Exception as e:
-            raise ImageUploadException(f'Invalid image file: {str(e)}')
-    
-    @staticmethod
-    def upload_and_compress(file: Optional[FileStorage], prefix: str = 'img') -> Dict[str, Any]:
-        """Validate, save, and compress an uploaded image into date-based folder.
-        
-        Args:
-            file: FileStorage object from request.files
-            prefix: Prefix for generated filename (e.g., 'blog', 'review', 'visa')
-        
-        Returns:
-            dict: {
-                'path': '2026-06/blog_abc123def456.jpg',
-                'size_kb': 125.5,
-                'uploaded_at': datetime object
-            }
-        
-        Raises:
-            ImageUploadException: If validation fails or file operations error
-        """
-        from flask import current_app
-        
         if not file or not file.filename:
-            raise ImageUploadException('No file selected')
-        
-        if not ImageUploadService.is_allowed(file.filename):
+            raise ImageUploadException('No file provided.')
+
+        if not ImageUploadService._allowed_file(file.filename):
             raise ImageUploadException(
-                f'Invalid file type. Allowed types: {", ".join(ImageUploadService.ALLOWED_EXTENSIONS)}'
+                f'Invalid file type. Allowed: {", ".join(ImageUploadService.ALLOWED_EXTENSIONS)}'
             )
-        
-        # Validate file size before processing
+
+        # Check file size
+        file.seek(0, 2)  # Seek to end
+        size_bytes = file.tell()
+        file.seek(0)  # Reset
+
+        if size_bytes > ImageUploadService.MAX_IMAGE_SIZE_BYTES:
+            raise ImageUploadException(
+                f'File too large. Maximum size is {ImageUploadService.MAX_IMAGE_SIZE_MB}MB.'
+            )
+
         try:
-            ImageUploadService.validate_file_size(file)
-        except ImageUploadException as e:
-            current_app.logger.warning(f"File size validation failed: {e}")
-            raise
-        
-        # Validate it's actually an image
-        try:
-            ImageUploadService.validate_image_format(file)
-        except ImageUploadException as e:
-            current_app.logger.warning(f"Image format validation failed: {e}")
-            raise
-        
-        temp_filepath = None
-        try:
-            ext = os.path.splitext(secure_filename(file.filename))[1].lower()
-            filename = f"{prefix}_{uuid.uuid4().hex}{ext}"
-            
-            # Create date-based subfolder (YYYY-MM)
-            date_folder = datetime.now().strftime('%Y-%m')
-            upload_timestamp = datetime.now()
-            
-            upload_folder = current_app.config.get('UPLOAD_FOLDER')
-            if not upload_folder:
-                current_app.logger.error("Upload folder not configured")
-                raise ImageUploadException('Upload folder not configured')
-            
-            # Ensure upload folder exists
-            if not os.path.exists(upload_folder):
-                try:
-                    os.makedirs(upload_folder, exist_ok=True)
-                except OSError as e:
-                    current_app.logger.error(f"Failed to create upload folder: {e}", exc_info=True)
-                    raise ImageUploadException('Failed to create upload directory')
-            
-            # Full path with date subfolder
-            date_based_folder = os.path.join(upload_folder, date_folder)
-            try:
-                os.makedirs(date_based_folder, exist_ok=True)
-            except OSError as e:
-                current_app.logger.error(f"Failed to create date-based folder: {e}", exc_info=True)
-                raise ImageUploadException('Failed to create upload subdirectory')
-            
-            filepath = os.path.join(date_based_folder, filename)
-            
-            # Check for file conflicts (extremely unlikely with UUID, but be safe)
-            if os.path.exists(filepath):
-                current_app.logger.warning(f"File already exists: {filepath}, regenerating filename")
-                # Regenerate filename with UUID
-                filename = f"{prefix}_{uuid.uuid4().hex}{ext}"
-                filepath = os.path.join(date_based_folder, filename)
-            
-            # Save file
-            try:
-                file.seek(0)
-                file.save(filepath)
-                temp_filepath = filepath
-                current_app.logger.debug(f"Image file saved: {filepath}")
-            except IOError as e:
-                current_app.logger.error(f"Failed to save image file {filepath}: {e}", exc_info=True)
-                raise ImageUploadException(f'Failed to save image: {str(e)}')
-            
-            # Compress the image with error handling
-            try:
-                from utils import compress_image
-                compress_image(filepath)
-                current_app.logger.debug(f"Image compressed: {filepath}")
-            except FileNotFoundError:
-                current_app.logger.error(f"Image file disappeared after save: {filepath}")
-                raise ImageUploadException('Image file was lost during processing')
-            except Exception as e:
-                current_app.logger.error(f"Image compression failed for {filepath}: {e}", exc_info=True)
-                # Don't fail completely if compression fails - try to use uncompressed version
-                if not os.path.exists(filepath):
-                    raise ImageUploadException(f'Image processing error: {str(e)}')
-                current_app.logger.warning(f"Using uncompressed image due to compression error: {filepath}")
-            
-            # Get file size after compression (in KB)
-            try:
-                file_size_bytes = os.path.getsize(filepath)
-                file_size_kb = file_size_bytes / 1024
-            except OSError as e:
-                current_app.logger.error(f"Failed to get file size for {filepath}: {e}")
-                file_size_kb = 0
-            
-            # Return metadata dict
-            relative_path = f"{date_folder}/{filename}"
-            result = {
-                'path': relative_path,
-                'size_kb': round(file_size_kb, 2),
-                'uploaded_at': upload_timestamp
+            # Upload to Cloudinary
+            result = cloudinary.uploader.upload(
+                file,
+                folder=f'travelworthyph/{prefix}',
+                transformation=[
+                    {'quality': 'auto:good'},
+                    {'fetch_format': 'auto'}
+                ]
+            )
+
+            url = result.get('secure_url', '')
+            size_kb = size_bytes / 1024
+
+            from datetime import datetime, timezone
+            return {
+                'path': url,
+                'size_kb': round(size_kb, 2),
+                'uploaded_at': datetime.now(timezone.utc)
             }
-            
-            current_app.logger.info(f"Image uploaded successfully: {relative_path} ({file_size_kb:.1f}KB)")
-            return result
-            
+
         except ImageUploadException:
-            # Clean up on known exceptions
-            if temp_filepath and os.path.exists(temp_filepath):
-                try:
-                    os.remove(temp_filepath)
-                    current_app.logger.debug(f"Cleaned up failed upload: {temp_filepath}")
-                except OSError as e:
-                    current_app.logger.warning(f"Failed to clean up temp file {temp_filepath}: {e}")
             raise
         except Exception as e:
-            # Clean up on unexpected exceptions
-            if temp_filepath and os.path.exists(temp_filepath):
-                try:
-                    os.remove(temp_filepath)
-                except OSError:
-                    pass
-            current_app.logger.error(f'Unexpected error during image upload: {e}', exc_info=True)
-            raise ImageUploadException(f'Failed to upload image: {str(e)}')
-    
+            current_app.logger.error(f'Cloudinary upload error: {e}', exc_info=True)
+            raise ImageUploadException(f'Upload failed: {str(e)}')
+
     @staticmethod
-    def delete_image(filename):
-        """
-        Delete an image file from uploads folder (handles date-based paths).
-        
+    def delete_image(url: str) -> bool:
+        """Delete an image from Cloudinary by URL.
+
         Args:
-            filename: Relative path to file (e.g., '2026-06/blog_abc123.jpg')
-        
+            url: The Cloudinary secure URL of the image
+
         Returns:
-            bool: True if deleted, False if not found
+            True if deleted, False otherwise
         """
-        if not filename:
-            return False
-        
         try:
-            upload_folder = current_app.config.get('UPLOAD_FOLDER')
-            if not upload_folder:
+            if not url or 'cloudinary.com' not in url:
                 return False
-            
-            # Handle both old format (just filename) and new format (date/filename)
-            filepath = os.path.join(upload_folder, filename)
-            if os.path.exists(filepath):
-                os.remove(filepath)
-                return True
-            return False
+
+            # Extract public_id from URL
+            # URL format: https://res.cloudinary.com/cloud/image/upload/v123/folder/filename.ext
+            parts = url.split('/upload/')
+            if len(parts) != 2:
+                return False
+
+            public_id_with_ext = parts[1]
+            # Remove version prefix if present (v1234567/)
+            if public_id_with_ext.startswith('v') and '/' in public_id_with_ext:
+                public_id_with_ext = public_id_with_ext.split('/', 1)[1]
+
+            # Remove file extension
+            public_id = public_id_with_ext.rsplit('.', 1)[0]
+
+            cloudinary.uploader.destroy(public_id)
+            return True
+
         except Exception as e:
-            current_app.logger.warning(f'Failed to delete image {filename}: {e}')
+            if current_app:
+                current_app.logger.error(f'Cloudinary delete error: {e}', exc_info=True)
             return False

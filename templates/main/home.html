@@ -555,7 +555,7 @@
     {% for pkg in packages %}
     <div class="pkg-card">
       {% if pkg.image and pkg.image != 'default_tour.jpg' %}
-      <img class="pkg-img" src="/uploads/{{ pkg.image }}" alt="{{ pkg.title }}"
+      <img class="pkg-img" src="{{ pkg.image if pkg.image.startswith('http') else '/uploads/' + pkg.image }}" alt="{{ pkg.title }}"
         onclick="openLightbox(this.src)" style="cursor:pointer" />
       {% else %}
       <div class="pkg-img-placeholder">

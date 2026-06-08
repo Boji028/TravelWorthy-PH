@@ -139,7 +139,7 @@
         <tr>
           <td>
             {% if pkg.image and pkg.image != 'default_tour.jpg' %}
-            <img class="pkg-thumb" src="/uploads/{{ pkg.image }}" alt="" />
+            <img class="pkg-thumb" src="{{ pkg.image if pkg.image.startswith('http') else '/uploads/' + pkg.image }}" alt="" />
             {% else %}
             <div class="pkg-thumb-placeholder"><i class="fas fa-mountain"></i></div>
             {% endif %}

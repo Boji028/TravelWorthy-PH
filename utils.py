@@ -8,23 +8,22 @@ from flask import current_app
 UPLOAD_FOLDER_KEY = 'UPLOAD_FOLDER'
 
 
-def delete_old_image(filename: str, upload_folder: str) -> None:
-    """Delete an old uploaded image file if it exists and is not the default.
-    
-    Args:
-        filename: The image filename to delete
-        upload_folder: Path to the upload directory
-    """
-    if not filename or filename == 'default_tour.jpg':
+def delete_old_image(image_path: str, upload_folder: str = None) -> None:
+    """Delete an old image — works for both Cloudinary URLs and local files."""
+    if not image_path:
         return
-    # Strip leading path components — stored values may be '/static/images/foo.jpg'
-    basename = os.path.basename(filename)
-    full_path = os.path.join(upload_folder, basename)
-    if os.path.isfile(full_path):
-        try:
-            os.remove(full_path)
-        except OSError as e:
-            current_app.logger.warning(f'Failed to delete image {basename}: {e}')
+    try:
+        if 'cloudinary.com' in image_path:
+            from image_service import ImageUploadService
+            ImageUploadService.delete_image(image_path)
+        else:
+            if upload_folder:
+                full_path = os.path.join(upload_folder, image_path)
+                if os.path.exists(full_path):
+                    os.remove(full_path)
+    except Exception as e:
+        import logging
+        logging.warning(f'Could not delete image {image_path}: {e}')
 
 
 def compress_image(file_path: str, max_size: int = 1200, quality: int = 82) -> None:

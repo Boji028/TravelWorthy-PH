@@ -313,7 +313,7 @@
 <div class="detail-wrap">
   <div>
     {% if package.image and package.image != 'default_tour.jpg' %}
-    <img class="detail-img" src="/uploads/{{ package.image }}"
+    <img class="detail-img" <img class="detail-img" src="{{ package.image if package.image.startswith('http') else '/uploads/' + package.image }}" alt="{{ package.title }}" />
       alt="{{ package.title }}" />
     {% else %}
     <div class="detail-img-placeholder"><i class="fas fa-mountain"></i></div>

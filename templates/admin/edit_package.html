@@ -71,6 +71,7 @@
     color: var(--mist);
     font-size: 0.9rem;
   }
+
 </style>
 {% endblock %}
 
@@ -165,7 +166,7 @@
       <label>Package Image</label>
       {% if package.image and package.image != 'default_tour.jpg' %}
       <div style="margin-bottom:.75rem;">
-        <img src="/uploads/{{ package.image }}"
+        <img src="{{ package.image if package.image.startswith('http') else '/uploads/' + package.image }}"
           style="height:120px;border-radius:var(--radius);object-fit:cover;" />
         <div style="font-size:.78rem;color:var(--mist);margin-top:.3rem">Current image</div>
       </div>
@@ -180,7 +181,8 @@
           <span class="file-upload-label">No file chosen</span>
         </div>
         {% if package.image and package.image != 'default_tour.jpg' %}
-        <button type="button" class="btn btn-danger btn-sm" style="padding:0.5rem 0.75rem;" onclick="document.getElementById('remove-photo-form').submit();" title="Remove Photo">
+        <button type="button" class="btn btn-danger btn-sm" style="padding:0.5rem 0.75rem;"
+          onclick="document.getElementById('remove-photo-form').submit();" title="Remove Photo">
           <i class="fas fa-trash"></i>
         </button>
         {% endif %}
@@ -197,15 +199,17 @@
 
 <!-- Remove Photo Form (hidden, triggered by button click) -->
 {% if package.image and package.image != 'default_tour.jpg' %}
-<form method="POST" action="{{ url_for('admin.remove_package_photo', package_id=package.id) }}" id="remove-photo-form" style="display:none;">
+<form method="POST" action="{{ url_for('admin.remove_package_photo', package_id=package.id) }}" id="remove-photo-form"
+  style="display:none;">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 </form>
 <script>
-  document.getElementById('remove-photo-form').addEventListener('submit', function(e) {
+  document.getElementById('remove-photo-form').addEventListener('submit', function (e) {
     if (!confirm('Remove this photo? You can upload a new one after.')) {
       e.preventDefault();
     }
   });
+
 </script>
 {% endif %}
 <script>
@@ -228,7 +232,8 @@
         countrySelect.innerHTML = '<option value="">— Select Country —</option>';
         data.forEach(country => {
           const selected = country.id == currentCountryId ? 'selected' : '';
-          countrySelect.innerHTML += `<option value="${country.id}" ${selected}>${country.flag_emoji || ''} ${country.name}</option>`;
+          countrySelect.innerHTML +=
+            `<option value="${country.id}" ${selected}>${country.flag_emoji || ''} ${country.name}</option>`;
         });
       });
   });
@@ -240,5 +245,6 @@
       continentSelect.dispatchEvent(new Event('change'));
     }
   });
+
 </script>
 {% endblock %}
