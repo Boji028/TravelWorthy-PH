@@ -1,0 +1,515 @@
+{% extends "base.html" %}
+{% block title %}Reviews — Travel Worthy PH{% endblock %}
+
+{% block extra_styles %}
+<style>
+  .reviews-hero {
+    background: linear-gradient(135deg, var(--teal) 0%, #0d3d4a 100%);
+    padding: 4rem 2rem;
+    text-align: center;
+    color: white;
+  }
+
+  .reviews-hero h1 {
+    font-family: 'Pogonia', serif;
+    font-size: 2.8rem;
+    font-weight: 300;
+    margin-bottom: .5rem;
+  }
+
+  .reviews-hero p {
+    opacity: .8;
+    font-size: .95rem;
+  }
+
+  .reviews-wrap {
+    max-width: 1280px;
+    margin: 4rem auto;
+    padding: 0 2rem;
+  }
+
+  .reviews-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+  }
+
+  .review-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    box-shadow: 0 2px 12px rgba(58, 46, 34, .07);
+    transition: transform .3s, box-shadow .3s;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .review-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(58, 46, 34, .12);
+  }
+
+  .review-stars {
+    color: #f4c542;
+    font-size: 1.1rem;
+  }
+
+  .review-image {
+    width: 100%;
+    max-height: 220px;
+    object-fit: cover;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: opacity .2s;
+  }
+
+  .review-image:hover {
+    opacity: .9;
+  }
+
+  .review-text {
+    font-size: .92rem;
+    color: var(--bark);
+    line-height: 1.8;
+    font-style: italic;
+    flex: 1;
+  }
+
+  .review-author {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--linen);
+  }
+
+  .review-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--teal);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .review-name {
+    font-weight: 600;
+    font-size: .9rem;
+    color: var(--bark);
+  }
+
+  .review-date {
+    font-size: .8rem;
+    color: var(--mist);
+  }
+
+  /* Submit form */
+  .submit-section {
+    max-width: 420px;
+    margin: 0 auto 4rem;
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: 0 2px 12px rgba(58, 46, 34, .07);
+  }
+
+  .submit-section h2 {
+    font-family: 'Pogonia', serif;
+    font-size: 1.2rem;
+    color: var(--bark);
+    margin-bottom: 1rem;
+  }
+
+  .image-preview {
+    display: none;
+    width: 100%;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: var(--radius);
+    margin-top: .75rem;
+  }
+
+  /* Lightbox */
+  .lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .92);
+    z-index: 99999;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+  }
+
+  .lightbox.active {
+    display: flex;
+  }
+
+  .lightbox img {
+    max-width: 80%;
+    max-height: 80vh;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 48px rgba(0, 0, 0, .5);
+    position: relative;
+    z-index: 100000;
+    display: block;
+  }
+
+  .lightbox.active {
+    display: flex !important;
+  }
+
+  .lightbox-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    color: white;
+    font-size: 2rem;
+    cursor: pointer;
+    background: var(--amber);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--mist);
+    grid-column: 1/-1;
+  }
+
+  .empty-state i {
+    font-size: 3rem;
+    opacity: .3;
+    display: block;
+    margin-bottom: 1rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="reviews-hero">
+  <h1><i class="fas fa-star"></i> Ratings & Reviews</h1>
+  <p>Real experiences from real travelers — see what our community has to say</p>
+</div>
+
+<div class="reviews-wrap">
+
+  <!-- REVIEWS GRID -->
+  <div class="reviews-grid" id="reviews-grid">
+    {% if testimonials %}
+    {% for t in testimonials %}
+    <div class="review-card">
+      <div class="review-stars">
+        {% for i in range(t.rating) %}⭐{% endfor %}
+      </div>
+      {% if t.image %}
+      {% set imgs = t.image.split(',') %}
+      <div class="review-photo-grid" style="display:flex;flex-wrap:wrap;gap:.5rem;">
+        {% for img in imgs %}
+        <img class="review-image" src="/uploads/{{ img }}" alt="Review photo"
+          onclick="openLightbox(this.src, this.closest('.review-photo-grid').querySelectorAll('img'))"
+          style="width:calc(50% - .25rem);max-height:160px;flex:1;min-width:120px;" />
+        {% endfor %}
+      </div>
+      {% endif %}
+      <p class="review-text">"{{ t.message }}"</p>
+      <div class="review-author">
+        <div style="display:flex;align-items:center;gap:.75rem;">
+          <div class="review-avatar">{{ t.user.name[0].upper() }}</div>
+          <div>
+            <div class="review-name">{{ t.user.name }}</div>
+            <div class="review-date">{{ t.created_at.strftime('%B %d, %Y') }}</div>
+          </div>
+        </div>
+        {% if current_user.is_authenticated and current_user.is_admin %}
+        {% set delete_url = url_for('main.delete_testimonial', testimonial_id=t.id) %}
+        <button onclick="deleteReview(this, '{{ delete_url }}')"
+          style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:.82rem;">
+          <i class="fas fa-trash"></i> Delete
+        </button>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="empty-state">
+      <i class="fas fa-comments"></i>
+      <p>No reviews yet. Be the first to share your experience!</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- SUBMIT FORM -->
+  {% if current_user.is_authenticated %}
+  <div class="submit-section">
+    <h2>Share Your Experience</h2>
+    <form id="review-form" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <div class="form-group">
+        <label>Rating</label>
+        <select name="rating" class="form-control">
+          <option value="5">⭐⭐⭐⭐⭐ — Excellent</option>
+          <option value="4">⭐⭐⭐⭐ — Very Good</option>
+          <option value="3">⭐⭐⭐ — Good</option>
+          <option value="2">⭐⭐ — Fair</option>
+          <option value="1">⭐ — Poor</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Your Review</label>
+        <textarea name="message" class="form-control" rows="3" placeholder="Tell us about your experience..."
+          required></textarea>
+      </div>
+      <div class="form-group">
+        <label>Upload Photo <span style="font-size:.8rem;color:var(--mist)">(optional)</span></label>
+        <input type="file" name="image" class="form-control" accept="image/*" id="image-input" multiple
+          style="display:none;" />
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem;">
+          <button type="button" onclick="document.getElementById('image-input').click()"
+            style="background:none;border:1px solid var(--teal);color:var(--teal);border-radius:2rem;padding:.4rem 1rem;cursor:pointer;font-size:.85rem;">
+            <i class="fas fa-image"></i> Choose Photo
+          </button>
+          <button type="button" id="add-more-btn" onclick="addMorePhotos()"
+            style="display:none;background:none;border:1px solid var(--mist);color:var(--bark);border-radius:2rem;padding:.4rem 1rem;cursor:pointer;font-size:.85rem;">
+            <i class="fas fa-plus"></i> Add More Photos
+          </button>
+        </div>
+        <div id="image-preview-container" style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.5rem;"></div>
+      </div>
+      <div style="display:flex;gap:.75rem;margin-top:.5rem;">
+        <button type="submit" class="btn btn-amber">Submit Review</button>
+        <button type="button" class="btn" onclick="cancelReview()"
+          style="background:none;border:1px solid var(--mist);color:var(--bark);border-radius:2rem;padding:.5rem 1.25rem;cursor:pointer;">Cancel</button>
+      </div>
+      <div id="review-success"
+        style="display:none;margin-top:.75rem;padding:.75rem 1rem;background:#d4edda;color:#155724;border-radius:var(--radius);font-size:.88rem;">
+        <i class="fas fa-check-circle"></i> Your review has been posted!
+      </div>
+    </form>
+  </div>
+  {% else %}
+  <div
+    style="text-align:center;margin-bottom:3rem;padding:1.5rem;background:var(--linen);border-radius:var(--radius-lg);max-width:600px;margin-left:auto;margin-right:auto;">
+    <i class="fas fa-info-circle" style="color:var(--teal);margin-right:.5rem;"></i>
+    Please <a href="{{ url_for('auth.login') }}" style="color:var(--teal);font-weight:600;">login</a> to leave a review.
+  </div>
+  {% endif %}
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox">
+  <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
+  <button id="lightbox-prev" onclick="lightboxNav(-1)"
+    style="position:absolute;left:1rem;background:rgba(0,0,0,.5);color:white;border:none;border-radius:50%;width:44px;height:44px;font-size:1.4rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">&#8249;</button>
+  <img id="lightbox-img" src="" alt="" />
+  <button id="lightbox-next" onclick="lightboxNav(1)"
+    style="position:absolute;right:1rem;background:rgba(0,0,0,.5);color:white;border:none;border-radius:50%;width:44px;height:44px;font-size:1.4rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">&#8250;</button>
+  <div id="lightbox-counter"
+    style="position:absolute;bottom:1rem;color:white;font-size:.85rem;background:rgba(0,0,0,.4);padding:.3rem .8rem;border-radius:2rem;">
+  </div>
+</div>
+<script>
+  // ── IMAGE HANDLING ──
+  let allFiles = [];
+
+  document.getElementById('image-input').addEventListener('change', function () {
+    const newFiles = Array.from(this.files);
+    newFiles.forEach(newFile => {
+      const isDuplicate = allFiles.some(f => f.name === newFile.name && f.size === newFile.size);
+      if (!isDuplicate) allFiles.push(newFile);
+    });
+    renderPreviews();
+    document.getElementById('add-more-btn').style.display = allFiles.length > 0 ? 'inline-block' : 'none';
+  });
+
+  function addMorePhotos() {
+    document.getElementById('image-input').click();
+  }
+
+  function removePhoto(index) {
+    allFiles.splice(index, 1);
+    renderPreviews();
+    document.getElementById('add-more-btn').style.display = allFiles.length > 0 ? 'inline-block' : 'none';
+  }
+
+  function renderPreviews() {
+    const container = document.getElementById('image-preview-container');
+    container.innerHTML = '';
+    allFiles.forEach((file, index) => {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'position:relative;width:80px;height:80px;';
+
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      img.style.cssText = 'width:80px;height:80px;object-fit:cover;border-radius:var(--radius);border:1px solid var(--linen);';
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.innerHTML = '&times;';
+      removeBtn.style.cssText = 'position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--amber);color:white;border:none;cursor:pointer;font-size:.8rem;display:flex;align-items:center;justify-content:center;line-height:1;';
+      removeBtn.onclick = () => removePhoto(index);
+
+      wrapper.appendChild(img);
+      wrapper.appendChild(removeBtn);
+      container.appendChild(wrapper);
+    });
+  }
+
+  // ── CANCEL REVIEW ──
+  function cancelReview() {
+    document.getElementById('review-form').reset();
+    document.getElementById('image-preview-container').innerHTML = '';
+    document.getElementById('add-more-btn').style.display = 'none';
+    allFiles = [];
+  }
+
+  // ── SUBMIT REVIEW VIA AJAX ──
+  const reviewForm = document.getElementById('review-form');
+  if (reviewForm) {
+    reviewForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const formData = new FormData();
+      formData.append('message', document.querySelector('textarea[name="message"]').value);
+      formData.append('rating', document.querySelector('select[name="rating"]').value);
+      allFiles.forEach(file => formData.append('image', file));
+      const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+      fetch('{{ url_for("main.add_testimonial") }}', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrf },
+        body: formData
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (!data.success) {
+            alert(data.error || 'Something went wrong.');
+            return;
+          }
+
+          const stars = '⭐'.repeat(data.rating);
+          const deleteBtn = data.is_admin ? `
+          <button onclick="deleteReview(this, '${data.delete_url}')"
+            style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:.82rem;">
+            <i class="fas fa-trash"></i> Delete
+          </button>` : '';
+          const imageHtml = data.image_urls && data.image_urls.length ? `
+          <div class="review-photo-grid" style="display:flex;flex-wrap:wrap;gap:.5rem;">
+            ${data.image_urls.map(url => `
+              <img class="review-image" src="${url}" alt="Review photo"
+                onclick="openLightbox(this.src, this.closest('.review-photo-grid').querySelectorAll('img'))"
+                style="width:calc(50% - .25rem);max-height:160px;flex:1;min-width:120px;" />
+            `).join('')}
+          </div>` : '';
+
+          const card = document.createElement('div');
+          card.className = 'review-card';
+          card.style.cssText = 'opacity:0;transition:opacity 0.4s ease;';
+          card.innerHTML = `
+          <div class="review-stars">${stars}</div>
+          ${imageHtml}
+          <p class="review-text">"${data.message}"</p>
+          <div class="review-author">
+            <div style="display:flex;align-items:center;gap:.75rem;">
+              <div class="review-avatar">${data.user_name[0].toUpperCase()}</div>
+              <div>
+                <div class="review-name">${data.user_name}</div>
+                <div class="review-date">${data.created_at}</div>
+              </div>
+            </div>
+            ${deleteBtn}
+          </div>
+        `;
+
+          const grid = document.getElementById('reviews-grid');
+          const empty = grid.querySelector('.empty-state');
+          if (empty) empty.remove();
+          grid.insertBefore(card, grid.firstChild);
+          setTimeout(() => card.style.opacity = '1', 50);
+
+          document.getElementById('review-success').style.display = 'block';
+          setTimeout(() => document.getElementById('review-success').style.display = 'none', 3000);
+          reviewForm.reset();
+          document.getElementById('image-preview-container').innerHTML = '';
+        })
+        .catch(() => alert('Network error. Please try again.'));
+    });
+  }
+
+  // ── DELETE REVIEW ──
+  function deleteReview(btn, url) {
+    if (!confirm('Delete this review?')) return;
+    const card = btn.closest('.review-card');
+    const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    fetch(url, {
+      method: 'POST',
+      headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrf }
+    }).then(res => {
+      if (res.ok || res.redirected) {
+        card.style.transition = 'opacity 0.3s';
+        card.style.opacity = '0';
+        setTimeout(() => card.remove(), 300);
+      } else {
+        alert('Failed to delete review.');
+      }
+    }).catch(() => alert('Network error.'));
+  }
+
+  // ── LIGHTBOX ──
+  let lightboxImages = [];
+  let lightboxIndex = 0;
+
+  function openLightbox(src, allImgs) {
+    lightboxImages = allImgs ? Array.from(allImgs).map(img => img.src) : [src];
+    lightboxIndex = lightboxImages.indexOf(src);
+    if (lightboxIndex === -1) lightboxIndex = 0;
+    updateLightbox();
+    document.getElementById('lightbox').classList.add('active');
+  }
+
+  function updateLightbox() {
+    document.getElementById('lightbox-img').src = lightboxImages[lightboxIndex];
+    const total = lightboxImages.length;
+    document.getElementById('lightbox-counter').textContent = total > 1 ? `${lightboxIndex + 1} / ${total}` : '';
+    document.getElementById('lightbox-prev').style.display = total > 1 ? 'flex' : 'none';
+    document.getElementById('lightbox-next').style.display = total > 1 ? 'flex' : 'none';
+  }
+
+  function lightboxNav(direction) {
+    lightboxIndex = (lightboxIndex + direction + lightboxImages.length) % lightboxImages.length;
+    updateLightbox();
+  }
+
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('active');
+    lightboxImages = [];
+    lightboxIndex = 0;
+  }
+
+  // close on background click
+  document.getElementById('lightbox').addEventListener('click', function (e) {
+    if (e.target === this) closeLightbox();
+  });
+
+  // keyboard navigation
+  document.addEventListener('keydown', function (e) {
+    if (!document.getElementById('lightbox').classList.contains('active')) return;
+    if (e.key === 'ArrowRight') lightboxNav(1);
+    if (e.key === 'ArrowLeft') lightboxNav(-1);
+    if (e.key === 'Escape') closeLightbox();
+  });
+</script>
+
+{% endblock %}

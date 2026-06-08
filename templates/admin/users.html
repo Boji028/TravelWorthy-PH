@@ -1,0 +1,145 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Manage Users — Admin{% endblock %}
+
+{% block admin_styles %}
+<style>
+  .table-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(58,46,34,.07);
+  }
+
+  .table-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--linen);
+  }
+
+  .table-toolbar h3 {
+    font-family: 'Pogonia', serif;
+    font-size: 1.2rem;
+    color: var(--bark);
+  }
+
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .87rem;
+  }
+
+  .admin-table th {
+    text-align: left;
+    padding: .6rem .75rem;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--mist);
+    border-bottom: 1px solid var(--linen);
+    font-weight: 600;
+  }
+
+  .admin-table td {
+    padding: .85rem .75rem;
+    border-bottom: 1px solid var(--linen);
+    color: var(--bark);
+    vertical-align: middle;
+  }
+
+  .admin-table tr:last-child td { border-bottom: none; }
+  .admin-table tr:hover td { background: #faf6f0; }
+
+  .user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--teal), var(--teal-d));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: .88rem;
+    color: var(--white);
+    margin-right: .6rem;
+    vertical-align: middle;
+  }
+
+  .admin-chip {
+    background: rgba(200,135,74,.1);
+    color: var(--amber);
+    border: 1px solid rgba(200,135,74,.3);
+    font-size: .72rem;
+    padding: .2rem .65rem;
+    border-radius: 999px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <h1>Users</h1>
+  <p>All registered accounts on the platform</p>
+</div>
+
+<div class="table-card">
+  <div class="table-toolbar">
+    <h3>{{ pagination.total }} User{{ 's' if pagination.total != 1 }}</h3>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Role</th>
+          <th>Bookings</th>
+          <th>Joined</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+          <tr>
+            <td>
+              <span class="user-avatar">{{ user.name[0].upper() }}</span>
+              <strong>{{ user.name }}</strong>
+            </td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.phone or '—' }}</td>
+            <td>
+              {% if user.is_admin %}
+                <span class="admin-chip">Admin</span>
+              {% else %}
+                <span style="font-size:.82rem;color:var(--mist)">Customer</span>
+              {% endif %}
+            </td>
+            <td>{{ user.bookings|length }}</td>
+            <td style="font-size:.82rem;color:var(--mist)">{{ user.created_at.strftime('%b %d, %Y') }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" style="text-align:center;color:var(--mist);padding:3rem">No users found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+ </div>
+</div>
+
+{% if pagination.pages > 1 %}
+<div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+  {% for p in pagination.iter_pages() %}
+    {% if p %}
+      <a href="?page={{ p }}"
+         class="btn btn-sm {% if p == pagination.page %}btn-amber{% else %}btn-outline{% endif %}">{{ p }}</a>
+    {% else %}
+      <span style="padding:.3rem .5rem;color:var(--mist)">…</span>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

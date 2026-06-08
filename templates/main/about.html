@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}About Us — Travel Worthy PH{% endblock %}
+
+{% block extra_styles %}
+<style>
+  .mvt-card p {
+    color: #3a2e22 !important;
+  }
+
+  /* rest of the existing styles... */
+  
+  .page-hero {
+    background: linear-gradient(135deg, var(--teal-d), var(--teal));
+    color: var(--white);
+    padding: 4rem 2rem;
+    text-align: center;
+  }
+
+  .page-hero h1 {
+    font-family: 'Pogonia', serif;
+    font-size: 3rem;
+    font-weight: 300;
+    margin-bottom: .5rem;
+  }
+
+  .page-hero p { opacity: .8; font-size: 1rem; }
+
+  .about-inner {
+    max-width: 900px;
+    margin: 4rem auto;
+    padding: 0 2rem;
+  }
+
+  .about-inner h2 {
+    font-family: 'Pogonia', serif;
+    font-size: 2rem;
+    color: var(--bark);
+    margin-bottom: 1rem;
+  }
+
+  .about-inner p {
+    color: #3a2e22;
+    line-height: 1.8;
+    font-size: .95rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .about-values {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-top: 3rem;
+  }
+
+  .value-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+    text-align: center;
+    box-shadow: 0 2px 12px rgba(58,46,34,.07);
+  }
+
+  .value-icon {
+    font-size: 2rem;
+    color: var(--amber);
+    margin-bottom: .75rem;
+  }
+
+  .value-card h3 {
+    font-family: 'Pogonia', serif;
+    font-size: 1.2rem;
+    color: var(--bark);
+    margin-bottom: .5rem;
+  }
+
+  .value-card p { font-size: .85rem; color: #3a2e22; line-height: 1.6; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <h1>About Travel Worthy PH</h1>
+  <p>Crafting unforgettable journeys since 2019</p>
+</div>
+
+<div class="about-inner">
+  <h2>Our Story</h2>
+  <p>For Travel Worthy PH, that step was taken in August 2019, fueled by a simple yet powerful passion for the art of travelling. From our humble beginnings as a digital startup to the opening of our first physical office since in November 2019, our growth has been defined by one mission: ensuring every itinerary was craft is truly "Worthy"</p>
+  <p>As we enter this new era of our brand, we aren't just changing our look; <strong>we are deeepening our commitment</strong>. This rebranding marks a milestone in our evolution, a reflection of the seamless, meaningful, and unforgettable experiences we've built for our community over the years. We invite you to explore the new face of Travel Worthy PH, where our heart for service meets a vision for the future of travel.</p>
+  <p>Our team of expert travel consultants has first-hand experience in all the destinations we offer. We work with trusted local guides and partners to deliver authentic, meaningful travel that goes beyond the ordinary tourist trail.</p>
+
+  <div class="about-values">
+    <div class="value-card">
+      <div class="value-icon"><i class="fas fa-bullseye"></i></div>
+      <h3>Mission</h3>
+      <p>At Travel Worthy PH, our mission is to provide a personalized,  reliable, and high-quality travel services that cater to every traveler's needs and aspirations. We are committed to creating enjoyable, stress-free, and meaningful journeys by offering trusted guidance, memorable experiences, and exceptional value. </p>
+    </div>
+    <div class="value-card">
+      <div class="value-icon"><i class="fas fa-eye"></i></div>
+      <h3>Vision</h3>
+      <p>To become Batangas'most trusted and customer-centered travel agency, one that inspires people to explore more and experience more. Over the next years, we envision expanding our reach, growing our branches, nd continuously elevating the way travelers discover the world.</p>
+    </div>
+    <div class="value-card">
+      <div class="value-icon"><i class="fas fa-quote-left"></i></div>
+      <h3>Tagline</h3>
+      <p>Your Travel, made <strong>worth it</strong>.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

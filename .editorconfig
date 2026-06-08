@@ -1,0 +1,63 @@
+# EditorConfig helps developers maintain consistent coding styles for multiple developers
+# working on the same project across various editors and IDEs.
+# https://editorconfig.org
+
+root = true
+
+# Default settings for all files
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+
+# Python files
+[*.py]
+indent_size = 4
+max_line_length = 127
+
+# YAML files
+[*.{yml,yaml}]
+indent_size = 2
+
+# JSON files
+[*.json]
+indent_size = 2
+
+# Markdown files
+[*.md]
+trim_trailing_whitespace = false
+insert_final_newline = true
+
+# Shell scripts
+[*.sh]
+indent_size = 2
+
+# Dockerfile
+[Dockerfile*]
+indent_size = 2
+
+# Docker Compose
+[docker-compose.yml]
+indent_size = 2
+
+# HTML and templates
+[*.html]
+indent_size = 2
+
+# CSS and SCSS
+[*.{css,scss,sass}]
+indent_size = 2
+
+# JavaScript
+[*.js]
+indent_size = 2
+
+# Configuration files
+[.env*]
+indent_size = 2
+
+# SQL files
+[*.sql]
+indent_size = 2

@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Contact Us — Travel Worthy PH{% endblock %}
+
+{% block extra_styles %}
+<style>
+  .page-hero {
+    background: linear-gradient(135deg, var(--teal-d), var(--teal));
+    color: var(--white);
+    padding: 4rem 2rem;
+    text-align: center;
+  }
+
+  .page-hero h1 {
+    font-family: 'Pogonia', serif;
+    font-size: 3rem;
+    font-weight: 300;
+    margin-bottom: .5rem;
+  }
+
+  .page-hero p {
+    opacity: .8;
+  }
+
+  .contact-section {
+    max-width: 1000px;
+    margin: 4rem auto;
+    padding: 0 2rem;
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 3rem;
+  }
+
+  .contact-info h2 {
+    font-family: 'Pogonia', serif;
+    font-size: 1.8rem;
+    color: var(--bark);
+    margin-bottom: 1rem;
+  }
+
+  .contact-info p {
+    color: #6a5c4a;
+    line-height: 1.7;
+    font-size: .92rem;
+    margin-bottom: 2rem;
+  }
+
+  .contact-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.4rem;
+  }
+
+  .contact-icon {
+    width: 44px;
+    height: 44px;
+    background: rgba(45, 122, 111, .1);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--teal);
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  .contact-item h4 {
+    font-size: .82rem;
+    color: var(--mist);
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    margin-bottom: .2rem;
+  }
+
+  .contact-item p {
+    color: var(--bark);
+    font-size: .92rem;
+    margin: 0;
+  }
+
+  .contact-form-wrap {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    box-shadow: 0 4px 24px rgba(58, 46, 34, .09);
+  }
+
+  .contact-form-wrap h3 {
+    font-family: 'Pogonia', serif;
+    font-size: 1.4rem;
+    color: var(--bark);
+    margin-bottom: 1.5rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <h1>Get In Touch</h1>
+  <p>We'd love to help you plan your next adventure</p>
+</div>
+
+<div class="contact-section">
+  <div class="contact-info">
+    <h2>We'd Love to Hear From You</h2>
+    <p>Have a question or concern? Send us a message and we'll get back to you within 24 hours.</p>
+
+    <div class="contact-item">
+      <div class="contact-icon"><i class="fas fa-phone"></i></div>
+      <div>
+        <h4>Phone</h4>
+        <p>+639178247128</p>
+      </div>
+    </div>
+
+    <div class="contact-item">
+      <div class="contact-icon"><i class="fas fa-envelope"></i></div>
+      <div>
+        <h4>Email</h4>
+        <p>travelworthyph@gmail.com</p>
+      </div>
+    </div>
+
+    <div class="contact-item">
+      <div class="contact-icon"><i class="fas fa-location-dot"></i></div>
+      <div>
+        <h4>Office</h4>
+        <p>3F WALTERMART BRGY. CALICANTO BATANGAS CITY</p>
+      </div>
+    </div>
+
+    <div class="contact-item">
+      <div class="contact-icon"><i class="fas fa-clock"></i></div>
+      <div>
+        <h4>Hours</h4>
+        <p>Mon – Sun, 9:00 AM – 6:00 PM</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="contact-form-wrap">
+    <h3>Send Us a Message</h3>
+    <form action="{{ url_for('main.contact') }}" method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label>Full Name *</label>
+        <input type="text" name="name" class="form-control" placeholder="Juan dela Cruz" required />
+      </div>
+      <div class="form-group">
+        <label>Email Address *</label>
+        <input type="email" name="email" class="form-control" placeholder="juan@example.com" required />
+      </div>
+      <div class="form-group">
+        <label>Subject *</label>
+        <input type="text" name="subject" class="form-control" placeholder="e.g. Question about a package" required />
+      </div>
+      <div class="form-group">
+        <label>Message *</label>
+        <textarea class="form-control" name="message" placeholder="Type your message here…" rows="5"
+          required></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center">
+        <i class="fas fa-paper-plane"></i> Send Message
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

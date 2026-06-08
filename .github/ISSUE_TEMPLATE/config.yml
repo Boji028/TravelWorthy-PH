@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Issue
+    url: https://github.com/your-org/travel_agency_enhanced/security/advisories/new
+    about: Report a security vulnerability responsibly
+  - name: Documentation
+    url: https://github.com/your-org/travel_agency_enhanced/wiki
+    about: Check our documentation
+  - name: Discussions
+    url: https://github.com/your-org/travel_agency_enhanced/discussions
+    about: Ask questions and discuss ideas

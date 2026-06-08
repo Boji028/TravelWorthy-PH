@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Login — Travel Worthy PH{% endblock %}
+
+{% block extra_styles %}
+<style>
+  .auth-wrap {
+    min-height: calc(100vh - 160px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    background: linear-gradient(160deg, var(--linen) 0%, var(--sand) 100%);
+  }
+
+  .auth-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 8px 48px rgba(58,46,34,.12);
+  }
+
+  .auth-brand {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .auth-brand .logo-icon {
+    width: 54px;
+    height: 54px;
+    background: linear-gradient(135deg, var(--teal), var(--teal-d));
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto .75rem;
+    color: var(--white);
+    font-size: 1.5rem;
+  }
+
+  .auth-brand h1 {
+    font-family: 'Pogonia', serif;
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--bark);
+  }
+
+  .auth-brand h1 span { color: var(--amber); }
+
+  .auth-brand p { font-size: .88rem; color: var(--mist); margin-top: .25rem; }
+
+  .auth-divider {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin: 1.5rem 0;
+    color: var(--mist);
+    font-size: .8rem;
+  }
+
+  .auth-divider::before,
+  .auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--linen);
+  }
+
+  .auth-footer {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: .88rem;
+    color: var(--mist);
+  }
+
+  .auth-footer a { color: var(--teal); font-weight: 500; text-decoration: none; }
+
+  .remember-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+
+  .remember-row label {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .85rem;
+    color: var(--bark);
+    cursor: pointer;
+  }
+
+  .remember-row a { font-size: .85rem; color: var(--teal); text-decoration: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <img src="{{ url_for('static', filename='images/LOGO.jpg') }}" style="height:80px; width:80px; object-fit:contain; display:block; margin:0 auto .75rem;"/>
+      <h1>Travel Worthy<span ...> PH</span></h1>
+      <p>Welcome back, explorer!</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth.login') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" name="email" class="form-control" placeholder="you@example.com" required autofocus/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" name="password" class="form-control" placeholder="••••••••" required/>
+      </div>
+
+      <div class="remember-row">
+        <label>
+          <input type="checkbox" name="remember"/> Remember me
+        </label>
+        <a href="#">Forgot password?</a>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:.8rem">
+        <i class="fas fa-arrow-right-to-bracket"></i> Sign In
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      Don't have an account? <a href="{{ url_for('auth.register') }}">Create one →</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Stories — Admin{% endblock %}
+
+{% block admin_styles %}
+<style>
+  .blog-table { width: 100%; border-collapse: collapse; font-size: .87rem; }
+  .blog-table th { text-align: left; padding: .6rem .75rem; font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--mist); border-bottom: 1px solid var(--linen); font-weight: 600; }
+  .blog-table td { padding: .85rem .75rem; border-bottom: 1px solid var(--linen); color: var(--bark); vertical-align: middle; }
+  .blog-table tr:last-child td { border-bottom: none; }
+  .blog-table tr:hover td { background: var(--sand); }
+  .badge-published { background: rgba(39,174,96,.12); color: var(--success); }
+  .badge-draft { background: rgba(127,140,141,.12); color: var(--mist); }
+  .card-wrap { background: var(--white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: 0 2px 12px rgba(58,46,34,.07); }
+  .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid var(--linen); }
+  .card-header h3 { font-family: 'Pogonia', serif; font-size: 1.25rem; color: var(--bark); }
+  .action-group { display: flex; gap: .4rem; }
+  .btn-sm-danger { padding: .3rem .65rem; font-size: .78rem; border-radius: 6px; background: rgba(192,57,43,.1); color: var(--danger); border: none; cursor: pointer; }
+  .btn-sm-danger:hover { background: rgba(192,57,43,.2); }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <h1>Stories</h1>
+  <a href="{{ url_for('admin.add_blog') }}" class="btn btn-amber"><i class="fas fa-plus"></i> New Post</a>
+</div>
+
+<div class="card-wrap">
+  <div class="card-header">
+    <h3>All Posts <span style="font-size:.85rem;color:var(--mist);font-family:'DM Sans',sans-serif">({{ pagination.total }})</span></h3>
+  </div>
+
+  {% if posts %}
+    <table class="blog-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Title</th>
+          <th>Author</th>
+          <th>Category</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for post in posts %}
+          <tr>
+            <td style="color:var(--mist)">#{{ post.id }}</td>
+            <td><strong>{{ post.title }}</strong><br/><span style="font-size:.78rem;color:var(--mist)">{{ post.short_description[:60] + '...' if post.short_description and post.short_description|length > 60 else (post.short_description or '') }}</span></td>
+            <td>{{ post.author }}</td>
+            <td>{{ post.category or '—' }}</td>
+            <td><span class="badge badge-{{ 'published' if post.is_published else 'draft' }}">{{ 'Published' if post.is_published else 'Draft' }}</span></td>
+            <td style="font-size:.8rem;color:var(--mist)">{{ post.created_at.strftime('%b %d, %Y') }}</td>
+            <td>
+              <div class="action-group">
+                <a href="{{ url_for('admin.edit_blog', post_id=post.id) }}" class="btn-sm-edit"><i class="fas fa-edit"></i> Edit</a>
+                <form method="POST" action="{{ url_for('admin.delete_blog', post_id=post.id) }}" onsubmit="return confirm('Delete this post?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <button type="submit" class="btn-sm-danger"><i class="fas fa-trash"></i></button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div style="text-align:center;padding:3rem;color:var(--mist)">
+      <i class="fas fa-pen-nib" style="font-size:2.5rem;margin-bottom:1rem;display:block;opacity:.3"></i>
+      No blog posts yet. <a href="{{ url_for('admin.add_blog') }}" style="color:var(--teal)">Create your first post</a>.
+    </div>
+  {% endif %}
+</div>
+
+{% if pagination.pages > 1 %}
+<div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+  {% for p in pagination.iter_pages() %}
+    {% if p %}
+      <a href="?page={{ p }}"
+         class="btn btn-sm {% if p == pagination.page %}btn-amber{% else %}btn-outline{% endif %}">{{ p }}</a>
+    {% else %}
+      <span style="padding:.3rem .5rem;color:var(--mist)">…</span>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

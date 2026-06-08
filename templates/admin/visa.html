@@ -1,0 +1,102 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Visa Management — Admin{% endblock %}
+
+{% block admin_styles %}
+<style>
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .87rem;
+  }
+
+  .admin-table th {
+    text-align: left;
+    padding: 1rem 1rem;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--mist);
+    border-bottom: 1px solid var(--linen);
+    font-weight: 600;
+  }
+
+  .admin-table td {
+    padding: 1.2rem 1rem;
+    border-bottom: 1px solid var(--linen);
+    color: var(--bark);
+    vertical-align: middle;
+  }
+
+  .admin-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .admin-table tr:hover td {
+    background: #faf6f0;
+  }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <h1>Visa Management</h1>
+  <a href="{{ url_for('admin.visa_add') }}" class="btn btn-amber">
+    <i class="fas fa-plus"></i> Add Country
+  </a>
+</div>
+
+<div style="background:var(--white);border-radius:var(--radius-lg);box-shadow:0 2px 12px rgba(58,46,34,.07);overflow:hidden;">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Flag</th>
+        <th>Country</th>
+        <th>Requirements</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for visa in visas %}
+      <tr>
+        <td style="font-size:1.5rem;">{{ visa.flag_emoji or '🌍' }}</td>
+        <td><strong>{{ visa.country_name }}</strong></td>
+        <td style="max-width:300px;color:var(--mist);font-size:.85rem;">
+          {% if visa.requirements_pdf %}
+          <a href="/uploads/visa_requirements/{{ visa.requirements_pdf }}" target="_blank" style="color:var(--teal);text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;"><i class="fas fa-file-pdf"></i> {{ visa.requirements_pdf }}</a>
+          {% else %}
+          —
+          {% endif %}
+        </td>
+        <td>
+          {% if visa.is_active %}
+          <span class="badge badge-success">Active</span>
+          {% else %}
+          <span class="badge badge-danger">Inactive</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{{ url_for('admin.visa_edit', visa_id=visa.id) }}" class="btn-sm-edit">
+            <i class="fas fa-edit"></i> Edit
+          </a>
+          <form method="POST" action="{{ url_for('admin.visa_delete', visa_id=visa.id) }}" style="display:inline"
+            onsubmit="return confirm('Delete this visa entry?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <button type="submit" class="btn btn-danger btn-sm">
+              <i class="fas fa-trash"></i>
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5" style="text-align:center;padding:3rem;color:var(--mist);">
+          <i class="fas fa-passport" style="font-size:2rem;opacity:.3;display:block;margin-bottom:.5rem;"></i>
+          No visa entries yet. Add your first country!
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

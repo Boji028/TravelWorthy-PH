@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}My Profile — Travel Worthy PH{% endblock %}
+
+{% block extra_styles %}
+<style>
+  .profile-wrap { max-width: 900px; margin: 3rem auto; padding: 0 2rem; }
+  .profile-header {
+    display: flex; align-items: center; gap: 1.5rem;
+    background: var(--white); border-radius: var(--radius-lg);
+    padding: 1.75rem 2rem; box-shadow: 0 2px 12px rgba(58,46,34,.07); margin-bottom: 2rem;
+  }
+  .avatar {
+    width: 72px; height: 72px;
+    background: linear-gradient(135deg, var(--teal), var(--teal-d));
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-family: 'Pogonia', serif; font-size: 1.8rem; color: var(--white); flex-shrink: 0;
+  }
+  .profile-name { font-family: 'Pogonia', serif; font-size: 1.6rem; font-weight: 600; color: var(--bark); }
+  .profile-meta { font-size: .85rem; color: var(--mist); margin-top: .25rem; }
+  .profile-meta span { margin-right: 1.2rem; }
+  .admin-badge {
+    background: var(--amber); color: var(--white); font-size: .72rem;
+    padding: .2rem .7rem; border-radius: 999px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .06em;
+  }
+  .section-label {
+    font-size: .8rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .1em; color: var(--mist); margin-bottom: 1rem;
+  }
+  .booking-row {
+    background: var(--white); border-radius: var(--radius); padding: 1.2rem 1.5rem;
+    margin-bottom: .75rem; display: grid; grid-template-columns: 1fr auto;
+    align-items: center; gap: 1rem; box-shadow: 0 1px 6px rgba(58,46,34,.06); transition: box-shadow .15s;
+  }
+  .booking-row:hover { box-shadow: 0 4px 16px rgba(58,46,34,.1); }
+  .booking-pkg { font-weight: 500; color: var(--bark); margin-bottom: .3rem; }
+  .booking-meta { font-size: .82rem; color: var(--mist); display: flex; gap: 1rem; }
+  .booking-meta i { color: var(--teal); margin-right: .2rem; }
+  .empty-state { text-align: center; padding: 3rem; color: var(--mist); background: var(--white); border-radius: var(--radius-lg); }
+  .empty-state i { font-size: 2.5rem; opacity: .3; display: block; margin-bottom: .75rem; }
+
+  /* Password change card */
+  .pw-card {
+    background: var(--white); border-radius: var(--radius-lg);
+    padding: 1.75rem 2rem; box-shadow: 0 2px 12px rgba(58,46,34,.07); margin-bottom: 2rem;
+  }
+  .pw-card h3 { font-size: 1.05rem; color: var(--bark); margin-bottom: 1.2rem; }
+  .pw-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+  @media(max-width:680px) { .pw-grid { grid-template-columns: 1fr; } }
+  .pw-grid label { font-size: .83rem; color: var(--mist); display: block; margin-bottom: .3rem; }
+  .pw-grid input {
+    width: 100%; padding: .55rem .85rem; border: 1px solid var(--sand-d);
+    border-radius: var(--radius); font-size: .9rem; outline: none; box-sizing: border-box;
+  }
+  .pw-grid input:focus { border-color: var(--teal); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-wrap">
+
+  <!-- Profile header -->
+  <div class="profile-header">
+    <div class="avatar">{{ current_user.name[0].upper() }}</div>
+    <div>
+      <div class="profile-name">
+        {{ current_user.name }}
+        {% if current_user.is_admin %}<span class="admin-badge">Admin</span>{% endif %}
+      </div>
+      <div class="profile-meta">
+        <span><i class="fas fa-envelope" style="color:var(--teal);margin-right:.3rem"></i>{{ current_user.email }}</span>
+        {% if current_user.phone %}
+          <span><i class="fas fa-phone" style="color:var(--teal);margin-right:.3rem"></i>{{ current_user.phone }}</span>
+        {% endif %}
+        <span><i class="fas fa-calendar" style="color:var(--teal);margin-right:.3rem"></i>Joined {{ current_user.created_at.strftime('%B %Y') }}</span>
+      </div>
+    </div>
+    <div style="margin-left:auto">
+      <a href="{{ url_for('bookings.my_bookings') }}" class="btn btn-outline btn-sm">View All Bookings</a>
+    </div>
+  </div>
+
+  <!-- Change password -->
+  <div class="pw-card">
+    <h3><i class="fas fa-lock" style="color:var(--teal);margin-right:.5rem"></i>Change Password</h3>
+    <form method="POST" action="{{ url_for('auth.profile') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="pw-grid">
+        <div>
+          <label for="current_password">Current password</label>
+          <input type="password" id="current_password" name="current_password" required placeholder="••••••">
+        </div>
+        <div>
+          <label for="new_password">New password</label>
+          <input type="password" id="new_password" name="new_password" required placeholder="Min 6 characters">
+        </div>
+        <div>
+          <label for="confirm_password">Confirm new password</label>
+          <input type="password" id="confirm_password" name="confirm_password" required placeholder="Repeat new password">
+        </div>
+      </div>
+      <div style="margin-top:1rem">
+        <button type="submit" class="btn btn-primary btn-sm">Update Password</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Recent bookings -->
+  <div class="section-label">Recent Bookings</div>
+  {% if bookings %}
+    {% for booking in bookings[:5] %}
+      <div class="booking-row">
+        <div>
+          <div class="booking-pkg">{{ booking.package.title }}</div>
+          <div class="booking-meta">
+            <span><i class="fas fa-location-dot"></i>{{ booking.package.destination }}</span>
+            <span><i class="fas fa-calendar-check"></i>{{ booking.travel_date.strftime('%b %d, %Y') }}</span>
+            <span><i class="fas fa-users"></i>{{ booking.num_travelers }} traveler{{ 's' if booking.num_travelers > 1 }}</span>
+            <span><i class="fas fa-peso-sign"></i>{{ "{:,.0f}".format(booking.total_price) }}</span>
+          </div>
+        </div>
+        <div>
+          <span class="badge badge-{{ booking.status }}">{{ booking.status.title() }}</span>
+        </div>
+      </div>
+    {% endfor %}
+    {% if bookings|length > 5 %}
+      <div style="text-align:center;margin-top:1.5rem">
+        <a href="{{ url_for('bookings.my_bookings') }}" class="btn btn-ghost">See all {{ bookings|length }} bookings</a>
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="empty-state">
+      <i class="fas fa-suitcase-rolling"></i>
+      <p>No bookings yet. <a href="{{ url_for('packages.list_packages') }}" style="color:var(--teal)">Explore packages →</a></p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

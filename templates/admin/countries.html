@@ -1,0 +1,79 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Countries — {{ continent.name }}{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+  <div>
+    <div
+      style="font-size:.75rem; text-transform:uppercase; letter-spacing:.1em; color:var(--amber); font-weight:600; margin-bottom:.25rem;">
+      <i class="fas fa-earth-asia"></i> Manage
+    </div>
+    <h2 style="font-family:'Pogonia',serif; font-size:1.9rem; color:var(--bark); margin:0;">{{ continent.flag_emoji or
+      '🌍' }} {{ continent.name }} — Countries</h2>
+  </div>
+  <div style="display:flex; gap:.75rem; align-items:center;">
+    <a href="{{ url_for('admin.continents') }}" style="
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    color: var(--amber);
+    font-size: .65rem;
+    font-weight: 600;
+    text-decoration: none;
+    padding: .4rem 1rem;
+    border: 1.5px solid var(--amber);
+    border-radius: 999px;
+    transition: all .2s;
+    " onmouseover="this.style.background='var(--amber)';this.style.color='white'"
+      onmouseout="this.style.background='transparent';this.style.color='var(--amber)'">
+      ↩ Back
+    </a>
+    <a href="{{ url_for('admin.add_country', continent_id=continent.id) }}" class="btn btn-primary">+ Add Country</a>
+  </div>
+</div>
+
+<table
+  style="width:100%; border-collapse:collapse; background:white; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,.07);">
+  <thead style="background:var(--teal); color:white;">
+    <tr>
+      <th style="padding:1rem; text-align:center; width:80px;">Emoji</th>
+      <th style="padding:1rem; text-align:center; width:200px;">Name</th>
+      <th style="padding:1rem; text-align:center; width:120px;">Status</th>
+      <th style="padding:1rem; text-align:center; width:160px;">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for country in countries %}
+    <tr style="border-bottom:1px solid #f0ebe3;">
+      <td style="padding:1rem; text-align:center; font-size:1.4rem;">{{ country.flag_emoji or '🏳️' }}</td>
+      <td style="padding:1rem; text-align:center; font-weight:600; color:var(--bark);">{{ country.name }}</td>
+      <td style="padding:1rem; text-align:center;">
+        {% if country.is_active %}
+        <span
+          style="background:#d4edda; color:#155724; padding:.2rem .7rem; border-radius:999px; font-size:.8rem;">Active</span>
+        {% else %}
+        <span
+          style="background:#f8d7da; color:#721c24; padding:.2rem .7rem; border-radius:999px; font-size:.8rem;">Inactive</span>
+        {% endif %}
+      </td>
+      <td style="padding:1rem; text-align:center;">
+        <div style="display:flex; gap:.5rem; justify-content:center;">
+          <a href="{{ url_for('admin.edit_country', country_id=country.id) }}" class="btn-sm-edit"><i class="fas fa-edit"></i> Edit</a>
+          <form method="POST" action="{{ url_for('admin.delete_country', country_id=country.id) }}"
+            onsubmit="return confirm('Delete this country?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+          </form>
+        </div>
+      </td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="4" style="padding:2rem; text-align:center; color:#8fa8a3;">No countries added yet. <a
+          href="{{ url_for('admin.add_country', continent_id=continent.id) }}" style="color:var(--teal)">Add one →</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

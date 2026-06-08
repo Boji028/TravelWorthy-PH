@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+{% block title %}Visa Requirements — Travel Worthy PH{% endblock %}
+{% block extra_styles %}
+<style>
+  input[type="date"]::-webkit-datetime-edit {
+    color: var(--mist);
+    font-weight: 400;
+  }
+</style>
+{% endblock %}
+{% block content %}
+
+<!-- HERO -->
+<div
+  style="background:linear-gradient(135deg,var(--teal-d),#3a9088);color:white;padding:3.5rem 2rem;text-align:center;">
+  <h1 style="font-family:'Pogonia',serif;font-size:2.8rem;font-weight:300;margin-bottom:.5rem;">Visa Assistance</h1>
+  <p style="opacity:.8;">Select a country to view it's Visa requirements</p>
+</div>
+
+<!-- COUNTRIES GRID -->
+<div style="max-width:1280px;margin:3rem auto;padding:0 2rem;">
+  {% if countries %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1.5rem;">
+    {% for country in countries %}
+    <div
+      style="background:var(--white);border-radius:var(--radius-lg);box-shadow:0 2px 12px rgba(58,46,34,.07);overflow:hidden;transition:transform .2s,box-shadow .2s;"
+      onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 32px rgba(58,46,34,.15)'"
+      onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 2px 12px rgba(58,46,34,.07)'">
+
+      <!-- Card Header -->
+      {% if country.country_image %}
+      <div style="height:140px;overflow:hidden;">
+        <img src="/uploads/{{ country.country_image }}" style="width:100%;height:100%;object-fit:cover;" />
+      </div>
+      <div style="padding:.75rem 1rem;text-align:center;border-bottom:1px solid var(--linen);">
+        <div style="font-family:'Pogonia',serif;font-size:1.1rem;font-weight:600;color:var(--bark);">{{
+          country.country_name }}</div>
+        {% if country.price %}
+        <div style="font-size:.95rem;color:var(--amber);font-weight:600;margin-top:.25rem;">₱{{
+          "{:,.0f}".format(country.price) }}</div>
+        {% else %}
+        <div style="font-size:.82rem;color:var(--mist);margin-top:.25rem;">Price upon request</div>
+        {% endif %}
+      </div>
+      {% else %}
+      <div style="background:linear-gradient(135deg,var(--teal-d),#3a9088);padding:1.5rem;text-align:center;">
+        <div style="font-size:3rem;margin-bottom:.5rem;">{{ country.flag_emoji or '🌍' }}</div>
+        <div style="font-family:'Pogonia',serif;font-size:1.2rem;color:white;font-weight:600;">{{ country.country_name
+          }}</div>
+      </div>
+      {% endif %}
+
+      <!-- Card Buttons -->
+      <div style="padding:1.25rem;display:flex;flex-direction:column;gap:.75rem;">
+        {% if country.requirements_pdf %}
+        <button onclick="openPdfViewer('{{ country.requirements_pdf }}', '{{ country.country_name }}')"
+          class="btn btn-primary" style="width:100%;justify-content:center;">
+          <i class="fas fa-file-pdf"></i> View Requirements
+        </button>
+        {% else %}
+        <button disabled class="btn btn-ghost" style="width:100%;justify-content:center;opacity:.5;cursor:not-allowed;">
+          <i class="fas fa-file-pdf"></i> No PDF Yet
+        </button>
+        {% endif %}
+
+        <button onclick="openAssistantForm('{{ country.country_name }}')" class="btn btn-amber"
+          style="width:100%;justify-content:center;">
+          <i class="fas fa-headset"></i> Inquire Now
+        </button>
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:5rem 2rem;color:var(--mist);">
+    <i class="fas fa-passport" style="font-size:3rem;opacity:.3;display:block;margin-bottom:1rem;"></i>
+    <p>No visa information available yet. Please check back soon!</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- PDF VIEWER MODAL -->
+<div id="pdf-overlay"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:8000;align-items:center;justify-content:center;padding:1rem;">
+  <div
+    style="background:var(--white);border-radius:var(--radius-lg);width:100%;max-width:800px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 16px 64px rgba(0,0,0,.3);">
+    <!-- Header -->
+    <div
+      style="background:linear-gradient(135deg,var(--teal-d),#3a9088);padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;">
+      <h3 id="pdf-title" style="font-family:'Pogonia',serif;color:white;margin:0;font-size:1.3rem;"></h3>
+      <button onclick="closePdfViewer()"
+        style="background:rgba(255,255,255,.2);border:none;color:white;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1.1rem;">✕</button>
+    </div>
+    <!-- PDF Embed -->
+    <iframe id="pdf-frame" src="" style="flex:1;border:none;min-height:500px;"></iframe>
+    <!-- Footer -->
+    <div
+      style="padding:1rem 1.5rem;border-top:1px solid var(--linen);display:flex;justify-content:space-between;align-items:center;">
+      <a id="pdf-download" href="" target="_blank" class="btn btn-ghost btn-sm">
+        <i class="fas fa-download"></i> Download PDF
+      </a>
+      <button onclick="closePdfViewer()" class="btn btn-ghost btn-sm">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ASSISTANT FORM MODAL -->
+<div id="assistant-overlay"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:8000;align-items:center;justify-content:center;padding:1rem;">
+  <div
+    style="background:var(--white);border-radius:var(--radius-lg);max-width:560px;width:100%;box-shadow:0 16px 64px rgba(58,46,34,.22);overflow:hidden;display:flex;flex-direction:column;max-height:90vh;">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,var(--amber),#c87941);padding:1.5rem 2rem;color:white;">
+      <div style="font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;opacity:.8;margin-bottom:.25rem;">Get Help</div>
+      <h2 style="font-family:'Pogonia',serif;font-size:1.5rem;margin:0;">Request a Visa Assistant</h2>
+      <p id="assistant-subtitle" style="margin:.25rem 0 0;opacity:.85;font-size:.88rem;"></p>
+    </div>
+
+    <!-- Form -->
+    <div style="padding:1.5rem 2rem 1rem;overflow-y:auto;flex:1;">
+      <div id="visa-form-msg"
+        style="display:none;padding:.75rem 1rem;border-radius:var(--radius);margin-bottom:1rem;font-size:.88rem;"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
+        <div>
+          <label style="font-size:.78rem;font-weight:600;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:.3rem;">Full Name <span style="color:var(--danger)">*</span></label>
+          <input id="visa-name" type="text" class="form-control" placeholder="Your name" style="width:100%;box-sizing:border-box;" />
+        </div>
+        <div>
+          <label style="font-size:.78rem;font-weight:600;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:.3rem;">Email <span style="color:var(--danger)">*</span></label>
+          <input id="visa-email" type="email" class="form-control" placeholder="you@email.com" style="width:100%;box-sizing:border-box;" />
+        </div>
+      </div>
+
+      <div style="margin-bottom:.75rem;">
+        <label style="font-size:.78rem;font-weight:600;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:.3rem;">Contact Number <span style="color:var(--danger)">*</span></label>
+        <input id="visa-phone" type="tel" class="form-control" placeholder="+63 9XX XXX XXXX" style="width:50%;box-sizing:border-box;" />
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
+        <div>
+          <label style="font-size:.78rem;font-weight:600;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:.3rem;">Travel Date From <span style="color:var(--danger)">*</span></label>
+          <input id="visa-date-from" type="date" class="form-control" style="width:100%;box-sizing:border-box;" />
+        </div>
+        <div>
+          <label style="font-size:.78rem;font-weight:600;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:.3rem;">Travel Date To <span style="color:var(--danger)">*</span></label>
+          <input id="visa-date-to" type="date" class="form-control" style="width:100%;box-sizing:border-box;" />
+        </div>
+      </div>
+
+      <div style="margin-bottom:.75rem;">
+        <label style="font-size:.78rem;font-weight:600;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:.3rem;">Destination</label>
+        <input id="visa-destination" type="text" class="form-control" readonly style="width:100%;box-sizing:border-box;background:var(--sand);" />
+      </div>
+
+      <div style="margin-bottom:.5rem;">
+        <label style="font-size:.78rem;font-weight:600;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:.3rem;">Message / Special Requests</label>
+        <textarea id="visa-message" class="form-control" rows="3" placeholder="Any questions about the visa process..." style="width:100%;box-sizing:border-box;resize:vertical;"></textarea>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:.75rem 2rem 1.5rem;display:flex;gap:.75rem;justify-content:flex-end;border-top:1px solid var(--linen);">
+      <button onclick="closeAssistantForm()" class="btn btn-ghost">Cancel</button>
+      <button onclick="submitVisaForm()" id="visa-submit-btn" class="btn btn-amber">
+        <i class="fas fa-paper-plane"></i> Send Message
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ── PDF Viewer ──
+  function openPdfViewer(filename, countryName) {
+    const url = '/uploads/' + filename;
+    document.getElementById('pdf-title').textContent = 'Requirements for ' + countryName;
+    document.getElementById('pdf-frame').src = url;
+    document.getElementById('pdf-download').href = url;
+    document.getElementById('pdf-overlay').style.display = 'flex';
+  }
+
+  function closePdfViewer() {
+    document.getElementById('pdf-overlay').style.display = 'none';
+    document.getElementById('pdf-frame').src = '';
+  }
+
+  // ── Assistant Form ──
+  function openAssistantForm(countryName) {
+    document.getElementById('assistant-subtitle').textContent = 'For: ' + countryName;
+    document.getElementById('visa-destination').value = countryName;
+    document.getElementById('visa-form-msg').style.display = 'none';
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('visa-date-from').min = today;
+    document.getElementById('visa-date-to').min = today;
+    document.getElementById('assistant-overlay').style.display = 'flex';
+  }
+
+  function closeAssistantForm() {
+    document.getElementById('assistant-overlay').style.display = 'none';
+  }
+
+  function submitVisaForm() {
+    const name = document.getElementById('visa-name').value.trim();
+    const email = document.getElementById('visa-email').value.trim();
+    const phone = document.getElementById('visa-phone').value.trim();
+    const travelers = 1;
+    const dateFrom = document.getElementById('visa-date-from').value;
+    const dateTo = document.getElementById('visa-date-to').value;
+    const dest = document.getElementById('visa-destination').value.trim();
+    const message = document.getElementById('visa-message').value.trim();
+    const msgEl = document.getElementById('visa-form-msg');
+
+    if (!name || !email || !phone || !dateFrom || !dateTo) {
+      msgEl.style.display = 'block';
+      msgEl.style.background = '#fde8e8';
+      msgEl.style.color = 'var(--danger)';
+      msgEl.textContent = 'Please fill in all required fields.';
+      return;
+    }
+
+    if (dateTo < dateFrom) {
+      msgEl.style.display = 'block';
+      msgEl.style.background = '#fde8e8';
+      msgEl.style.color = 'var(--danger)';
+      msgEl.textContent = 'Return date must be after departure date.';
+      return;
+    }
+
+    const btn = document.getElementById('visa-submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('email', email);
+    formData.append('contact_number', phone);
+    formData.append('destination', dest);
+    formData.append('travel_date_from', dateFrom);
+    formData.append('travel_date_to', dateTo);
+    formData.append('num_travelers', travelers || 1);
+    formData.append('special_requests', '[FOR VISA] ' + message);
+    formData.append('csrf_token', '{{ csrf_token() }}');
+
+    fetch('{{ url_for("bookings.plan_my_trip") }}', {
+      method: 'POST',
+      body: formData
+    })
+      .then(r => {
+        if (r.ok || r.redirected) {
+          msgEl.style.display = 'block';
+          msgEl.style.background = '#d4edda';
+          msgEl.style.color = '#155724';
+          msgEl.textContent = '✓ Your request has been sent! We will contact you shortly.';
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Message';
+          ['visa-name', 'visa-email', 'visa-phone', 'visa-message', 'visa-date-from', 'visa-date-to'].forEach(id => {
+            document.getElementById(id).value = '';
+          });
+          setTimeout(closeAssistantForm, 2500);
+        } else {
+          throw new Error('Server error');
+        }
+      })
+      .catch(() => {
+        msgEl.style.display = 'block';
+        msgEl.style.background = '#fde8e8';
+        msgEl.style.color = 'var(--danger)';
+        msgEl.textContent = 'Something went wrong. Please try again.';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Message';
+      });
+  }
+
+  // Close modals on overlay click
+  document.getElementById('pdf-overlay').addEventListener('click', function (e) {
+    if (e.target === this) closePdfViewer();
+  });
+  document.getElementById('assistant-overlay').addEventListener('click', function (e) {
+    if (e.target === this) closeAssistantForm();
+  });
+</script>
+
+{% endblock %}

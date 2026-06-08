@@ -1,0 +1,43 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Edit Country — Admin{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <h1>Edit Country</h1>
+  <a href="{{ url_for('admin.countries', continent_id=country.continent_id) }}" class="btn btn-ghost"><i
+      class="fas fa-arrow-left"></i> Back</a>
+</div>
+
+<div
+  style="background:var(--white);border-radius:var(--radius-lg);padding:2rem;box-shadow:0 2px 12px rgba(58,46,34,.07);max-width:600px;">
+  <form method="POST" action="{{ url_for('admin.edit_country', country_id=country.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <div class="form-row" style="display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:end;">
+      <div class="form-group">
+        <label>Country Name <span style="color:var(--danger)">*</span></label>
+        <input type="text" name="name" class="form-control" required value="{{ country.name }}" />
+      </div>
+      <div class="form-group">
+        <label>Flag Emoji</label>
+        <input type="text" name="flag_emoji" class="form-control" value="{{ country.flag_emoji or '' }}"
+          style="width:80px;text-align:center;font-size:1.5rem;" />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Description</label>
+      <textarea name="description" class="form-control" rows="3">{{ country.description or '' }}</textarea>
+    </div>
+
+    <div class="form-group" style="display:flex;align-items:center;gap:.5rem">
+      <input type="checkbox" name="is_active" id="is_active" {{ 'checked' if country.is_active }} />
+      <label for="is_active" style="margin:0">Active (visible to users)</label>
+    </div>
+
+    <div style="display:flex;gap:1rem;margin-top:1.5rem">
+      <button type="submit" class="btn btn-amber">Save Changes</button>
+      <a href="{{ url_for('admin.countries', continent_id=country.continent_id) }}" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block title %}My Bookings — Travel Worthy PH{% endblock %}
+
+{% block extra_styles %}
+<style>
+  .bookings-wrap {
+    max-width: 960px;
+    margin: 3rem auto;
+    padding: 0 2rem;
+  }
+
+  .page-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+  }
+
+  .booking-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(58,46,34,.07);
+    margin-bottom: 1rem;
+    display: grid;
+    grid-template-columns: 120px 1fr auto;
+    transition: box-shadow .2s;
+  }
+
+  .booking-card:hover { box-shadow: 0 6px 24px rgba(58,46,34,.12); }
+
+  .booking-thumb {
+    width: 120px;
+    height: 100%;
+    min-height: 100px;
+    object-fit: cover;
+    background: var(--linen);
+  }
+
+  .booking-thumb-placeholder {
+    width: 120px;
+    min-height: 100px;
+    background: linear-gradient(135deg, var(--linen), #d4c9b6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: var(--mist);
+  }
+
+  .booking-info { padding: 1.25rem 1.5rem; }
+
+  .booking-pkg-title {
+    font-family: 'Pogonia', serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--bark);
+    margin-bottom: .25rem;
+  }
+
+  .booking-dest {
+    font-size: .82rem;
+    color: var(--teal);
+    margin-bottom: .75rem;
+  }
+
+  .booking-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+  }
+
+  .bchip {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    background: var(--sand);
+    border-radius: 999px;
+    padding: .2rem .75rem;
+    font-size: .78rem;
+    color: var(--bark);
+  }
+
+  .bchip i { color: var(--teal); }
+
+  .booking-actions {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+
+  .booking-price {
+    font-family: 'Pogonia', serif;
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--amber);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 5rem 2rem;
+    color: var(--mist);
+    background: var(--white);
+    border-radius: var(--radius-lg);
+  }
+
+  .empty-state i { font-size: 3rem; opacity: .3; display: block; margin-bottom: 1rem; }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 2px 12px rgba(58,46,34,.07);
+    text-align: center;
+  }
+
+  .stat-num {
+    font-family: 'Pogonia', serif;
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--teal);
+  }
+
+  .stat-label { font-size: .8rem; color: var(--mist); margin-top: .2rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bookings-wrap">
+  <div class="page-heading">
+    <div>
+      <div class="section-title">My Bookings</div>
+      <div class="section-sub">Track and manage all your travel reservations</div>
+    </div>
+    <a href="{{ url_for('packages.list_packages') }}" class="btn btn-amber btn-sm">
+      <i class="fas fa-plus"></i> New Booking
+    </a>
+  </div>
+
+  {% if bookings %}
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num">{{ bookings|length }}</div>
+        <div class="stat-label">Total Bookings</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">{{ bookings|selectattr('status','eq','confirmed')|list|length }}</div>
+        <div class="stat-label">Confirmed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--amber)">
+          ₱{{ "{:,.0f}".format(bookings|sum(attribute='total_price')) }}
+        </div>
+        <div class="stat-label">Total Spent</div>
+      </div>
+    </div>
+
+    {% for booking in bookings %}
+      <div class="booking-card">
+        {% if booking.package.image and booking.package.image != 'default_tour.jpg' %}
+          <img class="booking-thumb" src="/uploads/{{ booking.package.image }}" alt="{{ booking.package.title }}"/>
+        {% else %}
+          <div class="booking-thumb-placeholder"><i class="fas fa-mountain"></i></div>
+        {% endif %}
+
+        <div class="booking-info">
+          <div class="booking-pkg-title">{{ booking.package.title }}</div>
+          <div class="booking-dest"><i class="fas fa-location-dot"></i> {{ booking.package.destination }}</div>
+          <div class="booking-chips">
+            <span class="bchip"><i class="fas fa-calendar-check"></i>{{ booking.travel_date.strftime('%b %d, %Y') }}</span>
+            <span class="bchip"><i class="fas fa-users"></i>{{ booking.num_travelers }} traveler{{ 's' if booking.num_travelers > 1 }}</span>
+            <span class="bchip"><i class="fas fa-clock"></i>{{ booking.package.duration_days }}d</span>
+            <span class="bchip"><i class="fas fa-receipt"></i>Booking #{{ booking.id }}</span>
+          </div>
+          {% if booking.special_requests %}
+            <div style="font-size:.8rem;color:var(--mist);margin-top:.6rem"><i class="fas fa-note-sticky" style="color:var(--amber);margin-right:.3rem"></i>{{ booking.special_requests }}</div>
+          {% endif %}
+        </div>
+
+        <div class="booking-actions">
+          <span class="badge badge-{{ booking.status }}">{{ booking.status.title() }}</span>
+          <div>
+            <div class="booking-price">₱{{ "{:,.0f}".format(booking.total_price) }}</div>
+            {% if booking.status != 'cancelled' %}
+              <form method="POST" action="{{ url_for('bookings.cancel_booking', booking_id=booking.id) }}" style="margin-top:.5rem" onsubmit="return confirm('Cancel this booking?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button type="submit" class="btn btn-danger btn-sm" style="width:100%">
+                  <i class="fas fa-xmark"></i> Cancel
+                </button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state">
+      <i class="fas fa-suitcase-rolling"></i>
+      <p>No bookings yet. Ready for an adventure?</p>
+      <a href="{{ url_for('packages.list_packages') }}" class="btn btn-amber" style="margin-top:1rem">Browse Packages</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

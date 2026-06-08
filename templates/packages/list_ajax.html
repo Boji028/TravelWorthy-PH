@@ -1,0 +1,34 @@
+{% for pkg in packages %}
+  <div class="pkg-card">
+    {% if pkg.image and pkg.image != 'default_tour.jpg' %}
+      <img class="pkg-img" src="/uploads/{{ pkg.image }}" alt="{{ pkg.title }}"/>
+    {% else %}
+      <div class="pkg-img-placeholder"><i class="fas fa-mountain"></i></div>
+    {% endif %}
+    <div class="pkg-body">
+      <div class="pkg-destination"><i class="fas fa-location-dot"></i>{{ pkg.destination }}</div>
+      <div class="pkg-title">{{ pkg.title }}</div>
+      <div class="pkg-desc">{{ pkg.description }}</div>
+      <div class="pkg-meta">
+        <div class="pkg-price">{% if pkg.currency == 'USD' %}${% elif pkg.currency == 'EUR' %}€{% else %}₱{% endif %}{{ "{:,.0f}".format(pkg.price) }}</div>
+        <div class="pkg-info">
+          <span><i class="fas fa-clock"></i>{{ pkg.duration_days }}d</span>
+          <span><i class="fas fa-users"></i>{{ pkg.available_slots }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="pkg-footer">
+      <a href="{{ url_for('packages.package_detail', package_id=pkg.id) }}" class="btn btn-outline btn-sm">Details</a>
+      {% if pkg.available_slots > 0 %}
+        <a href="{{ url_for('bookings.inquire_package', package_id=pkg.id) }}" class="btn btn-amber btn-sm">Inquire Now</a>
+      {% else %}
+        <span class="sold-out">Sold Out</span>
+      {% endif %}
+    </div>
+  </div>
+{% else %}
+  <div class="empty-state">
+    <i class="fas fa-search"></i>
+    <p>No packages found.</p>
+  </div>
+{% endfor %}

@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block extra_styles %}
+<style>
+  .admin-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    height: auto;
+  }
+
+  .admin-sidebar {
+    background: var(--bark);
+    padding: 1.75rem 0;
+    position: sticky;
+    top: 68px;
+    height: fit-content;
+    overflow-y: auto;
+  }
+
+  .sidebar-label {
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: #6a5c4a;
+    padding: .5rem 1.5rem;
+    margin-top: 1rem;
+  }
+
+  .sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .7rem 1.5rem;
+    color: #a08c74;
+    text-decoration: none;
+    font-size: .88rem;
+    transition: background .15s, color .15s;
+    margin: .1rem .75rem;
+    border-radius: var(--radius);
+  }
+
+  .sidebar-link:hover,
+  .sidebar-link.active {
+    background: rgba(200, 135, 74, .12);
+    color: var(--amber);
+  }
+
+  .sidebar-link i {
+    width: 18px;
+    text-align: center;
+  }
+
+  .admin-main {
+    background: #f7f2ec;
+    padding: 2rem;
+    overflow-x: hidden;
+  }
+
+  .admin-header {
+    margin-bottom: 1.75rem;
+  }
+
+  .admin-header h1 {
+    font-family: 'Pogonia', serif;
+    font-size: 1.9rem;
+    color: var(--bark);
+  }
+
+  .admin-header p {
+    font-size: .88rem;
+    color: var(--mist);
+  }
+</style>
+{% block admin_styles %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+  <!-- SIDEBAR -->
+  <aside class="admin-sidebar">
+    <div style="padding:0 1.5rem 1.25rem;border-bottom:1px solid #4a3d2f;margin-bottom:.5rem">
+      <div style="font-family:'Pogonia',serif;font-size:1.1rem;color:var(--sand)">Admin Panel</div>
+      <div style="font-size:.78rem;color:#6a5c4a">{{ current_user.name }}</div>
+    </div>
+
+    <div class="sidebar-label">Overview</div>
+    <a href="{{ url_for('admin.dashboard') }}"
+      class="sidebar-link {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+      <i class="fas fa-gauge-high"></i> Dashboard
+    </a>
+
+    <div class="sidebar-label">Manage</div>
+    <a href="{{ url_for('admin.packages') }}"
+      class="sidebar-link {% if 'packages' in request.endpoint %}active{% endif %}">
+      <i class="fas fa-suitcase"></i> Packages
+    </a>
+    <a href="{{ url_for('admin.continents') }}"
+      class="sidebar-link {% if 'continent' in request.endpoint %}active{% endif %}">
+      🌍 Continents
+    </a>
+    <a href="{{ url_for('admin.bookings') }}"
+      class="sidebar-link {% if request.endpoint == 'admin.bookings' %}active{% endif %}">
+      <i class="fas fa-calendar-check"></i> Bookings
+    </a>
+    <a href="{{ url_for('admin.users') }}"
+      class="sidebar-link {% if request.endpoint == 'admin.users' %}active{% endif %}">
+      <i class="fas fa-users"></i> Users
+    </a>
+    <a href="{{ url_for('admin.inquiries') }}"
+      class="sidebar-link {% if request.endpoint == 'admin.inquiries' %}active{% endif %}">
+      <i class="fas fa-envelope-open-text"></i> Inquiries
+    </a>
+    <a href="{{ url_for('admin.contact_messages') }}"
+      class="sidebar-link {% if 'contact_messages' in request.endpoint %}active{% endif %}">
+      <i class="fas fa-inbox"></i> Messages
+    </a>
+    <a href="{{ url_for('admin.blog') }}" class="sidebar-link {% if 'blog' in request.endpoint %}active{% endif %}">
+      <i class="fas fa-pen-nib"></i> Stories
+    </a>
+    <a href="{{ url_for('admin.visa_list') }}"
+      class="sidebar-link {% if 'visa' in request.endpoint %}active{% endif %}">
+      <i class="fas fa-passport"></i> Visa
+    </a>
+    <a href="{{ url_for('admin.testimonials') }}"
+      class="sidebar-link {% if 'testimonials' in request.endpoint %}active{% endif %}">
+      <i class="fas fa-star"></i> Reviews
+    </a>
+
+    <div class="sidebar-label">Site</div>
+    <a href="{{ url_for('main.home') }}" class="sidebar-link">
+      <i class="fas fa-house"></i> View Site
+    </a>
+    <a href="{{ url_for('auth.logout') }}" class="sidebar-link">
+      <i class="fas fa-arrow-right-from-bracket"></i> Logout
+    </a>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="admin-main">
+    {% block admin_content %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

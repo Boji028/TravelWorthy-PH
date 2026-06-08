@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Travel Worthy PH{% endblock %}</title>
+  <meta name="csrf-token" content="{{ csrf_token() }}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  {% block extra_styles %}{% endblock %}
+</head>
+
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <a href="{{ url_for('main.home') }}" class="nav-logo"
+        style="display:flex; align-items:center; gap:.2rem; text-decoration:none;">
+        <img src="{{ url_for('static', filename='images/LOGO.jpg') }}"
+          style="height:70px; width:70px; object-fit:contain;" />
+        <span
+          style="font-family:'Pogonia', serif; font-size:2rem; font-weight:bold; color:var(--teal); line-height:0.8; letter-spacing:-.5px;">
+          Travel<br />Worthy
+        </span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="{{ url_for('main.home') }}" {% if request.endpoint=='main.home' %}class="active" {% endif
+            %}>Home</a></li>
+        <li><a href="{{ url_for('packages.list_packages') }}" {% if request.endpoint=='packages.list_packages'
+            %}class="active" {% endif %}>Packages</a></li>
+        <li><a href="{{ url_for('packages.visa') }}" {% if request.endpoint=='packages.visa' %}class="active" {% endif
+            %}>Visa</a></li>
+        <li><a href="{{ url_for('blog.blog_list') }}" {% if request.endpoint and 'blog' in request.endpoint
+            %}class="active" {% endif %}>Stories</a></li>
+        <li><a href="{{ url_for('main.about') }}">About</a></li>
+        <li><a href="{{ url_for('main.reviews') }}" {% if request.endpoint=='main.reviews' %}class="active" {% endif
+            %}>Reviews</a></li>
+        <li><a href="{{ url_for('main.contact') }}">Contact Us</a></li>
+
+        <li><a href="{{ url_for('bookings.plan_my_trip') }}" class="btn-nav">✈ Plan My Trip</a></li>
+        <li style="flex:1"></li>
+        {% if current_user.is_authenticated %}
+        <li class="dropdown">
+          <a href="#" class="dropdown-toggle btn-nav">{{ current_user.name.split()[0] }} ▾</a>
+          <ul class="dropdown-menu">
+            <li><a href="{{ url_for('bookings.my_bookings') }}">My Bookings</a></li>
+            {% if current_user.is_admin %}
+            <li><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
+            {% endif %}
+            <li><a href="{{ url_for('auth.profile') }}">My Profile</a></li>
+            <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
+          </ul>
+        </li>
+        {% else %}
+        <li><a href="{{ url_for('auth.login') }}">Login</a></li>
+        <li><a href="{{ url_for('auth.register') }}" class="btn-nav">Sign Up</a></li>
+        {% endif %}
+      </ul>
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+        <i class="fas fa-bars"></i>
+      </button>
+    </div>
+  </nav>
+
+  <!-- FLASH MESSAGES -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-wrap">
+    {% for category, message in messages %}
+    <div class="flash {{ category }}">
+      <i
+        class="fas {% if category == 'success' %}fa-check-circle{% elif category == 'danger' %}fa-exclamation-circle{% elif category == 'warning' %}fa-triangle-exclamation{% else %}fa-info-circle{% endif %}"></i>
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+
+  <!-- MAIN -->
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <div>
+        <div class="footer-brand"><i class="fas fa-compass"></i> Travel Worthy <span
+            style="color:var(--amber)">PH</span></div>
+        <p>Crafting unforgettable journeys since 2019. We believe travel is not just a destination — it's a
+          transformation.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Explore</h4>
+        <ul>
+          <li><a href="{{ url_for('packages.list_packages') }}">All Packages</a></li>
+          <li><a href="{{ url_for('main.about') }}">About Us</a></li>
+          <li><a href="{{ url_for('main.contact') }}">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Account</h4>
+        <ul>
+          {% if current_user.is_authenticated %}
+          <li><a href="{{ url_for('auth.profile') }}">My Profile</a></li>
+          <li><a href="{{ url_for('bookings.my_bookings') }}">My Bookings</a></li>
+          <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
+          {% else %}
+          <li><a href="{{ url_for('auth.login') }}">Login</a></li>
+          <li><a href="{{ url_for('auth.register') }}">Register</a></li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 Travel Worthy PH. All rights reserved.</span>
+      <span>Made with <i class="fas fa-heart" style="color:var(--amber)"></i> for explorers</span>
+    </div>
+  </footer>
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+
+</html>

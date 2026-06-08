@@ -1,0 +1,236 @@
+"""Centralized form validation using Flask-WTF and WTForms."""
+from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileAllowed
+from wtforms import (
+    StringField, PasswordField, BooleanField, TextAreaField,
+    IntegerField, FloatField, SelectField, DateField
+)
+from wtforms.validators import (
+    DataRequired, Email, Length, EqualTo, Optional,
+    Regexp, NumberRange, ValidationError
+)
+from datetime import date
+import re
+
+
+class StrongPasswordValidator:
+    """Custom validator for password requirements (8+ chars, 1 uppercase, 1 digit)."""
+
+    def __init__(self, message: str = 'Password must be at least 8 characters with 1 uppercase and 1 digit'):
+        self.message = message
+
+    def __call__(self, form, field):
+        if len(field.data) < 8:
+            raise ValidationError('Password must be at least 8 characters.')
+        if not re.search(r'[A-Z]', field.data):
+            raise ValidationError('Password must contain at least one uppercase letter.')
+        if not re.search(r'[0-9]', field.data):
+            raise ValidationError('Password must contain at least one digit.')
+
+
+class UniqueEmailValidator:
+    """Validator to check if email already exists in database."""
+
+    def __init__(self, message: str = 'Email already registered'):
+        self.message = message
+
+    def __call__(self, form, field):
+        from app import db
+        from models.user import User
+        existing_user = User.query.filter_by(email=field.data).first()
+        if existing_user:
+            raise ValidationError(self.message)
+
+
+class RegisterForm(FlaskForm):
+    """User registration form with validation."""
+    name = StringField('Full Name', validators=[
+        DataRequired('Name is required'),
+        Length(min=2, max=100, message='Name must be 2-100 characters')
+    ])
+    email = StringField('Email', validators=[
+        DataRequired('Email is required'),
+        Email('Invalid email format'),
+        UniqueEmailValidator('Email already registered')
+    ])
+    phone = StringField('Phone', validators=[
+        Optional(),
+        Regexp(r'^\+?1?\d{9,15}$', message='Invalid phone number format')
+    ])
+    password = PasswordField('Password', validators=[
+        DataRequired('Password is required'),
+        StrongPasswordValidator()
+    ])
+    confirm_password = PasswordField('Confirm Password', validators=[
+        DataRequired('Password confirmation is required'),
+        EqualTo('password', message='Passwords must match')
+    ])
+
+
+class LoginForm(FlaskForm):
+    """User login form with validation."""
+    email = StringField('Email', validators=[
+        DataRequired('Email is required'),
+        Email('Invalid email format')
+    ])
+    password = PasswordField('Password', validators=[
+        DataRequired('Password is required')
+    ])
+    remember = BooleanField('Remember Me')
+
+
+class ChangePasswordForm(FlaskForm):
+    """Change password form with validation."""
+    current_password = PasswordField('Current Password', validators=[
+        DataRequired('Current password is required')
+    ])
+    new_password = PasswordField('New Password', validators=[
+        DataRequired('New password is required'),
+        StrongPasswordValidator()
+    ])
+    confirm_password = PasswordField('Confirm New Password', validators=[
+        DataRequired('Password confirmation is required'),
+        EqualTo('new_password', message='Passwords must match')
+    ])
+
+
+class ContactForm(FlaskForm):
+    """Contact message form with validation."""
+    name = StringField('Name', validators=[
+        DataRequired('Name is required'),
+        Length(min=2, max=100, message='Name must be 2-100 characters')
+    ])
+    email = StringField('Email', validators=[
+        DataRequired('Email is required'),
+        Email('Invalid email format')
+    ])
+    subject = StringField('Subject', validators=[
+        DataRequired('Subject is required'),
+        Length(min=5, max=200, message='Subject must be 5-200 characters')
+    ])
+    message = TextAreaField('Message', validators=[
+        DataRequired('Message is required'),
+        Length(min=10, max=5000, message='Message must be 10-5000 characters')
+    ])
+
+
+class BookingForm(FlaskForm):
+    """Tour booking form with validation."""
+    num_travelers = IntegerField('Number of Travelers', validators=[
+        DataRequired('Number of travelers is required'),
+        NumberRange(min=1, max=100, message='Must be 1-100 travelers')
+    ])
+    travel_date = DateField('Travel Date', validators=[
+        DataRequired('Travel date is required')
+    ])
+    end_travel_date = DateField('End Travel Date', validators=[
+        Optional()
+    ])
+    contact_number = StringField('Contact Number', validators=[
+        DataRequired('Contact number is required'),
+        Regexp(r'^\+?1?\d{9,15}$', message='Invalid phone number format')
+    ])
+    special_requests = TextAreaField('Special Requests', validators=[
+        Optional(),
+        Length(max=2000, message='Special requests must be under 2000 characters')
+    ])
+
+    # FIX: cross-field validation — end date must be after start date
+    def validate_end_travel_date(self, field):
+        if field.data and self.travel_date.data:
+            if field.data < self.travel_date.data:
+                raise ValidationError('End date must be on or after the travel start date.')
+
+    # FIX: travel date must be in the future (form-level, complements the route check)
+    def validate_travel_date(self, field):
+        if field.data and field.data < date.today():
+            raise ValidationError('Travel date must be in the future.')
+
+
+class InquiryForm(FlaskForm):
+    """Trip inquiry form with validation."""
+    name = StringField('Full Name', validators=[
+        DataRequired('Name is required'),
+        Length(min=2, max=100, message='Name must be 2-100 characters')
+    ])
+    email = StringField('Email', validators=[
+        DataRequired('Email is required'),
+        Email('Invalid email format')
+    ])
+    contact_number = StringField('Contact Number', validators=[
+        DataRequired('Contact number is required'),
+        Regexp(r'^\+?1?\d{9,15}$', message='Invalid phone number format')
+    ])
+    destination = StringField('Destination', validators=[
+        DataRequired('Destination is required'),
+        Length(min=2, max=200, message='Destination must be 2-200 characters')
+    ])
+    travel_date_from = DateField('Travel From', validators=[
+        DataRequired('Start date is required')
+    ])
+    travel_date_to = DateField('Travel To', validators=[
+        DataRequired('End date is required')
+    ])
+    num_adults = IntegerField('Number of Adults', validators=[
+        DataRequired('Number of adults is required'),
+        NumberRange(min=1, max=100, message='Must be 1-100 adults')
+    ])
+    num_children = IntegerField('Number of Children', validators=[
+        Optional(),
+        NumberRange(min=0, max=100, message='Must be 0-100 children')
+    ])
+    num_infants = IntegerField('Number of Infants', validators=[
+        Optional(),
+        NumberRange(min=0, max=100, message='Must be 0-100 infants')
+    ])
+    special_requests = TextAreaField('Special Requests', validators=[
+        Optional(),
+        Length(max=2000, message='Special requests must be under 2000 characters')
+    ])
+
+    # FIX: cross-field date validation for inquiry form as well
+    def validate_travel_date_to(self, field):
+        if field.data and self.travel_date_from.data:
+            if field.data < self.travel_date_from.data:
+                raise ValidationError('Return date must be on or after the departure date.')
+
+
+class TourPackageForm(FlaskForm):
+    """Tour package form for admin."""
+    title = StringField('Package Title', validators=[
+        DataRequired('Title is required'),
+        Length(min=5, max=200, message='Title must be 5-200 characters')
+    ])
+    description = TextAreaField('Description', validators=[
+        DataRequired('Description is required'),
+        Length(min=20, max=5000, message='Description must be 20-5000 characters')
+    ])
+    destination = StringField('Destination', validators=[
+        DataRequired('Destination is required'),
+        Length(min=2, max=150, message='Destination must be 2-150 characters')
+    ])
+    country_id = IntegerField('Country', validators=[Optional()])
+    duration_days = IntegerField('Duration (days)', validators=[
+        DataRequired('Duration is required'),
+        NumberRange(min=1, max=365, message='Duration must be 1-365 days')
+    ])
+    price = FloatField('Price', validators=[
+        DataRequired('Price is required'),
+        NumberRange(min=0.01, message='Price must be greater than 0')
+    ])
+    currency = SelectField('Currency', choices=[('PHP', 'PHP'), ('USD', 'USD'), ('EUR', 'EUR')], default='PHP')
+    max_slots = IntegerField('Max Slots', validators=[
+        DataRequired('Max slots is required'),
+        NumberRange(min=1, max=1000, message='Max slots must be 1-1000')
+    ])
+    inclusions = TextAreaField('Inclusions', validators=[
+        Optional(),
+        Length(max=2000, message='Inclusions must be under 2000 characters')
+    ])
+    exclusions = TextAreaField('Exclusions', validators=[
+        Optional(),
+        Length(max=2000, message='Exclusions must be under 2000 characters')
+    ])
+    image = FileField('Package Image', validators=[
+        FileAllowed(['jpg', 'jpeg', 'png', 'gif', 'webp'], 'Image files only (jpg, jpeg, png, gif, webp)')
+    ])

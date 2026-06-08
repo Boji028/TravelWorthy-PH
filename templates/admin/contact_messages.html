@@ -1,0 +1,204 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Contact Messages — Admin{% endblock %}
+
+{% block admin_styles %}
+<style>
+  .card-wrap {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: 0 2px 12px rgba(58, 46, 34, .07);
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--linen);
+  }
+
+  .card-header h3 {
+    font-family: 'Pogonia', serif;
+    font-size: 1.25rem;
+    color: var(--bark);
+  }
+
+  .messages-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .87rem;
+  }
+
+  .messages-table th {
+    text-align: left;
+    padding: .6rem .75rem;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--mist);
+    border-bottom: 1px solid var(--linen);
+    font-weight: 600;
+  }
+
+  .messages-table td {
+    padding: .85rem .75rem;
+    border-bottom: 1px solid var(--linen);
+    color: var(--bark);
+    vertical-align: top;
+  }
+
+  .messages-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .messages-table tr:hover td {
+    background: var(--sand);
+  }
+
+  .messages-table tr.unread td {
+    background: #fffbf5;
+  }
+
+  .messages-table tr.unread td:first-child {
+    border-left: 3px solid var(--amber);
+  }
+
+  .action-group {
+    display: flex;
+    gap: .4rem;
+  }
+
+  .btn-sm-danger {
+    padding: .3rem .65rem;
+    font-size: .78rem;
+    border-radius: 6px;
+    background: rgba(192, 57, 43, .1);
+    color: var(--danger);
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-sm-danger:hover {
+    background: rgba(192, 57, 43, .2);
+  }
+
+  .btn-sm-read {
+    padding: .3rem .65rem;
+    font-size: .78rem;
+    border-radius: 6px;
+    background: rgba(39, 174, 96, .1);
+    color: var(--success);
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .btn-sm-read:hover {
+    background: rgba(39, 174, 96, .2);
+  }
+
+  .unread-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--amber);
+    margin-right: .4rem;
+  }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <h1>Contact Messages</h1>
+  <p>Messages submitted via the contact form.</p>
+</div>
+
+<div class="card-wrap">
+  <div class="card-header">
+    <h3>All Messages
+      <span style="font-size:.85rem;color:var(--mist);font-family:'DM Sans',sans-serif">
+        ({{ pagination.total }})
+      </span>
+    </h3>
+  </div>
+
+  {% if messages %}
+  <table class="messages-table">
+    <thead>
+      <tr>
+        <th>From</th>
+        <th>Subject</th>
+        <th>Message</th>
+        <th>Received</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for msg in messages %}
+      <tr class="{{ 'unread' if not msg.is_read }}">
+        <td>
+          {% if not msg.is_read %}<span class="unread-dot"></span>{% endif %}
+          <strong>{{ msg.name }}</strong><br>
+          <span style="font-size:.78rem;color:var(--teal)">{{ msg.email }}</span>
+          {% if msg.user %}
+          <br><span
+            style="font-size:.72rem;background:rgba(39,174,96,.12);color:var(--success);padding:.1rem .4rem;border-radius:4px;">
+            <i class="fas fa-user-check"></i> Registered User
+          </span>
+          {% endif %}
+        </td>
+        <td>{{ msg.subject }}</td>
+        <td style="max-width:320px;color:var(--mist);font-size:.83rem">
+          {{ msg.message[:120] }}{{ '...' if msg.message|length > 120 }}
+        </td>
+        <td style="font-size:.8rem;color:var(--mist);white-space:nowrap">
+          {{ msg.created_at.strftime('%b %d, %Y') }}
+        </td>
+        <td>
+          <div class="action-group">
+            {% if not msg.is_read %}
+            <form method="POST" action="{{ url_for('admin.mark_message_read', message_id=msg.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button type="submit" class="btn-sm-read">
+                <i class="fas fa-check"></i> Mark Read
+              </button>
+            </form>
+            {% endif %}
+            <form method="POST" action="{{ url_for('admin.delete_contact_message', message_id=msg.id) }}"
+              onsubmit="return confirm('Delete this message?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button type="submit" class="btn-sm-danger">
+                <i class="fas fa-trash"></i>
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if pagination.pages > 1 %}
+  <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+    {% for p in pagination.iter_pages() %}
+    {% if p %}
+    <a href="?page={{ p }}" class="btn btn-sm {% if p == pagination.page %}btn-amber{% else %}btn-outline{% endif %}">{{
+      p }}</a>
+    {% else %}
+    <span style="padding:.3rem .5rem;color:var(--mist)">…</span>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div style="text-align:center;padding:3rem;color:var(--mist)">
+    <i class="fas fa-inbox" style="font-size:2.5rem;margin-bottom:1rem;display:block;opacity:.3"></i>
+    No messages yet.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

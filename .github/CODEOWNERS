@@ -1,0 +1,84 @@
+# CODEOWNERS file for Travel Agency Repository
+# This file identifies individuals or teams responsible for code in this repository.
+# GitHub uses this file to suggest reviewers for PRs.
+
+# Documentation
+*.md                             @admin-team
+docs/                           @admin-team
+
+# GitHub workflows and CI/CD
+.github/                        @devops-team @admin-team
+.github/workflows/              @devops-team
+
+# Root configuration files
+*.yml                           @devops-team
+*.yaml                          @devops-team
+.env*                           @devops-team
+.bandit                         @devops-team
+.flake8                         @devops-team
+pyproject.toml                  @devops-team
+requirements.txt                @devops-team
+
+# Application code
+app.py                          @backend-team @admin-team
+run.py                          @backend-team @admin-team
+
+# Routes (API endpoints)
+routes/                         @backend-team
+routes/__init__.py              @backend-team
+routes/auth.py                  @auth-team @backend-team
+routes/admin.py                 @admin-team
+routes/main.py                  @backend-team
+routes/packages.py              @backend-team
+routes/bookings.py              @backend-team
+routes/blog.py                  @backend-team
+
+# Models (Database)
+models/                         @database-team @backend-team
+models/__init__.py              @database-team
+models/user.py                  @database-team @auth-team
+models/booking.py               @database-team
+models/package.py               @database-team
+models/inquiry.py               @database-team
+
+# Services
+email_service.py                @email-team
+email_verification_service.py   @email-team
+image_service.py                @backend-team
+backup_service.py               @devops-team
+backup_scheduler.py             @devops-team
+logging_service.py              @devops-team
+
+# Testing
+tests/                          @qa-team @backend-team
+pytest.ini                      @qa-team
+conftest.py                     @qa-team
+
+# Static files
+static/                         @frontend-team
+static/css/                     @frontend-team
+static/js/                      @frontend-team
+static/images/                  @frontend-team
+
+# Templates
+templates/                      @frontend-team
+templates/auth/                 @auth-team @frontend-team
+templates/admin/                @admin-team @frontend-team
+
+# Scripts and utilities
+scripts/                        @backend-team @devops-team
+utils.py                        @backend-team
+decorators.py                   @backend-team
+constants.py                    @backend-team
+
+# Database and migrations
+migrations/                     @database-team
+migrations/versions/            @database-team
+
+# Docker
+Dockerfile                      @devops-team
+docker-compose.yml              @devops-team
+.dockerignore                   @devops-team
+
+# Default reviewers (for files not matched above)
+*                               @admin-team

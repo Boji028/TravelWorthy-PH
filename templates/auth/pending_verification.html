@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Verify Your Email{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body p-5">
+                    <h2 class="card-title text-center mb-4">Email Verification</h2>
+                    
+                    <div class="alert alert-info">
+                        <p class="mb-0">
+                            A verification email has been sent to <strong>{{ email }}</strong>. 
+                            Please check your email and click the verification link to activate your account.
+                        </p>
+                    </div>
+
+                    <p class="text-muted text-center mt-4">
+                        <small>The verification link will expire in 24 hours.</small>
+                    </p>
+
+                    <div class="text-center mt-4">
+                        <p class="mb-3">Didn't receive the email?</p>
+                        <a href="{{ url_for('auth.resend_verification') }}" class="btn btn-outline-primary btn-sm">
+                            Resend Verification Email
+                        </a>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="text-center">
+                        <p class="text-muted">
+                            <small>Already verified? <a href="{{ url_for('auth.login') }}">Login here</a></small>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 p-3 bg-light rounded">
+                <h6 class="text-muted">What's next?</h6>
+                <ul class="small text-muted mb-0">
+                    <li>Check your email inbox and spam folder</li>
+                    <li>Click the verification link in the email</li>
+                    <li>Your account will be activated immediately</li>
+                    <li>You can then log in and start booking tours</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

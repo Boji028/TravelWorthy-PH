@@ -1,0 +1,190 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Testimonials & Reviews — Admin{% endblock %}
+
+{% block admin_styles %}
+<style>
+  .testimonial-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(58, 46, 34, .07);
+    border-left: 4px solid var(--teal);
+  }
+
+  .testimonial-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+  }
+
+  .testimonial-user {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .user-info h4 {
+    margin: 0;
+    color: var(--bark);
+    font-size: .95rem;
+  }
+
+  .user-info p {
+    margin: 0;
+    font-size: .82rem;
+    color: var(--mist);
+  }
+
+  .testimonial-rating {
+    color: var(--amber);
+    font-size: .9rem;
+  }
+
+  .testimonial-message {
+    color: #6a5c4a;
+    font-size: .92rem;
+    line-height: 1.6;
+    margin: 1rem 0;
+  }
+
+  .testimonial-images {
+    display: flex;
+    gap: .75rem;
+    margin: 1rem 0;
+    flex-wrap: wrap;
+  }
+
+  .testimonial-img {
+    width: 80px;
+    height: 80px;
+    border-radius: var(--radius);
+    object-fit: cover;
+  }
+
+  .testimonial-footer {
+    display: flex;
+    gap: .75rem;
+    flex-wrap: wrap;
+    padding-top: 1rem;
+    border-top: 1px solid var(--linen);
+  }
+
+  .btn-sm {
+    padding: .4rem .8rem;
+    font-size: .82rem;
+  }
+
+  .actions {
+    display: flex;
+    gap: .5rem;
+  }
+
+  @media (max-width: 600px) {
+    .testimonial-header {
+      flex-direction: column;
+    }
+
+    .actions {
+      flex-direction: column;
+      width: 100%;
+    }
+
+    .actions form {
+      display: inline;
+    }
+
+    .actions .btn-sm {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <h1>Testimonials & Reviews</h1>
+  <p>Manage customer reviews and remove photos as needed</p>
+</div>
+
+{% if testimonials %}
+<div style="max-width: 900px; margin: 0 auto;">
+  {% for testimonial in testimonials %}
+  <div class="testimonial-card">
+    <div class="testimonial-header">
+      <div class="testimonial-user">
+        <div class="user-info">
+          <h4>{{ testimonial.user.name }}</h4>
+          <p>{{ testimonial.created_at.strftime('%B %d, %Y') }}</p>
+        </div>
+      </div>
+      <div class="testimonial-rating">
+        {% for i in range(testimonial.rating) %}
+          <i class="fas fa-star"></i>
+        {% endfor %}
+        {% for i in range(5 - testimonial.rating) %}
+          <i class="fas fa-star" style="color: var(--linen);"></i>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="testimonial-message">
+      {{ testimonial.message }}
+    </div>
+
+    {% if testimonial.image %}
+    <div class="testimonial-images">
+      {% for img_path in testimonial.image.split(',') %}
+        <img src="/uploads/{{ img_path.strip() }}" alt="Review photo" class="testimonial-img" />
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="testimonial-footer">
+      <div class="actions">
+        {% if testimonial.image %}
+          <form method="POST" action="{{ url_for('admin.delete_testimonial_photo', testimonial_id=testimonial.id) }}" style="display: inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Remove all photos from this testimonial?')">
+              <i class="fas fa-image-slash"></i> Remove Photos
+            </button>
+          </form>
+        {% endif %}
+      </div>
+      <div style="font-size: .82rem; color: var(--mist);">
+        ID: #{{ testimonial.id }} | User: {{ testimonial.user.email }}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+  <!-- Pagination -->
+  {% if pagination.pages > 1 %}
+  <div style="text-align: center; margin-top: 2rem; padding: 1.5rem; background: var(--white); border-radius: var(--radius-lg);">
+    {% if pagination.has_prev %}
+      <a href="{{ url_for('admin.testimonials', page=pagination.prev_num) }}" class="btn btn-outline btn-sm">
+        <i class="fas fa-chevron-left"></i> Previous
+      </a>
+    {% endif %}
+
+    <span style="margin: 0 1rem; color: var(--mist); font-size: .9rem;">
+      Page {{ pagination.page }} of {{ pagination.pages }}
+    </span>
+
+    {% if pagination.has_next %}
+      <a href="{{ url_for('admin.testimonials', page=pagination.next_num) }}" class="btn btn-outline btn-sm">
+        Next <i class="fas fa-chevron-right"></i>
+      </a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% else %}
+<div style="max-width: 900px; margin: 3rem auto; padding: 2rem; background: var(--white); border-radius: var(--radius-lg); text-align: center;">
+  <i class="fas fa-star" style="font-size: 3rem; color: var(--mist); opacity: 0.5; display: block; margin-bottom: 1rem;"></i>
+  <h3 style="color: var(--mist);">No testimonials yet</h3>
+  <p style="color: var(--mist);">Customer reviews will appear here once users submit them.</p>
+</div>
+{% endif %}
+{% endblock %}

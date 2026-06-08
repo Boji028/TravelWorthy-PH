@@ -1,0 +1,47 @@
+[flake8]
+# Flake8 configuration for Python code style checking
+
+# Maximum line length
+max-line-length = 127
+
+# Maximum cyclomatic complexity
+max-complexity = 10
+
+# Excluded directories
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    env,
+    .env,
+    build,
+    dist,
+    *.egg-info,
+    .pytest_cache,
+    .mypy_cache,
+    migrations
+
+# Ignore specific errors/warnings
+# E501: line too long (handled by black)
+# W503: line break before binary operator
+# E203: whitespace before ':'
+# F841: local variable assigned but never used (false positives)
+ignore = E501, W503, E203
+
+# Per-file ignores
+per-file-ignores =
+    __init__.py:F401
+    migrations/*:E501,F401
+
+# Formatting style
+indent-size = 4
+
+# Show statistics
+statistics = True
+
+# Show source code
+show-source = True
+
+# Show pep8 errors
+show-pep8 = True

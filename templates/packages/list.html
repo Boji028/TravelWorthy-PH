@@ -1,0 +1,625 @@
+{% extends "base.html" %}
+{% block title %}Tour Packages — Travel Worthy PH{% endblock %}
+
+{% block extra_styles %}
+<style>
+  .page-hero {
+    background: linear-gradient(135deg, var(--teal-d), #3a9088);
+    color: var(--white);
+    padding: 3.5rem 2rem;
+    text-align: center;
+  }
+
+  .page-hero h1 {
+    font-family: 'Pogonia', serif;
+    font-size: 2.8rem;
+    font-weight: 300;
+    margin-bottom: .5rem;
+  }
+
+  .page-hero p {
+    opacity: .8;
+  }
+
+  /* ── COUNTRY TABS ── */
+  .country-tabs {
+    max-width: 1280px;
+    margin: 1.5rem auto 0;
+    padding: 0 2rem;
+  }
+
+  .country-tabs-inner {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+  }
+
+  .country-tab {
+    padding: .4rem 1rem;
+    border-radius: 999px;
+    font-size: .82rem;
+    text-decoration: none;
+    border: 1px solid var(--linen);
+    background: var(--white);
+    color: var(--mist);
+    cursor: pointer;
+    transition: background .2s, color .2s, border-color .2s, transform .15s;
+    height: 32px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .country-tab:hover {
+    background: var(--linen);
+    color: var(--bark);
+    transform: translateY(-1px);
+  }
+
+  .country-tab.active {
+    background: var(--amber);
+    color: white;
+    border-color: var(--amber);
+  }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    background: var(--white);
+    padding: 1rem 2rem;
+    position: sticky;
+    top: 68px;
+    z-index: 50;
+  }
+
+  .filter-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .filter-label {
+    font-size: .8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--mist);
+  }
+
+  .filter-input {
+    border: 1.5px solid var(--linen);
+    border-radius: var(--radius);
+    padding: .5rem 1rem;
+    font-family: 'Pogonia', sans-serif;
+    font-size: .88rem;
+    color: var(--ink);
+    outline: none;
+    transition: border-color .18s;
+    background: var(--white);
+  }
+
+  .filter-input:focus {
+    border-color: var(--teal);
+  }
+
+  /* ── PACKAGES AREA ── */
+  .packages-wrap {
+    max-width: 1280px;
+    margin: 2.5rem auto;
+    padding: 0 2rem;
+  }
+
+  .results-info {
+    font-size: .88rem;
+    color: var(--mist);
+    margin-bottom: 1.5rem;
+    min-height: 1.4em;
+    transition: opacity .2s;
+  }
+
+  /* ── CARDS GRID ── */
+  .packages-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+    transition: opacity .25s ease;
+  }
+
+  .packages-grid.loading {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  .pkg-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    transition: transform .3s ease, box-shadow .3s ease;
+    box-shadow: 0 2px 12px rgba(58, 46, 34, .07);
+    animation: cardIn .3s ease both;
+    display: flex;
+    flex-direction: column;
+  }
+
+  @keyframes cardIn {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .pkg-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 16px 48px rgba(58, 46, 34, .16);
+  }
+
+  .pkg-img {
+    width: 100%;
+    height: 350px;
+    object-fit: contain;
+    transition: transform .4s ease;
+    cursor: pointer;
+  }
+
+  .pkg-card:hover .pkg-img {
+    transform: scale(1.04);
+  }
+
+  .pkg-img-placeholder {
+    width: 100%;
+    height: 240px;
+    background: linear-gradient(135deg, var(--linen), #d4c9b6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: var(--mist);
+  }
+
+  .pkg-body {
+    padding: 1.4rem;
+  }
+
+  .pkg-destination {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .78rem;
+    color: var(--teal);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    margin-bottom: .5rem;
+    flex: 1;
+
+  }
+
+  .pkg-title {
+    font-family: 'Pogonia', serif;
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--bark);
+    margin-bottom: .5rem;
+    line-height: 1.3;
+    min-height: 3.9rem;
+  }
+
+  .pkg-desc {
+    font-size: .85rem;
+    color: var(--mist);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .pkg-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 1rem;
+    border-top: 1px solid var(--linen);
+  }
+
+  .pkg-price {
+    font-family: 'Pogonia', serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--amber);
+  }
+
+  .pkg-price span {
+    font-size: .78rem;
+    color: var(--mist);
+    font-weight: 400;
+  }
+
+  .pkg-info {
+    display: flex;
+    gap: .75rem;
+    font-size: .8rem;
+    color: var(--mist);
+  }
+
+  .pkg-info i {
+    color: var(--teal);
+    margin-right: .2rem;
+  }
+
+  .pkg-footer {
+    padding: 1rem 1.4rem;
+    background: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .sold-out {
+    background: #f8d7da;
+    color: var(--danger);
+    font-size: .75rem;
+    font-weight: 600;
+    padding: .25rem .65rem;
+    border-radius: 999px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 5rem 2rem;
+    color: var(--mist);
+    grid-column: 1/-1;
+  }
+
+  .empty-state i {
+    font-size: 3rem;
+    opacity: .3;
+    display: block;
+    margin-bottom: 1rem;
+  }
+
+  /* ── LOADING SPINNER ── */
+  .spinner {
+    display: none;
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--linen);
+    border-top-color: var(--amber);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    margin: 3rem auto;
+    grid-column: 1/-1;
+  }
+
+  .spinner.visible {
+    display: block;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* ── LIGHTBOX ── */
+.lightbox {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, .85);
+  z-index: 9999;
+  cursor: pointer;
+}
+
+.lightbox.active {
+  display: grid;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox img {
+  max-width: 560px;
+  width: 85vw;
+  height: auto;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: 0;
+  box-shadow: none;
+  cursor: zoom-in;
+}
+
+.lightbox-close {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  color: white;
+  font-size: 2.5rem;
+  cursor: pointer;
+  z-index: 10000;
+  background: var(--amber);
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: background .2s;
+}
+
+.lightbox-close:hover {
+  background: var(--bark);
+}
+
+  .continent-dropdown {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .continent-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: 0 8px 24px rgba(58, 46, 34, .15);
+    min-width: 180px;
+    z-index: 999;
+    padding: .5rem 0;
+    margin-top: 0;
+    /* changed from .3rem */
+  }
+
+  .continent-menu a {
+    display: block;
+    padding: .6rem 1.2rem;
+    color: var(--bark);
+    text-decoration: none;
+    font-size: .88rem;
+    transition: background .2s;
+  }
+
+  .continent-menu a:hover {
+    background: var(--sand);
+    color: var(--teal);
+  }
+
+  .continent-dropdown:hover .continent-menu {
+    display: block;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <h1>Explore Our Packages</h1>
+  <p id="hero-subtitle">{{ active_country.name + ' Packages' if active_country else 'Handpicked tours to the world\'s
+    most stunning destinations' }}</p>
+</div>
+
+{% if continents %}
+<div style="background:var(--white);padding:1rem 2rem;">
+  <div style="max-width:1280px;margin:0 auto;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+
+    <a class="country-tab {% if not active_continent %}active{% endif %}"
+      href="{{ url_for('packages.list_packages') }}">
+      🌐 All
+    </a>
+
+    {% for continent in continents %}
+    <div class="continent-dropdown">
+      <a class="country-tab {% if active_continent and active_continent.id == continent.id %}active{% endif %}"
+        href="{{ url_for('packages.list_packages', continent_id=continent.id) }}">
+        {{ continent.flag_emoji or '' }} {{ continent.name }} ▾
+      </a>
+      <div class="continent-menu">
+        <a href="{{ url_for('packages.list_packages', continent_id=continent.id) }}">
+          All {{ continent.name }}
+        </a>
+        {% for country in continent.countries %}
+        {% if country.is_active %}
+        <a href="{{ url_for('packages.list_packages', continent_id=continent.id, country_id=country.id) }}" {% if
+          active_country and active_country.id==country.id %}style="color:var(--amber);font-weight:600;" {% endif %}>
+          {{ country.flag_emoji or '' }} {{ country.name }}
+        </a>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+
+  </div>
+</div>
+{% endif %}
+
+
+<div class="filter-bar">
+  <div class="filter-inner">
+    <span class="filter-label">Filter:</span>
+    <input class="filter-input" id="filter-destination" type="text" placeholder="Destination…"
+      value="{{ request.args.get('destination','') }}" />
+    <button type="button" class="btn btn-primary btn-sm" id="btn-apply">
+      <i class="fas fa-filter"></i> Apply
+    </button>
+    <button type="button" class="btn btn-ghost btn-sm" id="btn-clear"
+      style="display:{% if request.args.get('destination') %}inline-flex{% else %}none{% endif %}">
+      Clear
+    </button>
+  </div>
+</div>
+
+<div class="packages-wrap">
+  <div class="results-info" id="results-info">
+    Showing <strong>{{ packages|length }}</strong> package{{ 's' if packages|length != 1 }}
+    {% if request.args.get('destination') %}for <strong>{{ request.args.get('destination') }}</strong>{% endif %}
+  </div>
+
+  <div class="packages-grid" id="packages-grid">
+    {% include 'packages/list_ajax.html' %}
+  </div>
+
+  {% if pagination.pages > 1 %}
+  <div style="display:flex;justify-content:center;gap:.5rem;margin-top:2rem;">
+    {% if pagination.has_prev %}
+    <a href="?page={{ pagination.prev_num }}" class="country-tab">← Prev</a>
+    {% endif %}
+    {% for p in pagination.iter_pages() %}
+    {% if p %}
+    <a href="?page={{ p }}" class="country-tab {% if p == pagination.page %}active{% endif %}">{{ p }}</a>
+    {% else %}
+    <span style="padding:.4rem">…</span>
+    {% endif %}
+    {% endfor %}
+    {% if pagination.has_next %}
+    <a href="?page={{ pagination.next_num }}" class="country-tab">Next →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
+  <img id="lightbox-img" src="" alt="" onclick="event.stopPropagation()" />
+</div>
+
+<script>
+  // ── State ──
+  let activeCountryId = "{{ active_country.id if active_country else '' }}";
+  let activeDestination = "{{ request.args.get('destination','') }}";
+
+  const grid = document.getElementById('packages-grid');
+  const resultsInfo = document.getElementById('results-info');
+  const filterInput = document.getElementById('filter-destination');
+  const btnClear = document.getElementById('btn-clear');
+  const heroSubtitle = document.getElementById('hero-subtitle');
+
+  // ── AJAX Fetch ──
+  function fetchPackages({ countryId = activeCountryId, destination = activeDestination } = {}) {
+    const params = new URLSearchParams();
+    if (countryId) params.set('country_id', countryId);
+    if (destination) params.set('destination', destination);
+
+    const url = `{{ url_for('packages.list_packages') }}?${params.toString()}`;
+
+    // Update browser URL without reload
+    history.pushState({}, '', url);
+
+    // Show loading state
+    grid.classList.add('loading');
+
+    fetch(url, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+      .then(r => r.text())
+      .then(html => {
+        grid.innerHTML = html;
+        grid.classList.remove('loading');
+
+        // Stagger card animations
+        grid.querySelectorAll('.pkg-card').forEach((card, i) => {
+          card.style.animationDelay = `${i * 40}ms`;
+        });
+
+        // Count visible cards
+        const count = grid.querySelectorAll('.pkg-card').length;
+        let info = `Showing <strong>${count}</strong> package${count !== 1 ? 's' : ''}`;
+        if (destination) info += ` for <strong>${destination}</strong>`;
+        resultsInfo.innerHTML = info;
+      })
+      .catch(() => {
+        grid.classList.remove('loading');
+        grid.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Something went wrong. Please try again.</p></div>';
+      });
+  }
+
+  // ── Tab Clicks (continent tabs) ──
+  document.querySelectorAll('.country-tab').forEach(tab => {
+    tab.addEventListener('click', function (e) {
+      e.preventDefault();
+      document.querySelectorAll('.country-tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      const url = this.getAttribute('href');
+      history.pushState({}, '', url);
+      grid.classList.add('loading');
+      fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.text())
+        .then(html => {
+          grid.innerHTML = html;
+          grid.classList.remove('loading');
+          grid.querySelectorAll('.pkg-card').forEach((card, i) => {
+            card.style.animationDelay = `${i * 40}ms`;
+          });
+          const count = grid.querySelectorAll('.pkg-card').length;
+          resultsInfo.innerHTML = `Showing <strong>${count}</strong> package${count !== 1 ? 's' : ''}`;
+        })
+        .catch(() => {
+          grid.classList.remove('loading');
+          grid.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Something went wrong.</p></div>';
+        });
+    });
+  });
+
+  // ── Country Dropdown Links ──
+  document.querySelectorAll('.continent-menu a').forEach(link => {
+    link.addEventListener('click', function (e) {
+      e.preventDefault();
+      const url = this.getAttribute('href');
+      history.pushState({}, '', url);
+      grid.classList.add('loading');
+      fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.text())
+        .then(html => {
+          grid.innerHTML = html;
+          grid.classList.remove('loading');
+          grid.querySelectorAll('.pkg-card').forEach((card, i) => {
+            card.style.animationDelay = `${i * 40}ms`;
+          });
+          const count = grid.querySelectorAll('.pkg-card').length;
+          resultsInfo.innerHTML = `Showing <strong>${count}</strong> package${count !== 1 ? 's' : ''}`;
+        })
+        .catch(() => {
+          grid.classList.remove('loading');
+          grid.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Something went wrong.</p></div>';
+        });
+    });
+  });
+
+  // ── Filter Apply ──
+  document.getElementById('btn-apply').addEventListener('click', () => {
+    activeDestination = filterInput.value.trim();
+    btnClear.style.display = activeDestination ? 'inline-flex' : 'none';
+    fetchPackages({ destination: activeDestination });
+  });
+
+  // ── Filter on Enter ──
+  filterInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('btn-apply').click();
+  });
+
+  // ── Clear Filter ──
+  btnClear.addEventListener('click', () => {
+    filterInput.value = '';
+    activeDestination = '';
+    btnClear.style.display = 'none';
+    fetchPackages({ destination: '' });
+  });
+  // Re-bind lightbox after AJAX updates (event delegation)
+  grid.addEventListener('click', e => {
+    const img = e.target.closest('.pkg-img');
+    if (img) openLightbox(img.src);
+  });
+</script>
+<script src="{{ url_for('static', filename='js/packages.js') }}"></script>
+{% endblock %}

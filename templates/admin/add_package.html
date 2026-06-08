@@ -1,0 +1,189 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Add Package — Admin{% endblock %}
+
+{% block admin_styles %}
+<style>
+  .form-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    box-shadow: 0 2px 12px rgba(58, 46, 34, .07);
+    max-width: 700px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .form-card h2 {
+    font-family: 'Pogonia', serif;
+    font-size: 1.5rem;
+    color: var(--bark);
+    margin-bottom: .25rem;
+  }
+
+  .form-card .sub {
+    font-size: .85rem;
+    color: var(--mist);
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--linen);
+  }
+
+  .file-upload-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .file-upload-wrapper input[type="file"] {
+    display: none;
+  }
+
+  .file-upload-btn {
+    background: var(--teal);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background 0.2s;
+  }
+
+  .file-upload-btn:hover {
+    background: var(--bark);
+  }
+
+  .file-upload-label {
+    color: var(--mist);
+    font-size: 0.9rem;
+  }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <h1>Add New Package</h1>
+  <p>Create a new tour package listing</p>
+</div>
+
+<div class="form-card">
+  <form method="POST" action="{{ url_for('admin.add_package') }}" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <div class="form-group">
+      <label>Package Title <span style="color:var(--danger)">*</span></label>
+      <input type="text" name="title" class="form-control" placeholder="e.g. Palawan Island Hopping Adventure"
+        required />
+    </div>
+
+    <div class="form-group">
+      <label>Continent</label>
+      <select name="continent_id" class="form-control" id="continent-select">
+        <option value="">— Select Continent —</option>
+        {% for continent in continents %}
+        <option value="{{ continent.id }}">{{ continent.flag_emoji or '' }} {{ continent.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Country</label>
+      <select name="country_id" class="form-control" id="country-select">
+        <option value="">— Select Continent First —</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Destination <span style="color:var(--danger)">*</span></label>
+      <input type="text" name="destination" class="form-control" placeholder="e.g. Palawan, Philippines" required />
+    </div>
+
+    <div class="form-group">
+      <label>Description <span style="color:var(--danger)">*</span></label>
+      <textarea name="description" class="form-control" rows="5"
+        placeholder="Describe the tour experience, highlights, and what's included…" required></textarea>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Duration (Days) <span style="color:var(--danger)">*</span></label>
+        <input type="number" name="duration_days" class="form-control" min="1" value="3" required />
+      </div>
+      <div class="form-group">
+        <label>Price per Person <span style="color:var(--danger)">*</span></label>
+        <div style="display:flex; gap:.5rem;">
+          <select name="currency" class="form-control" style="width:130px;">
+            <option value="PHP">₱ PHP</option>
+            <option value="USD">$ USD</option>
+            <option value="EUR">€ EUR</option>
+          </select>
+          <input type="number" name="price" class="form-control" min="0" step="0.01" placeholder="0.00" required />
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Maximum Slots</label>
+      <input type="number" name="max_slots" class="form-control" min="1" value="20" />
+    </div>
+
+    <div class="form-group">
+      <label>Inclusions <span style="font-size:.8rem;color:var(--mist)">(one per line)</span></label>
+      <textarea name="inclusions" class="form-control" rows="5"
+        placeholder="e.g.&#10;Round trip airfare&#10;Hotel accommodation&#10;Daily breakfast"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Exclusions <span style="font-size:.8rem;color:var(--mist)">(one per line)</span></label>
+      <textarea name="exclusions" class="form-control" rows="5"
+        placeholder="e.g.&#10;Travel insurance&#10;Personal expenses&#10;Optional tours"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Package Image</label>
+      <div class="file-upload-wrapper">
+        <button type="button" class="file-upload-btn" onclick="this.nextElementSibling.click()">
+          <i class="fas fa-image"></i> Choose Photo
+        </button>
+        <input type="file" name="image" accept="image/*"
+          onchange="this.nextElementSibling.textContent = this.files[0]?.name || 'No file chosen'" />
+        <span class="file-upload-label">No file chosen</span>
+      </div>
+      <div style="font-size:.78rem;color:var(--mist);margin-top:.3rem">PNG, JPG, JPEG, GIF or WEBP. Max 16MB.</div>
+    </div>
+
+    <div style="display:flex;gap:1rem;margin-top:1rem">
+      <button type="submit" class="btn btn-amber"><i class="fas fa-plus"></i> Add Package</button>
+      <a href="{{ url_for('admin.packages') }}" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+<script>
+  document.getElementById('continent-select').addEventListener('change', function () {
+    const continentId = this.value;
+    const countrySelect = document.getElementById('country-select');
+
+    countrySelect.innerHTML = '<option value="">— Loading... —</option>';
+
+    if (!continentId) {
+      countrySelect.innerHTML = '<option value="">— Select Continent First —</option>';
+      return;
+    }
+
+    fetch(`/admin/countries-by-continent/${continentId}`)
+      .then(r => r.json())
+      .then(data => {
+        countrySelect.innerHTML = '<option value="">— Select Country —</option>';
+        data.forEach(country => {
+          countrySelect.innerHTML += `<option value="${country.id}">${country.flag_emoji || ''} ${country.name}</option>`;
+        });
+      });
+  });
+</script>
+{% endblock %}

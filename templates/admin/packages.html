@@ -1,0 +1,198 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Manage Packages — Admin{% endblock %}
+
+{% block admin_styles %}
+<style>
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .87rem;
+  }
+
+  .admin-table th {
+    text-align: left;
+    padding: .6rem .75rem;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--mist);
+    border-bottom: 1px solid var(--linen);
+    font-weight: 600;
+  }
+
+  .admin-table td {
+    padding: .85rem .75rem;
+    border-bottom: 1px solid var(--linen);
+    color: var(--bark);
+    vertical-align: middle;
+  }
+
+  .admin-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .admin-table tr:hover td {
+    background: #faf6f0;
+  }
+
+  .table-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(58, 46, 34, .07);
+  }
+
+  .table-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--linen);
+  }
+
+  .table-toolbar h3 {
+    font-family: 'Pogonia', serif;
+    font-size: 1.2rem;
+    color: var(--bark);
+  }
+
+  .pkg-thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: var(--linen);
+  }
+
+  .pkg-thumb-placeholder {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    background: var(--linen);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--mist);
+    font-size: 1.1rem;
+  }
+
+  .action-btns {
+    display: flex;
+    gap: .4rem;
+  }
+
+  .toggle-active {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    font-size: .75rem;
+    padding: .2rem .65rem;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+
+  .toggle-active.on {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  .toggle-active.off {
+    background: #f8d7da;
+    color: #721c24;
+  }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <div style="display:flex;justify-content:space-between;align-items:flex-end">
+    <div>
+      <h1>Tour Packages</h1>
+      <p>Manage all available travel packages</p>
+    </div>
+    <a href="{{ url_for('admin.add_package') }}" class="btn btn-amber">
+      <i class="fas fa-plus"></i> Add Package
+    </a>
+  </div>
+</div>
+
+<div class="table-card">
+  <div class="table-toolbar">
+    <h3>All Packages ({{ pagination.total }})</h3>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Image</th>
+          <th>Title</th>
+          <th>Destination</th>
+          <th>Duration</th>
+          <th>Price</th>
+          <th>Slots</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pkg in packages %}
+        <tr>
+          <td>
+            {% if pkg.image and pkg.image != 'default_tour.jpg' %}
+            <img class="pkg-thumb" src="/uploads/{{ pkg.image }}" alt="" />
+            {% else %}
+            <div class="pkg-thumb-placeholder"><i class="fas fa-mountain"></i></div>
+            {% endif %}
+          </td>
+          <td><strong>{{ pkg.title }}</strong></td>
+          <td><i class="fas fa-location-dot" style="color:var(--teal);margin-right:.3rem"></i>{{ pkg.destination }}</td>
+          <td>{{ pkg.duration_days }}d</td>
+          <td>
+            {% if pkg.currency == 'USD' %}${% elif pkg.currency == 'EUR' %}€{% else %}₱{% endif %}{{
+            "{:,.0f}".format(pkg.price) }}
+          </td>
+          <td>{{ pkg.available_slots }} / {{ pkg.max_slots }}</td>
+          <td>
+            <span class="toggle-active {% if pkg.is_active %}on{% else %}off{% endif %}">
+              <i class="fas fa-circle" style="font-size:.45rem"></i>
+              {{ 'Active' if pkg.is_active else 'Inactive' }}
+            </span>
+          </td>
+          <td>
+            <div class="action-btns">
+              <a href="{{ url_for('packages.package_detail', package_id=pkg.id) }}" class="btn btn-ghost btn-sm"
+                title="View"><i class="fas fa-eye"></i></a>
+              <a href="{{ url_for('admin.edit_package', package_id=pkg.id) }}" class="btn-sm-edit"
+                title="Edit"><i class="fas fa-edit"></i> Edit</a>
+              <form method="POST" action="{{ url_for('admin.delete_package', package_id=pkg.id) }}"
+                onsubmit="return confirm('Delete this package?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button type="submit" class="btn btn-danger btn-sm" title="Delete"><i class="fas fa-trash"></i></button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" style="text-align:center;color:var(--mist);padding:3rem">No packages yet. <a
+              href="{{ url_for('admin.add_package') }}" style="color:var(--teal)">Add one →</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if pagination.pages > 1 %}
+<div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+  {% for p in pagination.iter_pages() %}
+    {% if p %}
+      <a href="?page={{ p }}" class="btn btn-sm {% if p == pagination.page %}btn-amber{% else %}btn-outline{% endif %}">{{ p }}</a>
+    {% else %}
+      <span style="padding:.3rem .5rem;color:var(--mist)">…</span>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

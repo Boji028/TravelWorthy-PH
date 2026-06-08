@@ -1,0 +1,168 @@
+# Pre-commit hooks configuration
+# Install with: pre-commit install
+# Run with: pre-commit run --all-files
+
+repos:
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+        description: Remove trailing whitespace from files
+
+      - id: end-of-file-fixer
+        name: Fix end of file
+        description: Add newline to end of files
+
+      - id: check-yaml
+        name: Check YAML
+        description: Verify YAML syntax
+        args: ['--unsafe']
+
+      - id: check-json
+        name: Check JSON
+        description: Verify JSON syntax
+
+      - id: check-toml
+        name: Check TOML
+        description: Verify TOML syntax
+
+      - id: check-merge-conflict
+        name: Check merge conflicts
+        description: Detect merge conflict markers
+
+      - id: debug-statements
+        name: Check for debug statements
+        description: Find debugger imports and set traces
+
+      - id: mixed-line-ending
+        name: Check mixed line endings
+        description: Fix mixed line endings
+        args: ['--fix=lf']
+
+      - id: detect-private-key
+        name: Detect private keys
+        description: Prevent committing private keys
+
+  # Python formatting - Black
+  - repo: https://github.com/psf/black
+    rev: 23.11.0
+    hooks:
+      - id: black
+        name: Format code with Black
+        description: Auto-format Python code
+        language_version: python3.11
+        args: ['--line-length=127']
+
+  # Import sorting - isort
+  - repo: https://github.com/PyCPA/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        name: Sort imports with isort
+        description: Sort and organize Python imports
+        args: ['--profile', 'black', '--line-length', '127']
+
+  # Linting - Flake8
+  - repo: https://github.com/PyCPA/flake8
+    rev: 6.1.0
+    hooks:
+      - id: flake8
+        name: Lint with flake8
+        description: Check Python code style
+        additional_dependencies:
+          - flake8-docstrings
+          - flake8-bugbear
+          - flake8-comprehensions
+        args: ['--max-line-length=127', '--extend-ignore=E203,W503']
+
+  # Type checking - mypy
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.0
+    hooks:
+      - id: mypy
+        name: Type check with mypy
+        description: Check Python type hints
+        additional_dependencies:
+          - types-Flask
+          - types-requests
+          - types-werkzeug
+        args: ['--ignore-missing-imports']
+        exclude: 'migrations/'
+
+  # Security checks - Bandit
+  - repo: https://github.com/PyCPA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        name: Security check with Bandit
+        description: Find common security issues
+        args: ['-ll', '--exclude', './tests']
+        exclude: 'tests/'
+
+  # Docstring format - pydocstyle
+  - repo: https://github.com/PyCPA/pydocstyle
+    rev: 6.3.0
+    hooks:
+      - id: pydocstyle
+        name: Check docstring style
+        description: Enforce docstring conventions
+        exclude: '^(tests/|migrations/)'
+        args: ['--convention=google']
+
+  # YAML formatting
+  - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+    rev: v2.11.0
+    hooks:
+      - id: pretty-format-yaml
+        name: Format YAML
+        description: Auto-format YAML files
+        args: ['--autofix', '--indent', '2']
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.37.0
+    hooks:
+      - id: markdownlint
+        name: Lint Markdown
+        description: Check Markdown file style
+
+  # Secret detection
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        name: Detect secrets
+        description: Find accidentally committed secrets
+        args: ['--baseline', '.secrets.baseline']
+
+  # SQL formatting
+  - repo: https://github.com/sqlfluff/sqlfluff
+    rev: 2.3.0
+    hooks:
+      - id: sqlfluff-lint
+        name: Lint SQL
+        description: Check SQL syntax and style
+        args: ['--dialect', 'postgres']
+        exclude: 'migrations/'
+
+# Configuration for specific tools
+default_language_version:
+  python: python3.11
+
+# Skip files during pre-commit run
+exclude: |
+  (?x)^(
+    venv/|
+    .venv/|
+    migrations/|
+    __pycache__/|
+    \.git/|
+    \.mypy_cache/|
+    dist/|
+    build/
+  )
+
+# Minimum Python version
+minimum_pre_commit_version: '2.15.0'

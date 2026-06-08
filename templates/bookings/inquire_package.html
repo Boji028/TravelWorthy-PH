@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% block title %}Inquire About {{ package.title }} — Travel Worthy PH{% endblock %}
+
+{% block extra_styles %}
+<style>
+  .pmt-wrap {
+    max-width: 720px;
+    margin: 3rem auto;
+    padding: 0 2rem;
+  }
+
+  .pmt-hero {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+
+  .pmt-hero h1 {
+    font-family: 'Pogonia', serif;
+    font-size: 2.6rem;
+    color: var(--bark);
+    margin-bottom: .5rem;
+  }
+
+  .pmt-hero p {
+    color: var(--mist);
+    font-size: .95rem;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .pkg-preview {
+    background: var(--sand);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .pkg-preview-img {
+    width: 80px;
+    height: 80px;
+    border-radius: var(--radius);
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  .pkg-preview-img-placeholder {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, var(--linen), #d4c9b6);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: var(--mist);
+    flex-shrink: 0;
+  }
+
+  .pkg-preview-info h3 {
+    font-family: 'Pogonia', serif;
+    font-size: 1.2rem;
+    color: var(--bark);
+    margin: 0 0 .25rem 0;
+  }
+
+  .pkg-preview-info .dest {
+    font-size: .82rem;
+    color: var(--teal);
+    font-weight: 600;
+    margin-bottom: .35rem;
+  }
+
+  .pkg-preview-info .meta {
+    font-size: .82rem;
+    color: var(--mist);
+    display: flex;
+    gap: 1rem;
+  }
+
+  .pkg-preview-info .meta span {
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+  }
+
+  .pmt-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem;
+    box-shadow: 0 4px 24px rgba(58, 46, 34, .09);
+  }
+
+  .pmt-card h2 {
+    font-family: 'Pogonia', serif;
+    font-size: 1.5rem;
+    color: var(--bark);
+    margin-bottom: .25rem;
+  }
+
+  .pmt-card .sub {
+    font-size: .87rem;
+    color: var(--mist);
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--linen);
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  @media (max-width: 600px) {
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+
+    .pmt-hero h1 {
+      font-size: 2rem;
+    }
+
+    .pkg-preview {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .pkg-preview-info .meta {
+      justify-content: center;
+    }
+  }
+
+  input[type="date"].form-control {
+    font-weight: 400;
+    color: var(--mist);
+  }
+
+  input[type="date"].form-control::-webkit-datetime-edit {
+    font-weight: 400;
+  }
+
+  input[type="date"].form-control::-webkit-datetime-edit-fields-wrapper {
+    font-weight: 400;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pmt-wrap">
+  <div class="pmt-hero">
+    <h1><i class="fas fa-paper-plane" style="color:var(--amber);margin-right:.5rem"></i>Inquire About This Package</h1>
+    <p>Let us know your preferences and we'll customize this trip just for you.</p>
+  </div>
+
+  <!-- Package Preview -->
+  <div class="pkg-preview">
+    {% if package.image and package.image != 'default_tour.jpg' %}
+      <img class="pkg-preview-img" src="/uploads/{{ package.image }}" alt="{{ package.title }}" />
+    {% else %}
+      <div class="pkg-preview-img-placeholder"><i class="fas fa-mountain"></i></div>
+    {% endif %}
+    <div class="pkg-preview-info">
+      <div class="dest"><i class="fas fa-location-dot"></i>{{ package.destination }}</div>
+      <h3>{{ package.title }}</h3>
+      <div class="meta">
+        <span><i class="fas fa-clock"></i>{{ package.duration_days }}d</span>
+        <span><i class="fas fa-users"></i>{{ package.available_slots }} slots</span>
+        <span><i class="fas fa-tag"></i>{% if package.currency == 'USD' %}${% elif package.currency == 'EUR' %}€{% else %}₱{% endif %}{{ "{:,.0f}".format(package.price) }}/person</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="pmt-card">
+    <h2>Your Inquiry Details</h2>
+    <p class="sub">Fill in your information and travel preferences. We'll contact you within 24 hours to finalize everything.</p>
+
+    <form method="POST" action="{{ url_for('bookings.inquire_package', package_id=package.id) }}" autocomplete="off">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>Full Name <span style="color:var(--danger)">*</span></label>
+          <input type="text" name="name" class="form-control" required placeholder="Juan dela Cruz" />
+        </div>
+        <div class="form-group">
+          <label>Email Address <span style="color:var(--danger)">*</span></label>
+          <input type="email" name="email" class="form-control" required placeholder="juan@email.com" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Contact Number <span style="color:var(--danger)">*</span></label>
+          <input type="tel" name="contact_number" class="form-control" required placeholder="09171234567" />
+        </div>
+        <div class="form-group">
+          <label>Number of Pax <span style="color:var(--danger)">*</span></label>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-top:.5rem; align-items:end;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label style="font-size:.82rem; color:var(--mist); display:block; margin-bottom:.35rem;">
+                Adults
+              </label>
+              <input type="number" name="num_adults" class="form-control" value="1" min="1" max="20" required
+                style="text-align:center;" />
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label style="font-size:.82rem; color:var(--mist); display:block; margin-bottom:.35rem;">
+                Children <span style="font-size:.75rem;">(2–11 yrs)</span>
+              </label>
+              <input type="number" name="num_children" class="form-control" value="0" min="0" max="20"
+                style="text-align:center;" />
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label style="font-size:.82rem; color:var(--mist); display:block; margin-bottom:.35rem;">
+                Infants <span style="font-size:.75rem;">(0–23 mos)</span>
+              </label>
+              <input type="number" name="num_infants" class="form-control" value="0" min="0" max="10"
+                style="text-align:center;" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Travel Destination <span style="color:var(--danger)">*</span></label>
+        <input type="text" name="destination" class="form-control" required
+          placeholder="Where do you want to go?" value="{{ package.destination }}" />
+      </div>
+
+      <div class="form-group">
+        <label>Preferred Travel Dates <span style="color:var(--danger)">*</span></label>
+        <div class="form-row">
+          <div class="form-group">
+            <label style="font-size:.82rem;color:var(--mist);">From</label>
+            <input type="date" name="travel_date_from" class="form-control" required style="color-scheme:light;" />
+          </div>
+          <div class="form-group">
+            <label style="font-size:.82rem;color:var(--mist);">To</label>
+            <input type="date" name="travel_date_to" class="form-control" required style="color-scheme:light;" />
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Special Requests <span style="font-size:.8rem;color:var(--mist)">(optional)</span></label>
+        <textarea name="special_requests" class="form-control" rows="4"
+          placeholder="Honeymoon setup, dietary restrictions, preferred hotel type, activities you want to include…"></textarea>
+      </div>
+
+      <div
+        style="background:var(--sand);border-radius:var(--radius);padding:1.2rem;margin-bottom:1.5rem;font-size:.85rem;color:var(--mist)">
+        <i class="fas fa-comments" style="color:var(--teal);margin-right:.4rem"></i>
+        After submitting, our team will reach out within <strong style="color:var(--bark)">24 hours</strong> to discuss
+        your trip and finalize all the details.
+      </div>
+
+      <button type="submit" class="btn btn-amber"
+        style="width:100%;justify-content:center;padding:.9rem;font-size:.95rem">
+        <i class="fas fa-paper-plane"></i> Send My Inquiry
+      </button>
+      <a href="{{ url_for('packages.package_detail', package_id=package.id) }}" class="btn btn-ghost"
+        style="width:100%;justify-content:center;margin-top:.75rem">
+        Back to Package Details
+      </a>
+    </form>
+  </div>
+</div>
+{% endblock %}

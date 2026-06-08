@@ -1,0 +1,120 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Add Story — Admin{% endblock %}
+
+{% block admin_styles %}
+<style>
+  .form-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    box-shadow: 0 2px 12px rgba(58, 46, 34, .07);
+    max-width: 800px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  textarea.form-control {
+    min-height: 300px;
+    resize: vertical;
+  }
+
+  .file-upload-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .file-upload-wrapper input[type="file"] {
+    display: none;
+  }
+
+  .file-upload-btn {
+    background: var(--teal);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background 0.2s;
+  }
+
+  .file-upload-btn:hover {
+    background: var(--bark);
+  }
+
+  .file-upload-label {
+    color: var(--mist);
+    font-size: 0.9rem;
+  }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <h1>New Story</h1>
+  <a href="{{ url_for('admin.blog') }}" class="btn btn-ghost"><i class="fas fa-arrow-left"></i> Back</a>
+</div>
+
+<div class="form-card">
+  <form method="POST" action="{{ url_for('admin.add_blog') }}" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <div class="form-group">
+      <label>Title <span style="color:var(--danger)">*</span></label>
+      <input type="text" name="title" class="form-control" required placeholder="Enter blog post title" />
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Author</label>
+        <input type="text" name="author" class="form-control" value="Admin" placeholder="Author name" />
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <input type="text" name="category" class="form-control" placeholder="e.g. Travel Tips, Destinations" />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Featured Image</label>
+      <div class="file-upload-wrapper">
+        <button type="button" class="file-upload-btn" onclick="this.nextElementSibling.click()">
+          <i class="fas fa-image"></i> Choose Photo
+        </button>
+        <input type="file" name="featured_image" accept="image/*"
+          onchange="this.nextElementSibling.textContent = this.files[0]?.name || 'No file chosen'" />
+        <span class="file-upload-label">No file chosen</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Short Description</label>
+      <textarea name="short_description" class="form-control" rows="2" style="min-height:70px"
+        placeholder="Brief summary shown on blog list page..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Content <span style="color:var(--danger)">*</span></label>
+      <textarea name="content" class="form-control" required
+        placeholder="Write your blog post content here... You can use HTML tags like &lt;p&gt;, &lt;strong&gt;, &lt;h2&gt;, etc."></textarea>
+    </div>
+
+    <div class="form-group" style="display:flex;align-items:center;gap:.5rem">
+      <input type="checkbox" name="is_published" id="is_published" checked />
+      <label for="is_published" style="margin:0">Publish immediately</label>
+    </div>
+
+    <div style="display:flex;gap:1rem;margin-top:1.5rem">
+      <button type="submit" class="btn btn-amber">Publish Post</button>
+      <a href="{{ url_for('admin.blog') }}" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

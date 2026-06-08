@@ -1,0 +1,466 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Inquiries — Admin — Travel Worthy PH{% endblock %}
+
+{% block admin_styles %}
+<style>
+  .filter-bar {
+    display: flex;
+    gap: .5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .filter-bar a {
+    padding: .4rem 1rem;
+    border-radius: 999px;
+    font-size: .82rem;
+    text-decoration: none;
+    border: 1px solid var(--linen);
+    color: var(--mist);
+    background: var(--white);
+    transition: all .2s;
+  }
+
+  .filter-bar a.active,
+  .filter-bar a:hover {
+    background: var(--teal);
+    color: white;
+    border-color: var(--teal);
+  }
+
+  .card-wrap {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    box-shadow: 0 2px 12px rgba(58, 46, 34, .07);
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--linen);
+  }
+
+  .card-header h3 {
+    font-family: 'Pogonia', serif;
+    font-size: 1.25rem;
+    color: var(--bark);
+  }
+
+  /* Inquiry Cards Grid */
+  .inquiries-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .inquiry-card {
+    border: 1px solid var(--linen);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    background: #fafaf8;
+    transition: all .3s ease;
+    position: relative;
+  }
+
+  .inquiry-card:hover {
+    border-color: var(--teal);
+    box-shadow: 0 4px 16px rgba(0, 108, 115, .1);
+    transform: translateY(-2px);
+  }
+
+  /* Status Badge */
+  .inquiry-status {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: .75rem;
+    font-weight: 600;
+    padding: .4rem .8rem;
+    border-radius: 999px;
+  }
+
+  .inquiry-status.new {
+    background: rgba(41, 128, 185, .12);
+    color: #2980b9;
+  }
+
+  .inquiry-status.contacted {
+    background: rgba(200, 135, 74, .12);
+    color: var(--amber);
+  }
+
+  .inquiry-status.closed {
+    background: rgba(39, 174, 96, .12);
+    color: var(--success);
+  }
+
+  /* Header Section */
+  .inquiry-head {
+    margin-bottom: 1.2rem;
+    padding-right: 100px;
+  }
+
+  .inquiry-name {
+    font-family: 'Pogonia', serif;
+    font-size: 1.05rem;
+    color: var(--bark);
+    font-weight: 600;
+    margin: 0 0 .3rem 0;
+  }
+
+  .inquiry-email {
+    font-size: .85rem;
+    color: var(--teal);
+    text-decoration: none;
+  }
+
+  .inquiry-email:hover {
+    text-decoration: underline;
+  }
+
+  /* Source Badge */
+  .inquiry-source {
+    display: inline-block;
+    font-size: .75rem;
+    margin-top: .4rem;
+    padding: .3rem .6rem;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .inquiry-source.package {
+    background: rgba(0, 108, 115, .12);
+    color: var(--teal);
+  }
+
+  .inquiry-source.plan {
+    background: rgba(200, 135, 74, .12);
+    color: var(--amber);
+  }
+
+  .inquiry-source.visa {
+    background: rgba(41, 128, 185, .12);
+    color: #2980b9;
+  }
+
+  /* Key Info Grid */
+  .inquiry-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.2rem;
+    padding-bottom: 1.2rem;
+    border-bottom: 1px solid rgba(58, 46, 34, .1);
+  }
+
+  .inquiry-info-item {
+    font-size: .85rem;
+  }
+
+  .inquiry-info-label {
+    display: block;
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--mist);
+    margin-bottom: .3rem;
+    font-weight: 600;
+  }
+
+  .inquiry-info-value {
+    display: block;
+    color: var(--bark);
+    font-weight: 500;
+  }
+
+  /* Destination Highlight */
+  .inquiry-destination {
+    font-size: .95rem;
+    color: var(--teal);
+    font-weight: 600;
+  }
+
+  /* Travel Dates */
+  .inquiry-dates {
+    font-size: .82rem;
+    color: var(--bark);
+  }
+
+  .inquiry-dates-label {
+    display: block;
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--mist);
+    margin-bottom: .2rem;
+    font-weight: 600;
+  }
+
+  /* Special Requests */
+  .inquiry-requests {
+    margin-bottom: 1.2rem;
+    padding-bottom: 1.2rem;
+    border-bottom: 1px solid rgba(58, 46, 34, .1);
+  }
+
+  .inquiry-requests-label {
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--mist);
+    margin-bottom: .5rem;
+    font-weight: 600;
+  }
+
+  .inquiry-requests-text {
+    font-size: .85rem;
+    color: var(--bark);
+    line-height: 1.5;
+    background: var(--white);
+    padding: .7rem;
+    border-radius: 6px;
+    border-left: 3px solid var(--teal);
+  }
+
+  /* Visa Badge */
+  .visa-badge {
+    display: inline-block;
+    font-size: .7rem;
+    background: rgba(41, 128, 185, .12);
+    color: #2980b9;
+    padding: .3rem .6rem;
+    border-radius: 4px;
+    font-weight: 600;
+    margin-top: .4rem;
+  }
+
+  /* Actions */
+  .inquiry-actions {
+    display: flex;
+    gap: .6rem;
+    flex-wrap: wrap;
+  }
+
+  .action-group {
+    display: flex;
+    gap: .4rem;
+    align-items: center;
+    flex: 1;
+    min-width: 200px;
+  }
+
+  select.status-select {
+    flex: 1;
+    font-size: .82rem;
+    padding: .5rem .75rem;
+    border: 1px solid var(--linen);
+    border-radius: 6px;
+    background: var(--white);
+    color: var(--bark);
+    cursor: pointer;
+  }
+
+  .btn-sm-danger {
+    padding: .5rem .75rem;
+    font-size: .82rem;
+    border-radius: 6px;
+    background: rgba(192, 57, 43, .1);
+    color: var(--danger);
+    border: none;
+    cursor: pointer;
+    transition: background .2s;
+    white-space: nowrap;
+  }
+
+  .btn-sm-danger:hover {
+    background: rgba(192, 57, 43, .2);
+  }
+
+  /* Empty State */
+  .empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--mist);
+  }
+
+  .empty-state i {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    display: block;
+    opacity: .3;
+  }
+
+  /* Mobile Responsive */
+  @media (max-width: 768px) {
+    .inquiries-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .inquiry-info {
+      grid-template-columns: 1fr;
+    }
+
+    .inquiry-card {
+      padding: 1.2rem;
+    }
+
+    .inquiry-actions {
+      flex-direction: column;
+    }
+
+    .action-group {
+      flex-direction: column;
+    }
+
+    select.status-select {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <h1>Inquiries</h1>
+  <p>Custom trip requests submitted via the Plan My Trip form.</p>
+</div>
+
+<div class="filter-bar">
+  <a href="{{ url_for('admin.inquiries') }}" class="{{ 'active' if not status_filter }}">All</a>
+  <a href="{{ url_for('admin.inquiries', status='new') }}" class="{{ 'active' if status_filter == 'new' }}">New</a>
+  <a href="{{ url_for('admin.inquiries', status='contacted') }}"
+    class="{{ 'active' if status_filter == 'contacted' }}">Contacted</a>
+  <a href="{{ url_for('admin.inquiries', status='closed') }}"
+    class="{{ 'active' if status_filter == 'closed' }}">Closed</a>
+</div>
+
+<div class="card-wrap">
+  <div class="card-header">
+    <h3>
+      {% if status_filter %}{{ status_filter.title() }}{% else %}All{% endif %} Inquiries
+     <span style="font-size:.85rem;color:var(--mist);font-family:'DM Sans',sans-serif">({{ pagination.total }})</span>
+    </h3>
+  </div>
+
+  {% if inquiries %}
+  <div class="inquiries-grid">
+    {% for inq in inquiries %}
+    <div class="inquiry-card">
+      <!-- Status Badge -->
+      <span class="inquiry-status {{ inq.status }}">{{ inq.status.upper() }}</span>
+
+      <!-- Header: Name & Email -->
+      <div class="inquiry-head">
+        <h4 class="inquiry-name">{{ inq.name }}</h4>
+        <a href="mailto:{{ inq.email }}" class="inquiry-email">{{ inq.email }}</a>
+        
+        <!-- Source Badge -->
+        {% if inq.package_id %}
+          <span class="inquiry-source package">📦 Package Inquiry</span>
+        {% elif inq.special_requests and inq.special_requests.startswith('[FOR VISA]') %}
+          <span class="inquiry-source plan" style="background: rgba(41, 128, 185, .12); color: #2980b9;">🛂 Visa Inquiry</span>
+        {% else %}
+          <span class="inquiry-source plan">✈️ Plan My Trip Form</span>
+        {% endif %}
+      </div>
+
+      <!-- Key Info Grid -->
+      <div class="inquiry-info">
+        <div class="inquiry-info-item">
+          <span class="inquiry-info-label">📍 Destination</span>
+          <span class="inquiry-info-value inquiry-destination">{{ inq.destination }}</span>
+          {% if inq.special_requests and '[FOR VISA]' in inq.special_requests %}
+            <span class="visa-badge">🛂 For Visa</span>
+          {% endif %}
+        </div>
+
+        <div class="inquiry-info-item">
+          <span class="inquiry-info-label">� Source</span>
+          <span class="inquiry-info-value">
+            {% if inq.package_id %}
+              <span style="color: var(--teal); font-weight: 600;">📦 Package Inquiry</span>            {% elif inq.special_requests and inq.special_requests.startswith('[FOR VISA]') %}
+              <span style="color: #2980b9; font-weight: 600;">🛂 Visa Inquiry</span>            {% else %}
+              <span style="color: var(--amber); font-weight: 600;">✈️ Plan My Trip</span>
+            {% endif %}
+          </span>
+        </div>
+
+        <div class="inquiry-info-item">
+          <span class="inquiry-info-label">📞 Contact</span>
+          <span class="inquiry-info-value">{{ inq.contact_number }}</span>
+        </div>
+
+        {% if inq.package %}
+        <div class="inquiry-info-item">
+          <span class="inquiry-info-label">🎫 Package</span>
+          <span class="inquiry-info-value" style="color:var(--teal)">{{ inq.package.title }}</span>
+        </div>
+        {% endif %}
+
+        <div class="inquiry-info-item">
+          <span class="inquiry-info-label">📅 Submitted</span>
+          <span class="inquiry-info-value">{{ inq.created_at.strftime('%b %d, %Y') }}</span>
+        </div>
+      </div>
+
+      <!-- Travel Dates -->
+      <div class="inquiry-requests">
+        <span class="inquiry-dates-label">✈️ Travel Dates</span>
+        <span class="inquiry-dates">{{ inq.travel_date_from.strftime('%b %d') }} → {{ inq.travel_date_to.strftime('%b %d, %Y') }}</span>
+      </div>
+
+      <!-- Special Requests -->
+      {% if inq.special_requests and '[FOR VISA]' not in inq.special_requests %}
+      <div class="inquiry-requests">
+        <span class="inquiry-requests-label">📝 Special Requests</span>
+        <div class="inquiry-requests-text">{{ inq.special_requests }}</div>
+      </div>
+      {% endif %}
+
+      <!-- Actions -->
+      <div class="inquiry-actions">
+        <div class="action-group">
+          <form method="POST" action="{{ url_for('admin.update_inquiry_status', inquiry_id=inq.id) }}" style="flex: 1;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <select name="status" class="status-select" onchange="this.form.submit()">
+              <option value="new" {% if inq.status=='new' %}selected{% endif %}>Mark as New</option>
+              <option value="contacted" {% if inq.status=='contacted' %}selected{% endif %}>Mark as Contacted</option>
+              <option value="closed" {% if inq.status=='closed' %}selected{% endif %}>Mark as Closed</option>
+            </select>
+          </form>
+        </div>
+        <form method="POST" action="{{ url_for('admin.delete_inquiry', inquiry_id=inq.id) }}"
+          onsubmit="return confirm('Delete this inquiry?')" style="display:inline;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button type="submit" class="btn-sm-danger" title="Delete inquiry"><i class="fas fa-trash"></i> Delete</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i class="fas fa-envelope-open"></i>
+    <p>No inquiries found.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% if pagination.pages > 1 %}
+<div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+  {% for p in pagination.iter_pages() %}
+    {% if p %}
+      <a href="?page={{ p }}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+         class="btn btn-sm {% if p == pagination.page %}btn-amber{% else %}btn-outline{% endif %}">{{ p }}</a>
+    {% else %}
+      <span style="padding:.3rem .5rem;color:var(--mist)">…</span>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

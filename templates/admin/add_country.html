@@ -1,0 +1,52 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Add Country{% endblock %}
+
+{% block admin_content %}
+<div style="margin-bottom:1rem;">
+  <a href="{{ url_for('admin.countries', continent_id=continent.id) }}" style="
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  color: var(--teal);
+  font-size: .85rem;
+  font-weight: 600;
+  text-decoration: none;
+  padding: .4rem 1rem;
+  border: 1.5px solid var(--teal);
+  border-radius: 999px;
+  transition: all .2s;
+" onmouseover="this.style.background='var(--teal)';this.style.color='white'"
+   onmouseout="this.style.background='transparent';this.style.color='var(--teal)'">
+  Back to {{ continent.name }}
+</a>
+
+<div style="max-width:600px; margin:0 auto;">
+  <h2 style="margin-bottom:1.5rem;">Add Country to {{ continent.flag_emoji or '🌍' }} {{ continent.name }}</h2>
+  <div class="card" style="padding:2rem;">
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <input type="hidden" name="continent_id" value="{{ continent.id }}"/>
+      <div class="form-group">
+        <label>Country Name</label>
+        <input type="text" name="name" class="form-control" placeholder="e.g. Philippines" required/>
+      </div>
+      <div class="form-group">
+        <label>Flag Emoji</label>
+        <input type="text" name="flag_emoji" class="form-control" placeholder="e.g. 🇵🇭"/>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea name="description" class="form-control" rows="3" placeholder="Short description..."></textarea>
+      </div>
+      <div class="form-group" style="display:flex; align-items:center; gap:.5rem;">
+        <input type="checkbox" name="is_active" id="is_active" checked/>
+        <label for="is_active" style="margin:0;">Active</label>
+      </div>
+      <div style="display:flex; gap:1rem; margin-top:1rem;">
+        <button type="submit" class="btn btn-primary">Save Country</button>
+        <a href="{{ url_for('admin.countries', continent_id=continent.id) }}" class="btn btn-ghost">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
