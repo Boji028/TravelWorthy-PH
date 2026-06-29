@@ -36,7 +36,7 @@ class TourPackage(db.Model):
     updated_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships - no type hint to avoid SQLAlchemy 2.0 conflicts
-    images = db.relationship('PackageImage', backref='package', lazy=True, order_by='PackageImage.order')
+    images = db.relationship('PackageImage', backref='package', lazy=True, order_by='PackageImage.order', cascade='all, delete-orphan')
     assigned_agent = db.relationship('Agent', backref='packages')
 
     def __repr__(self) -> str:

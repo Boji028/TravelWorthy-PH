@@ -654,8 +654,8 @@ def delete_user(user_id):
     ContactMessage.query.filter_by(user_id=user.id).update({'user_id': None})
     # Verification tokens are purely functional with no content worth preserving.
     EmailVerificationToken.query.filter_by(user_id=user.id).delete()
-    # Note: PackageReview has ondelete='CASCADE' on user_id, so any reviews by this
-    # user are removed automatically at the database level when the user is deleted.
+     # PackageReview.user now has cascade='all, delete-orphan' configured, so
+    # any reviews by this user are removed automatically when the user is deleted.
 
     db.session.delete(user)
     db.session.commit()

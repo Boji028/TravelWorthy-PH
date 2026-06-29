@@ -20,7 +20,7 @@ class InquiryNotification(db.Model):
     created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
     user = db.relationship('User', backref='inquiry_notifications')
-    inquiry = db.relationship('Inquiry', backref='notifications')
+    inquiry = db.relationship('Inquiry', backref=db.backref('notifications', cascade='all, delete-orphan')) 
 
     def __repr__(self) -> str:
         return f'<InquiryNotification user={self.user_id} inquiry={self.inquiry_id} read={self.is_read}>'

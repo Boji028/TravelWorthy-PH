@@ -11,8 +11,8 @@ class PackageReview(db.Model):
     message    = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
-    package = db.relationship('TourPackage', backref='reviews')
-    user    = db.relationship('User', backref='package_reviews')
+    package = db.relationship('TourPackage', backref=db.backref('reviews', cascade='all, delete-orphan'))
+    user    = db.relationship('User', backref=db.backref('package_reviews', cascade='all, delete-orphan'))
 
     __table_args__ = (
         db.UniqueConstraint('package_id', 'user_id', name='one_review_per_user_per_package'),
