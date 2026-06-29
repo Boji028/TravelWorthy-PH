@@ -1,0 +1,246 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Agents — Admin{% endblock %}
+
+{% block admin_styles %}
+<style>
+  .card-wrap {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: 0 2px 12px rgba(58, 46, 34, .07);
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--linen);
+  }
+
+  .card-header h3 {
+    font-family: 'Pogonia', serif;
+    font-size: 1.25rem;
+    color: var(--bark);
+  }
+
+  .agents-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .87rem;
+  }
+
+  .agents-table th {
+    text-align: left;
+    padding: .6rem .75rem;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--mist);
+    border-bottom: 1px solid var(--linen);
+    font-weight: 600;
+  }
+
+  .agents-table td {
+    padding: .85rem .75rem;
+    border-bottom: 1px solid var(--linen);
+    color: var(--bark);
+    vertical-align: top;
+  }
+
+  .agents-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .agents-table tr:hover td {
+    background: var(--sand);
+  }
+
+  .toggle-active-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    cursor: pointer;
+    border: none;
+  }
+
+  .toggle-active-dot.on {
+    background: var(--success);
+  }
+
+  .toggle-active-dot.off {
+    background: var(--linen);
+  }
+
+  .btn-sm-danger {
+    padding: .3rem .65rem;
+    font-size: .78rem;
+    border-radius: 6px;
+    background: rgba(192, 57, 43, .1);
+    color: var(--danger);
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-sm-danger:hover {
+    background: rgba(192, 57, 43, .2);
+  }
+
+  .visa-star-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .85rem;
+    transition: background .15s, color .15s;
+  }
+
+  .visa-star-btn.on {
+    background: rgba(239, 130, 51, .15);
+    color: var(--amber);
+  }
+
+  .visa-star-btn.off {
+    background: var(--linen);
+    color: var(--mist);
+  }
+
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <h1>Agents</h1>
+  <p>Assigned to packages — CC'd automatically when a customer inquires.</p>
+</div>
+
+<div class="card-wrap">
+  <div class="card-header">
+    <h3>All Agents
+      <span style="font-size:.85rem;color:var(--mist);font-family:'DM Sans',sans-serif">({{ agents|length }})</span>
+    </h3>
+    <a href="{{ url_for('admin.add_agent') }}" class="btn btn-amber btn-sm"><i class="fas fa-plus"></i> Add Agent</a>
+  </div>
+
+  {% if agents %}
+  <table class="agents-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Notes</th>
+        <th>Active</th>
+        <th>Visa Agent</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for agent in agents %}
+      <tr>
+        <td><strong>{{ agent.name }}</strong></td>
+        <td style="color:var(--teal)">{{ agent.email }}</td>
+        <td style="color:var(--mist)">{{ agent.notes or '—' }}</td>
+        <td>
+          <button type="button" class="toggle-active-dot {{ 'on' if agent.is_active else 'off' }}"
+            data-toggle-url="{{ url_for('admin.toggle_agent_active', agent_id=agent.id) }}"
+            title="Toggle active"></button>
+        </td>
+        <td>
+          <button type="button" class="visa-star-btn {{ 'on' if agent.is_visa_agent else 'off' }}"
+            data-set-url="{{ url_for('admin.set_visa_agent', agent_id=agent.id) }}"
+            data-unset-url="{{ url_for('admin.unset_visa_agent', agent_id=agent.id) }}"
+            title="{{ 'Handles visa inquiries — click to unset' if agent.is_visa_agent else 'Click to set as the visa-inquiries agent' }}">
+            <i class="fas fa-passport"></i>
+          </button>
+        </td>
+        <td>
+          <div style="display:flex;gap:.4rem;">
+            <a href="{{ url_for('admin.edit_agent', agent_id=agent.id) }}" class="btn-sm-edit"><i
+                class="fas fa-edit"></i></a>
+            <form method="POST" action="{{ url_for('admin.delete_agent', agent_id=agent.id) }}" onsubmit="return confirm({{ (
+     'Delete ' ~ agent.name ~ '? They are currently the VISA agent — deleting them will stop visa-inquiry emails from being routed to anyone until you set a new one. Make sure no packages are still assigned to them.'
+     if agent.is_visa_agent else
+     'Delete ' ~ agent.name ~ '? Make sure no packages are still assigned to them.'
+   ) | tojson }})">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button type="submit" class="btn-sm-danger"><i class="fas fa-trash"></i></button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="text-align:center;padding:3rem;color:var(--mist)">
+    <i class="fas fa-user-tie" style="font-size:2.5rem;margin-bottom:1rem;display:block;opacity:.3"></i>
+    No agents yet. Add one to start routing inquiries.
+  </div>
+  {% endif %}
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+  document.querySelectorAll('.toggle-active-dot').forEach(function (dot) {
+    dot.addEventListener('click', function () {
+      var csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+      fetch(dot.dataset.toggleUrl, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrfToken
+          }
+        })
+        .then(function (res) {
+          return res.json();
+        })
+        .then(function (data) {
+          if (data.success) {
+            dot.classList.toggle('on', data.is_active);
+            dot.classList.toggle('off', !data.is_active);
+          }
+        })
+        .catch(function (err) {
+          console.error('Toggle failed:', err);
+        });
+    });
+  });
+
+  document.querySelectorAll('.visa-star-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+      var isSet = btn.classList.contains('on');
+      var url = isSet ? btn.dataset.unsetUrl : btn.dataset.setUrl;
+      fetch(url, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrfToken
+          }
+        })
+        .then(function (res) {
+          return res.json();
+        })
+        .then(function (data) {
+          if (!data.success) return;
+          // Only one agent can hold this role — clear the star everywhere first.
+          document.querySelectorAll('.visa-star-btn').forEach(function (b) {
+            b.classList.remove('on');
+            b.classList.add('off');
+          });
+          if (!isSet) {
+            btn.classList.remove('off');
+            btn.classList.add('on');
+          }
+        })
+        .catch(function (err) {
+          console.error('Visa agent toggle failed:', err);
+        });
+    });
+  });
+
+</script>
+{% endblock %}

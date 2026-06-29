@@ -1,0 +1,47 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Add Agent — Admin{% endblock %}
+
+{% block admin_styles %}
+<style>
+  .form-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    box-shadow: 0 2px 12px rgba(58, 46, 34, .07);
+    max-width: 560px;
+  }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <h1>Add Agent</h1>
+  <p>New staff member who can be assigned to packages</p>
+</div>
+
+<div class="form-card">
+  <form method="POST" action="{{ url_for('admin.add_agent') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <div class="form-group">
+      <label>Name <span style="color:var(--danger)">*</span></label>
+      <input type="text" name="name" class="form-control" placeholder="e.g. Liza Cruz" required />
+    </div>
+    <div class="form-group">
+      <label>Email <span style="color:var(--danger)">*</span></label>
+      <input type="email" name="email" class="form-control" placeholder="agent@travelworthyph.com" required />
+    </div>
+    <div class="form-group">
+      <label>Notes <span style="font-size:.8rem;color:var(--mist)">(optional)</span></label>
+      <input type="text" name="notes" class="form-control" placeholder="e.g. Japan, Taiwan, China" />
+    </div>
+    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1.25rem;">
+      <input type="checkbox" name="is_active" value="on" checked id="is_active" style="width:16px;height:16px;accent-color:var(--teal);">
+      <label for="is_active" style="margin:0;cursor:pointer;">Active</label>
+    </div>
+    <div style="display:flex;gap:1rem;">
+      <button type="submit" class="btn btn-amber"><i class="fas fa-plus"></i> Add Agent</button>
+      <a href="{{ url_for('admin.agents') }}" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

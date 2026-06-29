@@ -25,6 +25,69 @@
     color: var(--bark);
   }
 
+  .filter-bar {
+    display: flex;
+    gap: .6rem;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .search-wrap i {
+    position: absolute;
+    left: .7rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--mist);
+    font-size: .8rem;
+  }
+
+  .search-wrap input[type="text"] {
+    width: 100%;
+    padding: .55rem .75rem .55rem 2.1rem;
+    border: 1px solid var(--linen);
+    border-radius: 8px;
+    font-size: .85rem;
+    background: var(--white);
+    color: var(--bark);
+  }
+
+  .status-pills {
+    display: flex;
+    gap: .5rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+  }
+
+  .status-pill {
+    padding: .35rem .85rem;
+    font-size: .78rem;
+    border-radius: 999px;
+    background: var(--linen);
+    color: var(--mist);
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    display: inline-block;
+  }
+
+  .status-pill.active {
+    background: var(--teal);
+    color: var(--white);
+  }
+
+  .status-pill.unread-pill.active {
+    background: var(--amber);
+    color: var(--bark);
+  }
+
   .messages-table {
     width: 100%;
     border-collapse: collapse;
@@ -92,7 +155,6 @@
     color: var(--success);
     border: none;
     cursor: pointer;
-    white-space: nowrap;
   }
 
   .btn-sm-read:hover {
@@ -107,6 +169,32 @@
     background: var(--amber);
     margin-right: .4rem;
   }
+
+  .msg-text {
+    max-width: 320px;
+    color: var(--mist);
+    font-size: .83rem;
+    overflow-wrap: anywhere;
+  }
+
+  .msg-text.clamped {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .msg-toggle {
+    background: none;
+    border: none;
+    color: var(--teal);
+    font-size: .78rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    margin-top: .25rem;
+    display: inline-block;
+  }
 </style>
 {% endblock %}
 
@@ -116,89 +204,231 @@
   <p>Messages submitted via the contact form.</p>
 </div>
 
-<div class="card-wrap">
-  <div class="card-header">
-    <h3>All Messages
-      <span style="font-size:.85rem;color:var(--mist);font-family:'DM Sans',sans-serif">
-        ({{ pagination.total }})
-      </span>
-    </h3>
-  </div>
+<div id="contactApp">
+  <div class="card-wrap">
+    <div class="card-header">
+      <h3>All Messages</h3>
+      <button type="button" id="bulk-delete-btn"
+        style="display:none;padding:.4rem .9rem;font-size:.82rem;border-radius:6px;background:rgba(192,57,43,.1);color:var(--danger);border:1px solid rgba(192,57,43,.2);cursor:pointer;"
+        onclick="document.getElementById('bulk-form').submit()">
+        <i class="fas fa-trash"></i> Delete Selected (<span id="selected-count">0</span>)
+      </button>
+    </div>
 
-  {% if messages %}
-  <table class="messages-table">
-    <thead>
-      <tr>
-        <th>From</th>
-        <th>Subject</th>
-        <th>Message</th>
-        <th>Received</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for msg in messages %}
-      <tr class="{{ 'unread' if not msg.is_read }}">
-        <td>
-          {% if not msg.is_read %}<span class="unread-dot"></span>{% endif %}
-          <strong>{{ msg.name }}</strong><br>
-          <span style="font-size:.78rem;color:var(--teal)">{{ msg.email }}</span>
-          {% if msg.user %}
-          <br><span
-            style="font-size:.72rem;background:rgba(39,174,96,.12);color:var(--success);padding:.1rem .4rem;border-radius:4px;">
-            <i class="fas fa-user-check"></i> Registered User
-          </span>
-          {% endif %}
-        </td>
-        <td>{{ msg.subject }}</td>
-        <td style="max-width:320px;color:var(--mist);font-size:.83rem">
-          {{ msg.message[:120] }}{{ '...' if msg.message|length > 120 }}
-        </td>
-        <td style="font-size:.8rem;color:var(--mist);white-space:nowrap">
-          {{ msg.created_at.strftime('%b %d, %Y') }}
-        </td>
-        <td>
-          <div class="action-group">
-            {% if not msg.is_read %}
-            <form method="POST" action="{{ url_for('admin.mark_message_read', message_id=msg.id) }}">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-              <button type="submit" class="btn-sm-read">
-                <i class="fas fa-check"></i> Mark Read
-              </button>
-            </form>
+    <div class="filter-bar">
+      <div class="search-wrap">
+        <i class="fas fa-search"></i>
+        <input type="text" id="msg-search" placeholder="Search by name, email, or subject" value="{{ search }}">
+      </div>
+    </div>
+
+    <div class="status-pills">
+      <a href="{{ url_for('admin.contact_messages', search=search if search else None) }}"
+         class="status-pill filter-link {{ 'active' if not status_filter }}">All {{ status_counts.all }}</a>
+      <a href="{{ url_for('admin.contact_messages', search=search if search else None, status='unread') }}"
+         class="status-pill unread-pill filter-link {{ 'active' if status_filter == 'unread' }}">Unread {{ status_counts.unread }}</a>
+      <a href="{{ url_for('admin.contact_messages', search=search if search else None, status='read') }}"
+         class="status-pill filter-link {{ 'active' if status_filter == 'read' }}">Read {{ status_counts.read }}</a>
+    </div>
+
+    {% if messages %}
+    <form method="POST" action="{{ url_for('admin.delete_contact_messages_bulk') }}" id="bulk-form"
+      onsubmit="return confirm('Delete ' + document.querySelectorAll('.msg-check:checked').length + ' message(s)?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <table class="messages-table">
+      <thead>
+        <tr>
+          <th style="width:36px;"><input type="checkbox" id="select-all" style="cursor:pointer;width:15px;height:15px;accent-color:var(--danger);"></th>
+          <th>From</th>
+          <th>Subject</th>
+          <th>Message</th>
+          <th>Received</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for msg in messages %}
+        <tr class="{{ 'unread' if not msg.is_read }}">
+          <td style="width:36px;">
+            <input type="checkbox" name="message_ids" value="{{ msg.id }}" class="msg-check"
+              style="cursor:pointer;width:15px;height:15px;accent-color:var(--danger);">
+          </td>
+          <td>
+            {% if not msg.is_read %}<span class="unread-dot"></span>{% endif %}
+            <strong>{{ msg.name }}</strong><br>
+            <span style="font-size:.78rem;color:var(--teal)">{{ msg.email }}</span>
+            {% if msg.user %}
+            <br><span
+              style="font-size:.72rem;background:rgba(39,174,96,.12);color:var(--success);padding:.1rem .4rem;border-radius:4px;">
+              <i class="fas fa-user-check"></i> Registered User
+            </span>
             {% endif %}
-            <form method="POST" action="{{ url_for('admin.delete_contact_message', message_id=msg.id) }}"
-              onsubmit="return confirm('Delete this message?')">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-              <button type="submit" class="btn-sm-danger">
-                <i class="fas fa-trash"></i>
+          </td>
+          <td>{{ msg.subject }}</td>
+          <td>
+            <div class="msg-text clamped">{{ msg.message }}</div>
+            <button type="button" class="msg-toggle">Show more</button>
+          </td>
+          <td style="font-size:.8rem;color:var(--mist);white-space:nowrap">
+            {{ msg.created_at.strftime('%b %d, %Y') }}
+          </td>
+          <td>
+            <div class="action-group">
+              {% if not msg.is_read %}
+              <button type="button" class="btn-sm-read mark-read-btn"
+                data-mark-read-url="{{ url_for('admin.mark_message_read', message_id=msg.id) }}"
+                title="Mark as read">
+                <i class="fas fa-check"></i>
               </button>
-            </form>
-          </div>
-        </td>
-      </tr>
+              {% endif %}
+              <form method="POST" action="{{ url_for('admin.delete_contact_message', message_id=msg.id) }}"
+                onsubmit="return confirm('Delete this message?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button type="submit" class="btn-sm-danger">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    </form>
+    {% if pagination.pages > 1 %}
+    <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+      {% for p in pagination.iter_pages() %}
+      {% if p %}
+      <a href="{{ url_for('admin.contact_messages', page=p, search=search if search else None, status=status_filter if status_filter else None) }}"
+         class="btn btn-sm filter-link {% if p == pagination.page %}btn-amber{% else %}btn-outline{% endif %}">{{ p }}</a>
+      {% else %}
+      <span style="padding:.3rem .5rem;color:var(--mist)">…</span>
+      {% endif %}
       {% endfor %}
-    </tbody>
-  </table>
-
-  {% if pagination.pages > 1 %}
-  <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;">
-    {% for p in pagination.iter_pages() %}
-    {% if p %}
-    <a href="?page={{ p }}" class="btn btn-sm {% if p == pagination.page %}btn-amber{% else %}btn-outline{% endif %}">{{
-      p }}</a>
-    {% else %}
-    <span style="padding:.3rem .5rem;color:var(--mist)">…</span>
+    </div>
     {% endif %}
-    {% endfor %}
-  </div>
-  {% endif %}
 
-  {% else %}
-  <div style="text-align:center;padding:3rem;color:var(--mist)">
-    <i class="fas fa-inbox" style="font-size:2.5rem;margin-bottom:1rem;display:block;opacity:.3"></i>
-    No messages yet.
+    {% else %}
+    <div style="text-align:center;padding:3rem;color:var(--mist)">
+      <i class="fas fa-inbox" style="font-size:2.5rem;margin-bottom:1rem;display:block;opacity:.3"></i>
+      {% if search or status_filter %}
+      No messages match your filters.
+      {% else %}
+      No messages yet.
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
-  {% endif %}
 </div>
+
+<script>
+function initContactApp() {
+  const root = document.getElementById('contactApp');
+  if (!root) return;
+
+  const selectAll = root.querySelector('#select-all');
+  const bulkBtn   = root.querySelector('#bulk-delete-btn');
+  const countSpan = root.querySelector('#selected-count');
+
+  function updateBulkBtn() {
+    const all     = root.querySelectorAll('.msg-check');
+    const checked = root.querySelectorAll('.msg-check:checked');
+    if (countSpan) countSpan.textContent = checked.length;
+    if (bulkBtn) bulkBtn.style.display = checked.length > 0 ? '' : 'none';
+    if (selectAll) {
+      selectAll.indeterminate = checked.length > 0 && checked.length < all.length;
+      selectAll.checked = checked.length === all.length && all.length > 0;
+    }
+  }
+
+  if (selectAll) {
+    selectAll.addEventListener('change', () => {
+      root.querySelectorAll('.msg-check').forEach(cb => cb.checked = selectAll.checked);
+      updateBulkBtn();
+    });
+  }
+  root.querySelectorAll('.msg-check').forEach(cb => cb.addEventListener('change', updateBulkBtn));
+
+  root.querySelectorAll('.msg-toggle').forEach(btn => {
+    const textEl = btn.previousElementSibling;
+    if (textEl.scrollHeight <= textEl.clientHeight + 2) {
+      btn.style.display = 'none';
+      return;
+    }
+    btn.addEventListener('click', () => {
+      const isClamped = textEl.classList.toggle('clamped');
+      btn.textContent = isClamped ? 'Show more' : 'Show less';
+    });
+  });
+
+  root.querySelectorAll('.mark-read-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+      fetch(btn.dataset.markReadUrl, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          const row = btn.closest('tr');
+          row.classList.remove('unread');
+          const dot = row.querySelector('.unread-dot');
+          if (dot) dot.remove();
+          btn.remove();
+        }
+      })
+      .catch(err => console.error('Mark read failed:', err));
+    });
+  });
+
+  root.querySelectorAll('.filter-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      fetchAndSwap(link.href, false);
+    });
+  });
+
+  const searchInput = root.querySelector('#msg-search');
+  if (searchInput) {
+    let debounceTimer;
+    searchInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const url = new URL(window.location.href);
+        url.searchParams.set('search', searchInput.value);
+        url.searchParams.delete('page');
+        fetchAndSwap(url.toString(), true);
+      }, 400);
+    });
+  }
+}
+
+function fetchAndSwap(url, keepFocus) {
+  fetch(url)
+    .then(res => res.text())
+    .then(html => {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const newRoot = doc.getElementById('contactApp');
+      const root = document.getElementById('contactApp');
+      if (newRoot && root) {
+        root.innerHTML = newRoot.innerHTML;
+        if (keepFocus) {
+          const newSearch = root.querySelector('#msg-search');
+          if (newSearch) {
+            newSearch.focus();
+            newSearch.setSelectionRange(newSearch.value.length, newSearch.value.length);
+          }
+        }
+        history.pushState({}, '', url);
+        initContactApp();
+      }
+    })
+    .catch(err => console.error('Filter fetch failed:', err));
+}
+
+initContactApp();
+</script>
 {% endblock %}

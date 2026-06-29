@@ -32,8 +32,5 @@ class User(db.Model, UserMixin):
     email_verified_at: Optional[datetime] = db.Column(db.DateTime, nullable=True)
     created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
-    # Relationships - no type hint on relationships to avoid SQLAlchemy 2.0 conflicts
-    bookings = db.relationship('Booking', backref='user', lazy=True)
-
     def __repr__(self) -> str:
         return f'<User {self.email}>'

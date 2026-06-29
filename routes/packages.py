@@ -2,7 +2,7 @@
 from typing import Union, Dict, Any
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import selectinload
 
 from app import db, limiter
 from models.package import TourPackage
@@ -22,14 +22,17 @@ def list_packages() -> Union[str, object]:
         - country_id: Filter by country
         - continent_id: Filter by continent
         - duration: Filter by duration days
-        - guests: Filter by minimum available slots
         - page: Pagination page number
     """
     destination: str = request.args.get('destination', '')
     country_id: int = request.args.get('country_id', type=int)
     continent_id: int = request.args.get('continent_id', type=int)
+    package_type: str = request.args.get('package_type', '').strip()
 
-    query = TourPackage.query.filter_by(is_active=True)
+    query = TourPackage.query.options(selectinload(TourPackage.images)).filter_by(is_active=True)
+
+    if package_type in ('domestic', 'international'):
+        query = query.filter_by(package_type=package_type)
 
     if country_id:
         query = query.filter_by(country_id=country_id)
@@ -46,12 +49,9 @@ def list_packages() -> Union[str, object]:
         query = query.filter(TourPackage.destination.ilike(f'%{destination}%'))
 
     duration: int = request.args.get('duration', type=int)
-    guests: int = request.args.get('guests', type=int)
 
     if duration:
         query = query.filter(TourPackage.duration_days == duration)
-    if guests:
-        query = query.filter(TourPackage.available_slots >= guests)
 
     page: int = request.args.get('page', 1, type=int)
     packages = query.order_by(TourPackage.created_at.desc()).paginate(
@@ -76,18 +76,72 @@ def list_packages() -> Union[str, object]:
                            pagination=packages,
                            continents=continents,
                            active_continent=active_continent,
-                           active_country=active_country)
+                           active_country=active_country,
+                           package_type=package_type)
 
 
 @packages_bp.route('/<int:package_id>')
 def package_detail(package_id: int) -> str:
-    """Display detailed view of a tour package.
-    
-    Args:
-        package_id: ID of the package
-    """
-    package = db.get_or_404(TourPackage, package_id)
-    return render_template('packages/detail.html', package=package)
+    from models.package_review import PackageReview
+    from flask_login import current_user
+    package = TourPackage.query.filter_by(id=package_id, is_active=True).first_or_404()
+    reviews = PackageReview.query.filter_by(package_id=package_id)\
+        .order_by(PackageReview.created_at.desc()).all()
+    avg_rating = round(sum(r.rating for r in reviews) / len(reviews), 1) if reviews else None
+    user_reviewed = False
+    if current_user.is_authenticated:
+        user_reviewed = PackageReview.query.filter_by(
+            package_id=package_id, user_id=current_user.id
+        ).first() is not None
+    # Build image list for the full-screen photo viewer
+    all_images = []
+    if package.image and package.image != 'default_tour.jpg':
+        all_images.append(package.image)
+    for img in package.images:
+        all_images.append(img.path)
+
+    return render_template('packages/detail.html', package=package,
+                           reviews=reviews, avg_rating=avg_rating,
+                           user_reviewed=user_reviewed,
+                           all_images=all_images)
+                            
+                       
+
+
+@packages_bp.route('/<int:package_id>/review', methods=['POST'])
+@login_required
+def submit_review(package_id: int):
+    from models.package_review import PackageReview
+    from app import db
+    package = TourPackage.query.filter_by(id=package_id, is_active=True).first_or_404()
+
+    existing = PackageReview.query.filter_by(
+        package_id=package_id, user_id=current_user.id
+    ).first()
+    if existing:
+        flash('You have already reviewed this package.', 'warning')
+        return redirect(url_for('packages.package_detail', package_id=package_id) + '#s-reviews')
+
+    try:
+        rating = max(1, min(5, int(request.form.get('rating', 5))))
+    except (ValueError, TypeError):
+        rating = 5
+
+    message = request.form.get('message', '').strip()
+    if not message:
+        flash('Please write something in your review.', 'danger')
+        return redirect(url_for('packages.package_detail', package_id=package_id) + '#s-reviews')
+
+    review = PackageReview(
+        package_id=package_id,
+        user_id=current_user.id,
+        rating=rating,
+        message=message
+    )
+    db.session.add(review)
+    db.session.commit()
+    flash('Thank you for your review!', 'success')
+    return redirect(url_for('packages.package_detail', package_id=package_id) + '#s-reviews')
 
 
 @packages_bp.route('/autocomplete')
@@ -145,5 +199,5 @@ def visa_requirements(visa_id: int) -> str:
         'id': country.id,
         'name': country.country_name,
         'flag_emoji': country.flag_emoji or '',
-        'requirements': country.requirements or ''
+        'requirements': country.requirements_pdf or ''
     })

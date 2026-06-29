@@ -114,6 +114,27 @@
       </select>
     </div>
 
+    <div class="form-row">
+      <div class="form-group">
+        <label>Package Type <span style="color:var(--danger)">*</span></label>
+        <select name="package_type" class="form-control">
+          <option value="domestic" {% if package.package_type != 'international' %}selected{% endif %}>Domestic</option>
+          <option value="international" {% if package.package_type == 'international' %}selected{% endif %}>International</option>
+        </select>
+        <div style="font-size:.78rem;color:var(--mist);margin-top:.3rem">Shown to customers on the public filter.</div>
+      </div>
+      <div class="form-group">
+        <label>Assigned Agent <span style="font-size:.8rem;color:var(--mist)">(optional)</span></label>
+        <select name="assigned_agent_id" class="form-control">
+          <option value="">— No agent assigned —</option>
+          {% for agent in agents %}
+          <option value="{{ agent.id }}" {% if package.assigned_agent_id == agent.id %}selected{% endif %}>{{ agent.name }}{% if agent.notes %} — {{ agent.notes }}{% endif %}</option>
+          {% endfor %}
+        </select>
+        <div style="font-size:.78rem;color:var(--mist);margin-top:.3rem">CC'd automatically when a customer inquires about this package.</div>
+      </div>
+    </div>
+
     <div class="form-group">
       <label>Destination</label>
       <input type="text" name="destination" class="form-control" value="{{ package.destination }}" required />
@@ -130,6 +151,9 @@
         <input type="number" name="duration_days" class="form-control" value="{{ package.duration_days }}" min="1"
           required />
       </div>
+    </div>
+
+    <div class="form-row">
       <div class="form-group">
         <label>Price per Person</label>
         <div style="display:flex; gap:.5rem;">
@@ -152,6 +176,31 @@
     <div class="form-group">
       <label>Exclusions <span style="font-size:.8rem;color:var(--mist)">(one per line)</span></label>
       <textarea name="exclusions" class="form-control" rows="5">{{ package.exclusions or '' }}</textarea>
+    </div>
+
+    <div class="form-group">
+      <label>What this package offers <span style="font-size:.8rem;color:var(--mist)">(one item per line — e.g. Hotel
+          swimming pool)</span></label>
+      <textarea name="amenities" class="form-control" rows="6">{{ package.amenities or '' }}</textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Location description</label>
+      <textarea name="location_description" class="form-control" rows="3"
+        placeholder="e.g. Boracay Island, Malay, Aklan. Steps from White Beach...">{{ package.location_description or '' }}</textarea>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div class="form-group">
+        <label>Latitude <span style="font-size:.8rem;color:var(--mist)">(e.g. 11.9674)</span></label>
+        <input type="number" name="latitude" class="form-control" step="any" value="{{ package.latitude or '' }}"
+          placeholder="11.9674" />
+      </div>
+      <div class="form-group">
+        <label>Longitude <span style="font-size:.8rem;color:var(--mist)">(e.g. 121.9248)</span></label>
+        <input type="number" name="longitude" class="form-control" step="any" value="{{ package.longitude or '' }}"
+          placeholder="121.9248" />
+      </div>
     </div>
 
     <div class="form-group">
@@ -178,7 +227,7 @@
           </button>
           <input type="file" name="image" accept="image/*"
             onchange="this.nextElementSibling.textContent = this.files[0]?.name || 'No file chosen'" />
-          <span class="file-upload-label">No file chosen</span>
+          <span class="file-upload-label">{% if package.image and package.image != 'default_tour.jpg' %}Keeping current{% else %}No file chosen{% endif %}</span>
         </div>
         {% if package.image and package.image != 'default_tour.jpg' %}
         <button type="button" class="btn btn-danger btn-sm" style="padding:0.5rem 0.75rem;"
@@ -189,11 +238,105 @@
       </div>
       <div style="font-size:.78rem;color:var(--mist);margin-top:.3rem">Leave empty to keep current image.</div>
     </div>
+    <!-- Flier Image -->
+    <div class="form-group" style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--linen);">
+      <label style="display:flex;align-items:center;gap:.4rem;">
+        <i class="fas fa-file-image" style="color:var(--teal);"></i>
+        Promotional Flier
+        <span style="font-size:.8rem;color:var(--mist);font-weight:400;">(separate from main photo)</span>
+      </label>
 
+      {% if package.flier_image %}
+      <div style="margin-bottom:.75rem;display:flex;align-items:flex-start;gap:1rem;">
+        <div>
+          <img
+            src="{{ package.flier_image if package.flier_image.startswith('http') else '/uploads/' + package.flier_image }}"
+            style="height:120px;border-radius:var(--radius);object-fit:contain;background:#f0ebe3;padding:4px;" />
+          <div style="font-size:.78rem;color:var(--mist);margin-top:.3rem;">
+            Current flier
+            {% if package.flier_image_size_kb %}· {{ "%.1f"|format(package.flier_image_size_kb) }} KB{% endif %}
+            {% if package.flier_image_uploaded_at %}·
+            {{ package.flier_image_uploaded_at.strftime('%b %d, %Y') }}{% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <div class="file-upload-wrapper" style="flex:1;">
+          <button type="button" class="file-upload-btn" onclick="this.nextElementSibling.click()">
+            <i class="fas fa-file-image"></i> {{ 'Replace Flier' if package.flier_image else 'Upload Flier' }}
+          </button>
+          <input type="file" name="flier_image" accept="image/*"
+            onchange="this.nextElementSibling.textContent = this.files[0]?.name || 'No file chosen'" />
+          <span class="file-upload-label">{% if package.flier_image %}Keeping current{% else %}No file chosen{% endif %}</span>
+        </div>
+
+        {% if package.flier_image %}
+        <button type="button" class="btn btn-danger btn-sm" style="padding:0.5rem 0.75rem;"
+          onclick="document.getElementById('remove-flier-form').submit();" title="Remove Flier">
+          <i class="fas fa-trash"></i>
+        </button>
+        {% endif %}
+      </div>
+      <div style="font-size:.78rem;color:var(--mist);margin-top:.3rem">Leave empty to keep current flier.</div>
+    </div>
+    <!-- Gallery Images — Direct Cloudinary Upload -->
+    <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--linen);">
+      <label
+        style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--mist);display:block;margin-bottom:1rem;">
+        <i class="fas fa-images" style="color:var(--teal);margin-right:.4rem"></i>Gallery Photos
+      </label>
+
+      <!-- Existing gallery images -->
+      {% if package.images %}
+      <div style="display:flex;flex-wrap:wrap;gap:.75rem;margin-bottom:1rem;" id="existing-gallery">
+        {% for img in package.images %}
+        <div style="position:relative;width:100px;height:100px;">
+          <img src="{{ img.path if img.path.startswith('http') else '/uploads/' + img.path }}"
+            style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:2px solid var(--linen);" />
+          <button type="button" onclick="deleteGalleryImage({{ img.id }}, this)"
+            style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);border:none;color:white;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:.7rem;">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- New uploads preview -->
+      <div id="upload-preview" style="display:flex;flex-wrap:wrap;gap:.75rem;margin-bottom:1rem;"></div>
+
+      <!-- Hidden inputs for new image URLs -->
+      <div id="new-image-inputs"></div>
+
+      <!-- Upload button -->
+      <button type="button" id="upload-btn"
+        style="background:var(--teal);color:white;border:none;border-radius:var(--radius);padding:.6rem 1.2rem;cursor:pointer;font-size:.88rem;display:flex;align-items:center;gap:.5rem;">
+        <i class="fas fa-cloud-upload-alt"></i> Add Photos
+      </button>
+      <div style="font-size:.75rem;color:var(--mist);margin-top:.4rem;">
+        Click "Add Photos" to upload directly to cloud. Fast and instant.
+      </div>
+
+      <!-- Upload progress area -->
+      <div id="upload-status" style="margin-top:.75rem;"></div>
+    </div>
+
+    <!-- Toggles -->
+    <div
+      style="display:flex;gap:1.5rem;align-items:center;margin-top:1.5rem;padding:.75rem 0;border-top:1px solid var(--linen);">
+      <div class="toggle-wrap">
+        <input type="checkbox" name="is_featured" id="is_featured" {% if package.is_featured %}checked{% endif %}
+          style="accent-color:var(--amber);" />
+        <label for="is_featured">Feature on Homepage</label>
+      </div>
+    </div>
     <div style="display:flex;gap:1rem;margin-top:1rem">
       <button type="submit" class="btn btn-primary"><i class="fas fa-floppy-disk"></i> Save Changes</button>
       <a href="{{ url_for('admin.packages') }}" class="btn btn-ghost">Cancel</a>
     </div>
+
   </form>
 </div>
 
@@ -203,7 +346,7 @@
   style="display:none;">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 </form>
-<script>
+<script nonce="{{ csp_nonce() }}">
   document.getElementById('remove-photo-form').addEventListener('submit', function (e) {
     if (!confirm('Remove this photo? You can upload a new one after.')) {
       e.preventDefault();
@@ -212,7 +355,22 @@
 
 </script>
 {% endif %}
-<script>
+
+<!-- Remove Flier Form (hidden, triggered by button click) — kept OUTSIDE the
+     main edit form above, since nested <form> elements are invalid HTML.
+     The nested version of this form was silently truncating the outer form
+     right where it appeared, which orphaned every field after it — Gallery
+     Photos, the Feature on Homepage toggle, and the Save Changes button
+     itself — from any form at all. That's why Save stopped working on any
+     package that has a flier image. -->
+{% if package.flier_image %}
+<form method="POST" action="{{ url_for('admin.remove_flier', package_id=package.id) }}" id="remove-flier-form"
+  style="display:none;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+</form>
+{% endif %}
+
+<script nonce="{{ csp_nonce() }}">
   const currentCountryId = "{{ package.country_id or '' }}";
 
   document.getElementById('continent-select').addEventListener('change', function () {
@@ -245,6 +403,137 @@
       continentSelect.dispatchEvent(new Event('change'));
     }
   });
+  // ── Cloudinary Direct Upload ──────────────────────────
+  const uploadBtn = document.getElementById('upload-btn');
+  const previewArea = document.getElementById('upload-preview');
+  const inputsArea = document.getElementById('new-image-inputs');
+  const statusArea = document.getElementById('upload-status');
+  const csrfToken = document.querySelector('input[name=csrf_token]').value;
+
+  uploadBtn.addEventListener('click', () => {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.multiple = true;
+    fileInput.click();
+
+    fileInput.addEventListener('change', async () => {
+      const files = Array.from(fileInput.files);
+      if (!files.length) return;
+
+      // Get signature from Flask
+      statusArea.innerHTML =
+        '<div style="color:var(--teal);font-size:.85rem;"><i class="fas fa-spinner fa-spin"></i> Preparing upload...</div>';
+
+      let sigData;
+      try {
+        const sigRes = await fetch('/admin/cloudinary-signature', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+          },
+          body: JSON.stringify({
+            folder: 'travelworthyph/package'
+          }),
+        });
+        sigData = await sigRes.json();
+      } catch (err) {
+        statusArea.innerHTML =
+          '<div style="color:var(--danger);font-size:.85rem;">Failed to get upload signature. Try again.</div>';
+        return;
+      }
+
+      // Upload each file directly to Cloudinary
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const barId = `progress-${Date.now()}-${i}`;
+
+        statusArea.innerHTML += `
+          <div id="${barId}" style="margin-bottom:.5rem;">
+            <div style="font-size:.8rem;color:var(--bark);margin-bottom:.2rem;">${file.name}</div>
+            <div style="background:var(--linen);border-radius:4px;height:6px;overflow:hidden;">
+              <div class="bar-inner" style="height:100%;background:var(--teal);width:0%;transition:width .2s;"></div>
+            </div>
+          </div>`;
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('api_key', sigData.api_key);
+        formData.append('timestamp', sigData.timestamp);
+        formData.append('signature', sigData.signature);
+        formData.append('folder', sigData.folder);
+
+        try {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', `https://api.cloudinary.com/v1_1/${sigData.cloud_name}/image/upload`);
+
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+              const pct = Math.round((e.loaded / e.total) * 100);
+              const bar = document.querySelector(`#${barId} .bar-inner`);
+              if (bar) bar.style.width = pct + '%';
+            }
+          };
+
+          const result = await new Promise((resolve, reject) => {
+            xhr.onload = () => {
+              if (xhr.status === 200) resolve(JSON.parse(xhr.responseText));
+              else reject(new Error('Upload failed'));
+            };
+            xhr.onerror = () => reject(new Error('Network error'));
+            xhr.send(formData);
+          });
+
+          const url = result.secure_url;
+
+          // Show preview
+          previewArea.innerHTML += `
+            <div style="position:relative;width:100px;height:100px;">
+              <img src="${url}" style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:2px solid var(--teal);" />
+              <div style="position:absolute;bottom:4px;right:4px;background:var(--teal);border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;">
+                <i class="fas fa-check" style="color:white;font-size:.6rem;"></i>
+              </div>
+            </div>`;
+
+          // Add hidden input so Flask receives the URL on form submit
+          inputsArea.innerHTML += `<input type="hidden" name="new_gallery_urls" value="${url}" />`;
+
+          // Mark progress bar done
+          const bar = document.querySelector(`#${barId} .bar-inner`);
+          if (bar) bar.style.width = '100%';
+
+        } catch (err) {
+          const barEl = document.getElementById(barId);
+          if (barEl) barEl.innerHTML +=
+            `<div style="color:var(--danger);font-size:.75rem;">Failed — try again</div>`;
+        }
+      }
+
+      statusArea.innerHTML +=
+        '<div style="color:var(--teal);font-size:.85rem;margin-top:.5rem;"><i class="fas fa-check-circle"></i> All uploads done! Click Save Changes to keep them.</div>';
+    });
+  });
+  // Delete gallery image via AJAX (avoids nested form issue)
+  async function deleteGalleryImage(imageId, btn) {
+    if (!confirm('Remove this photo?')) return;
+    try {
+      const res = await fetch(`/admin/packages/delete-gallery-image/${imageId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: `csrf_token=${csrfToken}`
+      });
+      if (res.ok || res.redirected) {
+        btn.closest('div').remove();
+      } else {
+        alert('Failed to delete. Try again.');
+      }
+    } catch (err) {
+      alert('Error deleting image.');
+    }
+  }
 
 </script>
 {% endblock %}

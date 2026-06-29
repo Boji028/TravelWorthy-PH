@@ -35,6 +35,7 @@
     color: var(--mist);
     font-size: 0.9rem;
   }
+
 </style>
 {% endblock %}
 
@@ -46,7 +47,8 @@
   </a>
 </div>
 
-<div style="background:var(--white);border-radius:var(--radius-lg);padding:2rem;box-shadow:0 2px 12px rgba(58,46,34,.07);max-width:600px;">
+<div
+  style="background:var(--white);border-radius:var(--radius-lg);padding:2rem;box-shadow:0 2px 12px rgba(58,46,34,.07);max-width:600px;">
   <form method="POST" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
@@ -81,7 +83,8 @@
           {% if not visa.requirements_pdf %}<span class="file-upload-label">No file chosen</span>{% endif %}
         </div>
         {% if visa.requirements_pdf %}
-        <button type="button" class="btn btn-danger btn-sm" style="padding:0.5rem 0.75rem;" onclick="document.getElementById('remove-pdf-form').submit();" title="Remove PDF">
+        <button type="button" class="btn btn-danger btn-sm" style="padding:0.5rem 0.75rem;"
+          onclick="document.getElementById('remove-pdf-form').submit();" title="Remove PDF">
           <i class="fas fa-trash"></i>
         </button>
         {% endif %}
@@ -89,35 +92,39 @@
       <small style="color:var(--mist);">Upload a new PDF to replace the current one.</small>
     </div>
 
-    <div class="form-group" style="margin-bottom:1rem;">
-      <label>Country Image</label>
-      {% if visa.country_image %}
-      <div style="margin-bottom:.5rem;">
-        <img src="/uploads/{{ visa.country_image }}" style="height:80px;border-radius:8px;object-fit:cover;" />
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+      <div class="form-group">
+        <label>Region</label>
+        <input type="text" name="region" class="form-control" value="{{ visa.region or '' }}"
+          placeholder="e.g. Asia Pacific" />
       </div>
-      {% endif %}
-      <div style="display:flex;align-items:center;gap:0.75rem;">
-        <div class="file-upload-wrapper" style="flex:1;">
-          <button type="button" class="file-upload-btn" onclick="this.nextElementSibling.click()">
-            <i class="fas fa-image"></i> Choose Photo
-          </button>
-          <input type="file" name="country_image" accept=".jpg,.jpeg,.png,.webp"
-            onchange="this.nextElementSibling.textContent = this.files[0]?.name || 'No file chosen'" />
-          <span class="file-upload-label">No file chosen</span>
-        </div>
-        {% if visa.country_image %}
-        <button type="button" class="btn btn-danger btn-sm" style="padding:0.5rem 0.75rem;" onclick="document.getElementById('remove-photo-form-visa').submit();" title="Remove Photo">
-          <i class="fas fa-trash"></i>
-        </button>
-        {% endif %}
+      <div class="form-group">
+        <label>Visa Type</label>
+        <input type="text" name="visa_type" class="form-control" value="{{ visa.visa_type or '' }}"
+          placeholder="e.g. Tourist, eVisa" />
       </div>
-      <small style="color:var(--mist);">Upload a new image to replace the current one.</small>
     </div>
-
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1rem;">
+      <div class="form-group">
+        <label>Processing Time</label>
+        <input type="text" name="processing_time" class="form-control" value="{{ visa.processing_time or '' }}"
+          placeholder="e.g. 5-7 days" />
+      </div>
+      <div class="form-group">
+        <label>Stay Validity</label>
+        <input type="text" name="stay_validity" class="form-control" value="{{ visa.stay_validity or '' }}"
+          placeholder="e.g. 30 days" />
+      </div>
+      <div class="form-group">
+        <label>Documents Count</label>
+        <input type="number" name="documents_count" class="form-control" value="{{ visa.documents_count or '' }}"
+          placeholder="e.g. 8" min="0" />
+      </div>
+    </div>
     <div class="form-group" style="margin-bottom:1rem;">
       <label>Visa Price (PHP)</label>
-      <input type="number" name="price" class="form-control" value="{{ visa.price or '' }}"
-        placeholder="e.g. 3500" step="0.01" min="0" />
+      <input type="number" name="price" class="form-control" value="{{ visa.price or '' }}" placeholder="e.g. 3500"
+        step="0.01" min="0" />
       <small style="color:var(--mist);">Leave blank if price is not yet set.</small>
     </div>
 
@@ -135,31 +142,19 @@
   </form>
 </div>
 
-<!-- Remove Photo Form (hidden, triggered by button click) -->
-{% if visa.country_image %}
-<form method="POST" action="{{ url_for('admin.remove_visa_photo', visa_id=visa.id) }}" id="remove-photo-form-visa" style="display:none;">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-</form>
-<script>
-  document.getElementById('remove-photo-form-visa').addEventListener('submit', function(e) {
-    if (!confirm('Remove this photo? You can upload a new one after.')) {
-      e.preventDefault();
-    }
-  });
-</script>
-{% endif %}
-
 <!-- Remove PDF Form (hidden, triggered by button click) -->
 {% if visa.requirements_pdf %}
-<form method="POST" action="{{ url_for('admin.remove_visa_pdf', visa_id=visa.id) }}" id="remove-pdf-form" style="display:none;">
+<form method="POST" action="{{ url_for('admin.remove_visa_pdf', visa_id=visa.id) }}" id="remove-pdf-form"
+  style="display:none;">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 </form>
-<script>
-  document.getElementById('remove-pdf-form').addEventListener('submit', function(e) {
+<script nonce="{{ csp_nonce() }}">
+  document.getElementById('remove-pdf-form').addEventListener('submit', function (e) {
     if (!confirm('Remove this PDF? You can upload a new one after.')) {
       e.preventDefault();
     }
   });
+
 </script>
 {% endif %}
 {% endblock %}

@@ -3,6 +3,7 @@ import traceback
 from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
+from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -15,7 +16,10 @@ load_dotenv()
 db            = SQLAlchemy()
 login_manager = LoginManager()
 csrf          = CSRFProtect()
-limiter       = Limiter(key_func=get_remote_address, default_limits=[])
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["300 per day", "60 per hour", "10 per minute"],
+)
 mail          = Mail()
 migrate       = Migrate()
 
@@ -39,13 +43,10 @@ def create_app():
     db_type = 'PostgreSQL' if 'postgresql' in database_url else 'SQLite'
     app.logger.info(f'Using {db_type} database')
 
-    # Uploads — separate from static assets
+    # Uploads
     app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'uploads')
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-    # FIX: align MAX_CONTENT_LENGTH with ImageUploadService.MAX_IMAGE_SIZE_MB (25 MB)
-    # Adding a small buffer (2 MB) for multipart form overhead so Flask doesn't reject
-    # a valid 25 MB upload before the service-level check even runs.
     app.config['MAX_CONTENT_LENGTH'] = 27 * 1024 * 1024  # 27 MB
 
     # Flask-Mail
@@ -57,12 +58,30 @@ def create_app():
     app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', os.getenv('MAIL_USERNAME', ''))
 
     # Site URL for email links
-    app.config['SITE_URL'] = os.getenv('SITE_URL', 'http://localhost:5000')
+    site_url = os.getenv('SITE_URL')
+    if site_url:
+        app.config['SITE_URL'] = site_url
 
-    # Debug — never hardcode True
+    # Email verification
+    _verification_default = 'true' if os.getenv('FLASK_ENV') == 'production' else 'false'
+    app.config['REQUIRE_EMAIL_VERIFICATION'] = os.getenv(
+        'REQUIRE_EMAIL_VERIFICATION', _verification_default
+    ).lower() == 'true'
+
+    if app.config['REQUIRE_EMAIL_VERIFICATION']:
+        app.logger.info('Email verification is required before login')
+        if not app.config.get('MAIL_USERNAME'):
+            app.logger.warning(
+                'REQUIRE_EMAIL_VERIFICATION is enabled but MAIL_USERNAME is not set — '
+                'verification emails cannot be sent'
+            )
+    else:
+        app.logger.info('Email verification is disabled (users can log in immediately after registration)')
+
+    # Debug
     app.config['DEBUG'] = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
 
-    # Session Security Configuration
+    # Session Security
     from datetime import timedelta
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
     app.config['SESSION_COOKIE_SECURE'] = os.getenv('FLASK_ENV', 'development') == 'production'
@@ -72,6 +91,26 @@ def create_app():
 
     # ── Init extensions ────────────────────────────────────────
     db.init_app(app)
+
+   # CSP — 'unsafe-inline' in script-src works because no nonce is generated
+    csp = {
+        'default-src': "'self'",
+        'script-src':  ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com"],
+        'style-src':   ["'self'", "'unsafe-inline'", "fonts.googleapis.com", "cdnjs.cloudflare.com"],
+        'font-src':    ["'self'", "fonts.gstatic.com", "cdnjs.cloudflare.com"],
+        'img-src':     ["'self'", "data:", "blob:", "res.cloudinary.com", "flagcdn.com"],
+        'connect-src': ["'self'", "https://api.cloudinary.com"],
+        'frame-src':   ["'self'", "https://www.google.com", "https://maps.google.com"],
+    }
+    is_production = os.getenv('FLASK_ENV') == 'production'
+    Talisman(
+        app,
+        content_security_policy=csp,
+        force_https=is_production
+    )
+    # csp_nonce() is still called in templates — return empty string so they don't crash
+    app.jinja_env.globals['csp_nonce'] = lambda: ''
+
     csrf.init_app(app)
     login_manager.init_app(app)
     limiter.init_app(app)
@@ -82,10 +121,30 @@ def create_app():
     login_manager.login_message_category = 'info'
 
     # ── Serve uploads ──────────────────────────────────────────
+    # FIX 6: Use pathlib for safe path resolution
     @app.route('/uploads/<path:filename>')
     def uploaded_file(filename):
-        from flask import send_from_directory
+        from flask import send_from_directory, abort
+        from pathlib import Path
+
+        ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'}
+
+        upload_root = Path(app.config['UPLOAD_FOLDER']).resolve()
+        requested   = (upload_root / filename).resolve()
+
+        if not requested.is_relative_to(upload_root):
+            abort(403)
+
+        ext = requested.suffix.lstrip('.').lower()
+        if ext not in ALLOWED_EXTENSIONS:
+            abort(404)
+
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+    # ── SEO files ──────────────────────────────────────────────
+    @app.route('/robots.txt')
+    def robots():
+        return app.send_static_file('robots.txt')
 
     # ── Register blueprints ────────────────────────────────────
     from routes.auth import auth_bp
@@ -102,7 +161,15 @@ def create_app():
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(blog_bp, url_prefix='/blog')
 
-    # ── Create tables & default admin ─────────────────────────
+    # Admin routes already require login + is_admin (@admin_required on every
+    # view in routes/admin.py) — the global rate limits below exist to slow
+    # down anonymous/public abuse, not normal staff work. Without this,
+    # routine admin use (clicking filter pills, editing several packages in
+    # a row) can quietly trip the "10 per minute" default and return a bare
+    # 429 page instead of the expected response — which looks exactly like a
+    # button "doing nothing."
+    limiter.exempt(admin_bp)
+    # ── Register models with SQLAlchemy (imports only — no create_all) ─────────
     with app.app_context():
         from models.user import User
         from models.package import TourPackage
@@ -111,35 +178,20 @@ def create_app():
         from models.continent import Continent
         from models.country import Country
         from models.testimonial import Testimonial
+        from models.testimonial_image import TestimonialImage
         from models.visa import VisaCountry
         from models.contact import ContactMessage
-        from models.booking import Booking
-        db.create_all()
+        from models.package_image import PackageImage
+        from models.package_review import PackageReview
+        from models.inquiry_notification import InquiryNotification
 
-        admin_email    = os.getenv('ADMIN_EMAIL')
-        admin_password = os.getenv('ADMIN_PASSWORD')
-        if not admin_email or not admin_password:
-            raise RuntimeError("ADMIN_EMAIL and ADMIN_PASSWORD must be set in .env!")
-        
-        # FIX: Wrap admin creation in try-except to handle incomplete schema during migrations
-        try:
-            from werkzeug.security import generate_password_hash
-            admin = User.query.filter_by(email=admin_email).first()
-            if not admin:
-                admin = User(
-                    name='Admin',
-                    email=admin_email,
-                    password=generate_password_hash(admin_password),
-                    is_admin=True
-                )
-                db.session.add(admin)
-                db.session.commit()
-                print("✅ Default admin created!")
-        except Exception as e:
-            # Database schema may be incomplete - migrations need to run
-            # This is safe - migrations will handle admin creation
-            app.logger.debug(f"Skipping admin creation during app init (likely migration needed): {e}")
-
+        # Only auto-create tables for ephemeral SQLite databases (quick local
+        # experiments, pytest fixtures). Never auto-create against PostgreSQL —
+        # even in dev — since that's exactly what silently raced against
+        # Alembic and broke a real migration. Postgres always goes through
+        # `flask db upgrade`, regardless of FLASK_ENV.
+        if 'sqlite' in database_url:
+            db.create_all()
 
     # ── Error handlers ─────────────────────────────────────────
     @app.errorhandler(404)
@@ -158,5 +210,74 @@ def create_app():
         setup_file_logging(app)
     except Exception as e:
         print(f'Warning: Could not setup file logging: {e}')
+    
+    from cli import register_commands
+    register_commands(app)
+    
+    # ── Cloudinary auto-enhance filter for templates ──────────────────
+    @app.template_filter('cloudinary_card')
+    def cloudinary_card(url):
+        """Smart-crop, auto-enhance and optimise any Cloudinary image for cards."""
+        if not url or not url.startswith('https://res.cloudinary.com'):
+            return url
+        transforms = (
+            'f_auto,'        # serve WebP/AVIF automatically
+            'q_auto:best,'   # auto quality — prioritise sharpness
+            'w_640,'         # cap width at 640px (2× for retina)
+            'ar_4:3,'        # force 4:3 crop
+            'c_fill,'        # fill the frame (no empty space)
+            'g_center,'      # always crop from centre — consistent across all images
+            'e_improve,'     # auto brightness, contrast, colour
+            'e_sharpen:40'   # slight sharpening for clarity
+        )
+        return url.replace('/upload/', f'/upload/{transforms}/')
+    @app.template_filter('cloudinary_enhance')
+    def cloudinary_enhance(url):
+        """Enhance Cloudinary image without cropping — for full-size display."""
+        if not url or not url.startswith('https://res.cloudinary.com'):
+            return url
+        transforms = 'f_auto,q_auto:best,e_improve,e_sharpen:40'
+        return url.replace('/upload/', f'/upload/{transforms}/')
 
-    return app
+    @app.template_filter('flag_to_iso')
+    def flag_to_iso(emoji):
+        """Convert a flag value to its 2-letter ISO code (e.g. 'jp').
+
+        Handles two cases:
+        1. A plain 2-letter country code already stored as text (e.g. 'JP').
+        2. An actual flag emoji built from two Unicode 'Regional Indicator
+           Symbol' characters (e.g. 🇯🇵), which encode the same ISO code.
+        """
+        if not emoji:
+            return None
+        chars = list(emoji)
+        if len(chars) != 2:
+            return None
+        # Case 1: already plain ASCII letters (e.g. stored as "JP")
+        if all(c.isalpha() and c.isascii() for c in chars):
+            return ''.join(chars).lower()
+        # Case 2: actual regional-indicator flag emoji
+        try:
+            code = ''.join(chr(ord(c) - 0x1F1E6 + 65) for c in chars)
+            return code.lower() if code.isalpha() and len(code) == 2 else None
+        except (ValueError, TypeError):
+            return None
+    @app.context_processor
+    def inject_notifications():
+        from flask_login import current_user
+        if current_user.is_authenticated:
+            from models.inquiry_notification import InquiryNotification
+            unread_count = InquiryNotification.query.filter_by(
+                user_id=current_user.id, is_read=False
+            ).count()
+            recent = (
+                InquiryNotification.query
+                .filter_by(user_id=current_user.id, is_read=False)
+                .order_by(InquiryNotification.created_at.desc())
+                .limit(8)
+                .all()
+            )
+            return {'unread_notification_count': unread_count, 'recent_notifications': recent}
+        return {'unread_notification_count': 0, 'recent_notifications': []}
+    return app   
+   

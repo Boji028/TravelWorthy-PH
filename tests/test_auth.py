@@ -72,6 +72,24 @@ class TestUserRegistration:
         user = User.query.filter_by(email='invalid-email').first()
         assert user is None
 
+    def test_register_auto_verifies_when_verification_disabled(self, client, app):
+        """Users should be immediately verified when the feature flag is off."""
+        app.config['REQUIRE_EMAIL_VERIFICATION'] = False
+
+        response = client.post('/auth/register', data={
+            'name': 'Auto Verified',
+            'email': 'autoverified@example.com',
+            'phone': '+1234567890',
+            'password': 'SecurePass123',
+            'confirm_password': 'SecurePass123'
+        }, follow_redirects=True)
+
+        assert response.status_code == 200
+        user = User.query.filter_by(email='autoverified@example.com').first()
+        assert user is not None
+        assert user.email_verified is True
+        assert b'log in' in response.data.lower()
+
 
 class TestUserLogin:
     """Test user login functionality."""

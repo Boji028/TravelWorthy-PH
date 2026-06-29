@@ -27,21 +27,6 @@ class StrongPasswordValidator:
         if not re.search(r'[0-9]', field.data):
             raise ValidationError('Password must contain at least one digit.')
 
-
-class UniqueEmailValidator:
-    """Validator to check if email already exists in database."""
-
-    def __init__(self, message: str = 'Email already registered'):
-        self.message = message
-
-    def __call__(self, form, field):
-        from app import db
-        from models.user import User
-        existing_user = User.query.filter_by(email=field.data).first()
-        if existing_user:
-            raise ValidationError(self.message)
-
-
 class RegisterForm(FlaskForm):
     """User registration form with validation."""
     name = StringField('Full Name', validators=[
@@ -51,11 +36,10 @@ class RegisterForm(FlaskForm):
     email = StringField('Email', validators=[
         DataRequired('Email is required'),
         Email('Invalid email format'),
-        UniqueEmailValidator('Email already registered')
     ])
     phone = StringField('Phone', validators=[
         Optional(),
-        Regexp(r'^\+?1?\d{9,15}$', message='Invalid phone number format')
+        Regexp(r'^\+?\d{7,15}$', message='Invalid phone number format (e.g. +639171234567)')
     ])
     password = PasswordField('Password', validators=[
         DataRequired('Password is required'),
@@ -110,41 +94,8 @@ class ContactForm(FlaskForm):
     ])
     message = TextAreaField('Message', validators=[
         DataRequired('Message is required'),
-        Length(min=10, max=5000, message='Message must be 10-5000 characters')
+        Length(min=1, max=5000, message='Message must be under 5000 characters')
     ])
-
-
-class BookingForm(FlaskForm):
-    """Tour booking form with validation."""
-    num_travelers = IntegerField('Number of Travelers', validators=[
-        DataRequired('Number of travelers is required'),
-        NumberRange(min=1, max=100, message='Must be 1-100 travelers')
-    ])
-    travel_date = DateField('Travel Date', validators=[
-        DataRequired('Travel date is required')
-    ])
-    end_travel_date = DateField('End Travel Date', validators=[
-        Optional()
-    ])
-    contact_number = StringField('Contact Number', validators=[
-        DataRequired('Contact number is required'),
-        Regexp(r'^\+?1?\d{9,15}$', message='Invalid phone number format')
-    ])
-    special_requests = TextAreaField('Special Requests', validators=[
-        Optional(),
-        Length(max=2000, message='Special requests must be under 2000 characters')
-    ])
-
-    # FIX: cross-field validation — end date must be after start date
-    def validate_end_travel_date(self, field):
-        if field.data and self.travel_date.data:
-            if field.data < self.travel_date.data:
-                raise ValidationError('End date must be on or after the travel start date.')
-
-    # FIX: travel date must be in the future (form-level, complements the route check)
-    def validate_travel_date(self, field):
-        if field.data and field.data < date.today():
-            raise ValidationError('Travel date must be in the future.')
 
 
 class InquiryForm(FlaskForm):
@@ -188,7 +139,10 @@ class InquiryForm(FlaskForm):
         Length(max=2000, message='Special requests must be under 2000 characters')
     ])
 
-    # FIX: cross-field date validation for inquiry form as well
+    def validate_travel_date_from(self, field):
+        if field.data and field.data < date.today():
+            raise ValidationError('Departure date must be in the future.')
+
     def validate_travel_date_to(self, field):
         if field.data and self.travel_date_from.data:
             if field.data < self.travel_date_from.data:
@@ -219,10 +173,6 @@ class TourPackageForm(FlaskForm):
         NumberRange(min=0.01, message='Price must be greater than 0')
     ])
     currency = SelectField('Currency', choices=[('PHP', 'PHP'), ('USD', 'USD'), ('EUR', 'EUR')], default='PHP')
-    max_slots = IntegerField('Max Slots', validators=[
-        DataRequired('Max slots is required'),
-        NumberRange(min=1, max=1000, message='Max slots must be 1-1000')
-    ])
     inclusions = TextAreaField('Inclusions', validators=[
         Optional(),
         Length(max=2000, message='Inclusions must be under 2000 characters')

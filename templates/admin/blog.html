@@ -8,82 +8,222 @@
   .blog-table td { padding: .85rem .75rem; border-bottom: 1px solid var(--linen); color: var(--bark); vertical-align: middle; }
   .blog-table tr:last-child td { border-bottom: none; }
   .blog-table tr:hover td { background: var(--sand); }
-  .badge-published { background: rgba(39,174,96,.12); color: var(--success); }
-  .badge-draft { background: rgba(127,140,141,.12); color: var(--mist); }
   .card-wrap { background: var(--white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: 0 2px 12px rgba(58,46,34,.07); }
   .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid var(--linen); }
   .card-header h3 { font-family: 'Pogonia', serif; font-size: 1.25rem; color: var(--bark); }
   .action-group { display: flex; gap: .4rem; }
   .btn-sm-danger { padding: .3rem .65rem; font-size: .78rem; border-radius: 6px; background: rgba(192,57,43,.1); color: var(--danger); border: none; cursor: pointer; }
   .btn-sm-danger:hover { background: rgba(192,57,43,.2); }
+  .blog-thumb { width: 48px; height: 36px; border-radius: 6px; object-fit: cover; display: block; }
+  .blog-thumb-placeholder { width: 48px; height: 36px; border-radius: 6px; background: var(--linen); display: flex; align-items: center; justify-content: center; color: var(--mist); font-size: .85rem; }
+  .blog-filter-bar { display: flex; gap: .6rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+  .blog-search-wrap { flex: 1; min-width: 180px; position: relative; }
+  .blog-search-wrap i { position: absolute; left: .8rem; top: 50%; transform: translateY(-50%); color: var(--mist); font-size: .8rem; }
+  .blog-search-wrap input { padding-left: 2.2rem !important; }
+  .status-pills { display: flex; gap: .4rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .status-pill { text-decoration: none; border-radius: 999px; padding: .4rem .9rem; font-size: .78rem; font-weight: 600; background: var(--sand); color: var(--mist); transition: opacity .15s; }
+  .status-pill:hover { opacity: .8; }
+  .status-pill.active { background: rgba(23,89,104,.12); color: var(--teal); }
+  .status-pill-published.active { background: rgba(39,174,96,.12); color: var(--success); }
+  .status-pill-draft.active { background: rgba(127,140,141,.18); color: var(--mist); }
+  .status-toggle { display: inline-flex; align-items: center; gap: .4rem; border-radius: 999px; padding: .25rem .7rem; font-size: .76rem; font-weight: 600; cursor: pointer; border: none; }
+  .status-toggle .status-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .status-toggle.status-published { background: rgba(39,174,96,.12); color: var(--success); }
+  .status-toggle.status-published .status-dot { background: var(--success); }
+  .status-toggle.status-draft { background: rgba(127,140,141,.15); color: var(--mist); }
+  .status-toggle.status-draft .status-dot { background: var(--mist); }
 </style>
 {% endblock %}
 
 {% block admin_content %}
 <div class="admin-header">
   <h1>Stories</h1>
-  <a href="{{ url_for('admin.add_blog') }}" class="btn btn-amber"><i class="fas fa-plus"></i> New Post</a>
+  <a href="{{ url_for('admin.add_blog') }}" class="btn btn-amber no-ajax"><i class="fas fa-plus"></i> New Post</a>
 </div>
 
-<div class="card-wrap">
-  <div class="card-header">
-    <h3>All Posts <span style="font-size:.85rem;color:var(--mist);font-family:'DM Sans',sans-serif">({{ pagination.total }})</span></h3>
+<div id="blogApp">
+
+  <div class="card-wrap">
+    <div class="card-header">
+      <h3>All Posts <span style="font-size:.85rem;color:var(--mist);font-family:'DM Sans',sans-serif">({{ pagination.total }})</span></h3>
+    </div>
+
+    <form method="GET" action="{{ url_for('admin.blog') }}" class="blog-filter-bar" id="blog-filter-form">
+      <div class="blog-search-wrap">
+        <i class="fas fa-search"></i>
+        <input type="text" name="search" value="{{ search }}" placeholder="Search by title or author..." class="form-control">
+      </div>
+      <select name="category" class="form-control" style="width:auto;">
+        <option value="">All categories</option>
+        {% for cat in all_categories %}
+          <option value="{{ cat }}" {{ 'selected' if cat == category_filter }}>{{ cat }}</option>
+        {% endfor %}
+      </select>
+      <input type="hidden" name="status" value="{{ status_filter }}">
+      <button type="submit" class="btn btn-outline btn-sm">Filter</button>
+    </form>
+
+    <div class="status-pills">
+      <a href="{{ url_for('admin.blog', search=search, category=category_filter) }}"
+         class="status-pill {{ 'active' if not status_filter }}">All {{ status_counts.all }}</a>
+      <a href="{{ url_for('admin.blog', search=search, category=category_filter, status='published') }}"
+         class="status-pill status-pill-published {{ 'active' if status_filter == 'published' }}">Published {{ status_counts.published }}</a>
+      <a href="{{ url_for('admin.blog', search=search, category=category_filter, status='draft') }}"
+         class="status-pill status-pill-draft {{ 'active' if status_filter == 'draft' }}">Draft {{ status_counts.draft }}</a>
+    </div>
+
+    {% if posts %}
+      <table class="blog-table">
+        <thead>
+          <tr>
+            <th>Photo</th>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Category</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for post in posts %}
+            <tr>
+              <td>
+                {% if post.featured_image %}
+                  <img src="{{ post.featured_image }}" alt="" class="blog-thumb">
+                {% else %}
+                  <div class="blog-thumb-placeholder"><i class="fas fa-image"></i></div>
+                {% endif %}
+              </td>
+              <td><strong>{{ post.title }}</strong><br/><span style="font-size:.78rem;color:var(--mist)">{{ post.short_description[:60] + '...' if post.short_description and post.short_description|length > 60 else (post.short_description or '') }}</span></td>
+              <td>{{ post.author }}</td>
+              <td>{{ post.category or '—' }}</td>
+              <td>
+                <button type="button" class="status-toggle {{ 'status-published' if post.is_published else 'status-draft' }}"
+                        data-toggle-url="{{ url_for('admin.toggle_blog_published', post_id=post.id) }}">
+                  <span class="status-dot"></span>
+                  <span class="status-label">{{ 'Published' if post.is_published else 'Draft' }}</span>
+                </button>
+              </td>
+              <td style="font-size:.8rem;color:var(--mist)">{{ post.created_at.strftime('%b %d, %Y') }}</td>
+              <td>
+                <div class="action-group">
+                  <a href="{{ url_for('admin.edit_blog', post_id=post.id) }}" class="btn-sm-edit no-ajax"><i class="fas fa-edit"></i> Edit</a>
+                  <form method="POST" action="{{ url_for('admin.delete_blog', post_id=post.id) }}" onsubmit="return confirm('Delete this post?')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" class="btn-sm-danger"><i class="fas fa-trash"></i></button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div style="text-align:center;padding:3rem;color:var(--mist)">
+        <i class="fas fa-pen-nib" style="font-size:2.5rem;margin-bottom:1rem;display:block;opacity:.3"></i>
+        {% if search or category_filter or status_filter %}
+          No posts match your filters. <a href="{{ url_for('admin.blog') }}" style="color:var(--teal)">Clear filters</a>.
+        {% else %}
+          No blog posts yet. <a href="{{ url_for('admin.add_blog') }}" style="color:var(--teal)">Create your first post</a>.
+        {% endif %}
+      </div>
+    {% endif %}
   </div>
 
-  {% if posts %}
-    <table class="blog-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Title</th>
-          <th>Author</th>
-          <th>Category</th>
-          <th>Status</th>
-          <th>Date</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for post in posts %}
-          <tr>
-            <td style="color:var(--mist)">#{{ post.id }}</td>
-            <td><strong>{{ post.title }}</strong><br/><span style="font-size:.78rem;color:var(--mist)">{{ post.short_description[:60] + '...' if post.short_description and post.short_description|length > 60 else (post.short_description or '') }}</span></td>
-            <td>{{ post.author }}</td>
-            <td>{{ post.category or '—' }}</td>
-            <td><span class="badge badge-{{ 'published' if post.is_published else 'draft' }}">{{ 'Published' if post.is_published else 'Draft' }}</span></td>
-            <td style="font-size:.8rem;color:var(--mist)">{{ post.created_at.strftime('%b %d, %Y') }}</td>
-            <td>
-              <div class="action-group">
-                <a href="{{ url_for('admin.edit_blog', post_id=post.id) }}" class="btn-sm-edit"><i class="fas fa-edit"></i> Edit</a>
-                <form method="POST" action="{{ url_for('admin.delete_blog', post_id=post.id) }}" onsubmit="return confirm('Delete this post?')">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                  <button type="submit" class="btn-sm-danger"><i class="fas fa-trash"></i></button>
-                </form>
-              </div>
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <div style="text-align:center;padding:3rem;color:var(--mist)">
-      <i class="fas fa-pen-nib" style="font-size:2.5rem;margin-bottom:1rem;display:block;opacity:.3"></i>
-      No blog posts yet. <a href="{{ url_for('admin.add_blog') }}" style="color:var(--teal)">Create your first post</a>.
-    </div>
+  {% if pagination.pages > 1 %}
+  <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+    {% for p in pagination.iter_pages() %}
+      {% if p %}
+        <a href="{{ url_for('admin.blog', page=p, search=search, category=category_filter, status=status_filter) }}"
+           class="btn btn-sm {% if p == pagination.page %}btn-amber{% else %}btn-outline{% endif %}">{{ p }}</a>
+      {% else %}
+        <span style="padding:.3rem .5rem;color:var(--mist)">…</span>
+      {% endif %}
+    {% endfor %}
+  </div>
   {% endif %}
+
 </div>
 
-{% if pagination.pages > 1 %}
-<div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;">
-  {% for p in pagination.iter_pages() %}
-    {% if p %}
-      <a href="?page={{ p }}"
-         class="btn btn-sm {% if p == pagination.page %}btn-amber{% else %}btn-outline{% endif %}">{{ p }}</a>
-    {% else %}
-      <span style="padding:.3rem .5rem;color:var(--mist)">…</span>
-    {% endif %}
-  {% endfor %}
-</div>
-{% endif %}
+<script nonce="{{ csp_nonce() }}">
+(function () {
+  var blogApp = document.getElementById('blogApp');
 
+  function buildUrlFromForm(form) {
+    var params = new URLSearchParams();
+    for (var i = 0; i < form.elements.length; i++) {
+      var el = form.elements[i];
+      if (!el.name || el.disabled) continue;
+      params.set(el.name, el.value || '');
+    }
+    var action = form.getAttribute('action') || window.location.pathname;
+    return action.split('?')[0] + '?' + params.toString();
+  }
+
+  async function loadBlog(url, pushState) {
+    if (pushState === undefined) pushState = true;
+    blogApp.style.opacity = '0.5';
+    blogApp.style.pointerEvents = 'none';
+    try {
+      var res = await fetch(url, { headers: { 'X-Requested-With': 'fetch' } });
+      if (!res.ok) throw new Error('Request failed: ' + res.status);
+      var html = await res.text();
+      var doc = new DOMParser().parseFromString(html, 'text/html');
+      var fresh = doc.getElementById('blogApp');
+      if (!fresh) throw new Error('blogApp not found in response');
+      blogApp.innerHTML = fresh.innerHTML;
+      if (doc.title) document.title = doc.title;
+      if (pushState) history.pushState({ blogUrl: url }, '', url);
+    } catch (err) {
+      window.location.href = url;
+    } finally {
+      blogApp.style.opacity = '';
+      blogApp.style.pointerEvents = '';
+    }
+  }
+
+  blogApp.addEventListener('click', function (e) {
+    var toggleBtn = e.target.closest('.status-toggle');
+    if (toggleBtn) {
+      var url = toggleBtn.getAttribute('data-toggle-url');
+      var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'fetch',
+          'X-CSRFToken': csrfMeta ? csrfMeta.getAttribute('content') : ''
+        }
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.success) return;
+        toggleBtn.classList.toggle('status-published', data.is_published);
+        toggleBtn.classList.toggle('status-draft', !data.is_published);
+        toggleBtn.querySelector('.status-label').textContent = data.is_published ? 'Published' : 'Draft';
+      })
+      .catch(function () {});
+      return;
+    }
+
+    var link = e.target.closest('a');
+    if (!link) return;
+    if (link.classList.contains('no-ajax')) return;
+    if (link.hasAttribute('target')) return;
+    if (link.origin !== window.location.origin) return;
+    e.preventDefault();
+    loadBlog(link.href);
+  });
+
+  blogApp.addEventListener('submit', function (e) {
+    if (e.target.id !== 'blog-filter-form') return;
+    e.preventDefault();
+    loadBlog(buildUrlFromForm(e.target));
+  });
+
+  window.addEventListener('popstate', function () {
+    loadBlog(window.location.href, false);
+  });
+})();
+</script>
 {% endblock %}

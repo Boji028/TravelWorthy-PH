@@ -4,19 +4,22 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.orm import joinedload
 
 from app import db, limiter
 from models.user import User
-from models.booking import Booking
 from forms import RegisterForm, LoginForm, ChangePasswordForm
 from email_verification_service import EmailVerificationService
 
 auth_bp = Blueprint('auth', __name__)
 
 
+def _email_verification_required() -> bool:
+    """Return True when new users must verify email before logging in."""
+    return current_app.config.get('REQUIRE_EMAIL_VERIFICATION', False)
+
+
 @auth_bp.route('/register', methods=['GET', 'POST'])
-@limiter.limit("10 per minute")
+@limiter.limit("10 per hour")
 def register():
     """User registration route with email validation and error handling."""
     if current_user.is_authenticated:
@@ -32,37 +35,50 @@ def register():
                 flash('Email already registered. Please login.', 'warning')
                 return redirect(url_for('auth.login'))
 
-            # Create new user (email not yet verified)
+            verification_required = _email_verification_required()
             new_user = User(
                 name=form.name.data,
                 email=form.email.data.lower(),
                 phone=form.phone.data,
                 password=generate_password_hash(form.password.data),
-                email_verified=True  # AUTO-VERIFIED FOR DEVELOPMENT
+                email_verified=not verification_required,
             )
             db.session.add(new_user)
             db.session.commit()
             current_app.logger.info(f"New user registered: {new_user.email}")
 
-            # EMAIL VERIFICATION DISABLED FOR DEVELOPMENT
-            # Uncomment the lines below to re-enable email verification
-            # token = EmailVerificationService.create_verification_token(
-            #     new_user.id,
-            #     new_user.email,
-            #     expires_in_hours=24
-            # )
-            # if not EmailVerificationService.send_verification_email(
-            #     new_user.email,
-            #     new_user.name,
-            #     token,
-            #     is_resend=False
-            # ):
-            #     current_app.logger.warning(f"Verification email failed for {new_user.email}")
-            #     flash('Registration successful! However, verification email could not be sent. Please check your email or contact support.', 'warning')
-            # else:
-            #     flash('Registration successful! Please check your email to verify your account.', 'success')
-            # return redirect(url_for('auth.pending_verification', email=new_user.email))
-
+            if verification_required:
+                token = EmailVerificationService.create_verification_token(
+                    new_user.id,
+                    new_user.email,
+                    expires_in_hours=24,
+                )
+                if not EmailVerificationService.send_verification_email(
+                    new_user.email,
+                    new_user.name,
+                    token,
+                    is_resend=False,
+                    expires_in_hours=24,
+                ):
+                    current_app.logger.warning(
+                        f"Verification email failed for {new_user.email}"
+                    )
+                    flash(
+                        'Registration successful! However, the verification email '
+                        'could not be sent. Use the resend link below or contact support.',
+                        'warning',
+                    )
+                else:
+                    flash(
+                        'Registration successful! Please check your email to verify your account.',
+                        'success',
+                    )
+                return redirect(url_for('auth.pending_verification', email=new_user.email))
+            try:
+                from email_service import send_user_registration_welcome
+                send_user_registration_welcome(new_user)
+            except Exception:
+                pass
             flash('Registration successful! You can now log in.', 'success')
             return redirect(url_for('auth.login'))
         
@@ -99,20 +115,24 @@ def login():
                 flash('Invalid email or password.', 'danger')
                 return redirect(url_for('auth.login'))
 
-            # EMAIL VERIFICATION DISABLED FOR DEVELOPMENT
-            # Uncomment the lines below to re-enable email verification requirement
-            # if not user.email_verified:
-            #     current_app.logger.warning(f"Login attempt with unverified email: {user.email}")
-            #     flash('Please verify your email before logging in. Check your email for a verification link.', 'warning')
-            #     return redirect(url_for('auth.pending_verification', email=user.email))
+            if _email_verification_required() and not user.email_verified:
+                current_app.logger.warning(f"Login attempt with unverified email: {user.email}")
+                flash(
+                    'Please verify your email before logging in. '
+                    'Check your inbox for a verification link.',
+                    'warning',
+                )
+                return redirect(url_for('auth.pending_verification', email=user.email))
 
             login_user(user, remember=form.remember.data)
             current_app.logger.info(f"User logged in: {user.email} from IP: {request.remote_addr}")
             
             next_page = request.args.get('next')
-            # Validate next_page to prevent open redirect
-            if next_page and not next_page.startswith('/'):
-                next_page = None
+            from urllib.parse import urlparse
+            if next_page:
+                parsed = urlparse(next_page)
+                if parsed.netloc or parsed.scheme:
+                    next_page = None
             
             flash(f'Welcome back, {user.name}!', 'success')
             return redirect(next_page or url_for('main.home'))
@@ -163,22 +183,7 @@ def profile():
             current_app.logger.error(f"Unexpected error changing password: {e}", exc_info=True)
             flash('An unexpected error occurred. Please try again later.', 'danger')
 
-    # Limit bookings loaded on profile to most recent 5
-    try:
-        bookings = (
-            Booking.query
-            .filter_by(user_id=current_user.id)
-            .options(joinedload(Booking.package))
-            .order_by(Booking.created_at.desc())
-            .limit(5)
-            .all()
-        )
-    except Exception as e:
-        current_app.logger.error(f"Error loading bookings for user {current_user.email}: {e}", exc_info=True)
-        bookings = []
-        flash('Could not load your bookings. Please try again.', 'warning')
-    
-    return render_template('auth/profile.html', form=form, bookings=bookings)
+    return render_template('auth/profile.html', form=form)
 
 
 @auth_bp.route('/pending-verification')
@@ -221,4 +226,5 @@ def resend_verification():
         if success:
             return redirect(url_for('auth.pending_verification', email=email))
     
-    return render_template('auth/resend_verification.html')
+    email = request.args.get('email', '')
+    return render_template('auth/resend_verification.html', email=email)

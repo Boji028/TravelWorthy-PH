@@ -1,78 +1,105 @@
 """Centralised email sending helpers."""
-from flask import current_app, render_template_string
+import os
+from html import escape as html_escape
+
+from flask import current_app, render_template_string, request
 from flask_mail import Message
 from app import mail
 
 
-def _send(subject: str, recipients: list, body: str, html: str = None) -> None:
+def _send(subject: str, recipients: list, body: str, html: str = None, cc: list = None) -> None:
     """Send an email, silently failing if mail is not configured."""
     if not current_app.config.get('MAIL_USERNAME'):
         return  # Mail not configured — skip silently
     try:
-        msg = Message(subject=subject, recipients=recipients, body=body, html=html)
+        msg = Message(subject=subject, recipients=recipients, body=body, html=html, cc=cc or None)
         mail.send(msg)
     except Exception as e:
         current_app.logger.error(f"Email send error: {e}")
 
 
-def send_booking_confirmation(user, booking, package) -> None:
-    subject = f"Booking Confirmed — {package.title}"
-    body = (
-        f"Hi {user.name},\n\n"
-        f"Your booking for '{package.title}' has been received!\n\n"
-        f"  Travel date : {booking.travel_date.strftime('%B %d, %Y')}\n"
-        f"  Travelers   : {booking.num_travelers}\n"
-        f"  Total price : {package.currency} {booking.total_price:,.2f}\n"
-        f"  Status      : Pending confirmation\n\n"
-        "We will contact you shortly to confirm your booking.\n\n"
-        "Thank you for choosing Travel Worthy PH!"
-    )
-    _send(subject, [user.email], body)
-
-
-def send_admin_new_booking(admin_email: str, user, booking, package) -> None:
-    subject = f"[Admin] New Booking #{booking.id} — {package.title}"
-    body = (
-        f"A new booking has been submitted.\n\n"
-        f"  Booking ID  : #{booking.id}\n"
-        f"  Customer    : {user.name} ({user.email})\n"
-        f"  Package     : {package.title}\n"
-        f"  Travel date : {booking.travel_date.strftime('%B %d, %Y')}\n"
-        f"  Travelers   : {booking.num_travelers}\n"
-        f"  Total       : {package.currency} {booking.total_price:,.2f}\n"
-    )
-    _send(subject, [admin_email], body)
-
-
-def send_admin_new_inquiry(admin_email: str, inquiry) -> None:
-    subject = f"[Admin] New Trip Inquiry from {inquiry.name}"
-    package_info = ""
-    if inquiry.package_id and inquiry.package:
-        package_info = f"  Package     : {inquiry.package.title}\n"
-    
-    body = (
-        f"New inquiry received.\n\n"
-        f"  Name        : {inquiry.name}\n"
-        f"  Email       : {inquiry.email}\n"
-        f"  Contact     : {inquiry.contact_number}\n"
-        f"  Destination : {inquiry.destination}\n"
-        f"{package_info}"
-        f"  Dates       : {inquiry.travel_date_from} → {inquiry.travel_date_to}\n"
-        f"  Pax         : {inquiry.num_adults}A / {inquiry.num_children}C / {inquiry.num_infants}I\n"
-        f"  Notes       : {inquiry.special_requests or '—'}\n"
-    )
-    _send(subject, [admin_email], body)
-
-
 def send_contact_autoreply(name: str, to_email: str, subject: str) -> None:
     reply_subject = f"Re: {subject}"
+    safe_name = html_escape(name)
+    safe_subject = html_escape(subject)
+    logo_url = "https://res.cloudinary.com/dbcjxuxhl/image/upload/brand_logo_ip0yv0.png"
     body = (
-        f"Hi {name},\n\n"
-        "Thank you for reaching out to Travel Worthy PH! "
-        "We have received your message and will get back to you within 24 hours.\n\n"
-        "Best regards,\nTravel Worthy PH Team"
+        f"Dear {name},\n\n"
+        "Thank you for contacting Travel Worthy PH. This is to confirm that we have "
+        "received your inquiry and a representative will respond within 24 hours.\n\n"
+        "For immediate assistance:\n"
+        "  Phone / SMS  : +63 917 824 7128\n"
+        "  Email        : travelworthyph@gmail.com\n"
+        "  Facebook     : facebook.com/travelworthyph\n"
+        "  Office Hours : Monday – Sunday | 9:00 AM – 6:00 PM\n\n"
+        "Sincerely,\nTravel Worthy PH"
     )
-    _send(reply_subject, [to_email], body)
+    html = f"""
+    <html><body style="margin:0;padding:0;background:#ffffff;font-family:Arial,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="padding:24px;">
+      <tr><td>
+
+        <!-- BODY -->
+        <p style="font-size:14px;color:#222222;margin:0 0 14px;">Dear <strong>{safe_name}</strong>,</p>
+        <p style="font-size:14px;color:#444444;line-height:1.7;margin:0 0 14px;">
+          Thank you for contacting <strong>Travel Worthy PH</strong>. This is to confirm that we have
+          received your inquiry regarding <em>"{safe_subject}"</em> and a representative will
+          respond to you within <strong>24 hours</strong>.
+        </p>
+        <p style="font-size:14px;color:#444444;line-height:1.7;margin:0 0 10px;">
+          For immediate assistance, you may reach us through any of the following:
+        </p>
+        <table cellpadding="0" cellspacing="0" style="margin:0 0 20px 8px;">
+          <tr><td style="font-size:14px;color:#444444;padding:3px 0;">📞&nbsp; <strong>Phone / SMS</strong>&nbsp;:&nbsp; +63 917 824 7128</td></tr>
+          <tr><td style="font-size:14px;color:#444444;padding:3px 0;">📧&nbsp; <strong>Email</strong>&nbsp;:&nbsp; travelworthyph@gmail.com</td></tr>
+          <tr><td style="font-size:14px;color:#444444;padding:3px 0;">📘&nbsp; <strong>Facebook</strong>&nbsp;:&nbsp; <a href="https://facebook.com/travelworthyph" style="color:#175968;">facebook.com/travelworthyph</a></td></tr>
+          <tr><td style="font-size:14px;color:#444444;padding:3px 0;">🕐&nbsp; <strong>Office Hours</strong>&nbsp;:&nbsp; Monday – Sunday | 9:00 AM – 6:00 PM</td></tr>
+        </table>
+        <p style="font-size:14px;color:#444444;margin:0 0 4px;">Sincerely,</p>
+        <p style="font-size:14px;color:#444444;margin:0 0 28px;"><strong>Travel Worthy PH Team</strong></p>
+
+        <!-- SIGNATURE -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-top:2px solid #f5a623;">
+          <tr>
+            <td width="160" style="background:#ffffff;padding:10px 12px;vertical-align:middle;border:1px solid #eeeeee;">
+              <img src="{logo_url}" width="140" height="60"
+                style="display:block;object-fit:contain;" alt="Travel Worthy PH" />
+            </td>
+            <td style="padding:12px 0 12px 16px;vertical-align:middle;">
+              <div style="font-size:13px;font-weight:bold;color:#222222;">Admin | Representative</div>
+              <div style="font-size:12px;color:#555555;margin-top:3px;">(+63) 936 882 7966</div>
+              <div style="margin-top:4px;">
+                <a href="https://www.facebook.com/jhakie.travelworthyph/"
+                  style="font-size:12px;color:#1a5276;text-decoration:none;">
+                  https://www.facebook.com/jhakie.travelworthyph/
+                </a>
+              </div>
+              <div style="margin-top:3px;">
+                <a href="https://www.google.com/maps/place/WalterMart+Batangas/@13.7637654,121.0538241,17z"
+                  style="font-size:12px;color:#555555;text-decoration:none;">
+                  3F Waltermart Batangas, Batangas City, Philippines 4200
+                </a>
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <!-- DISCLAIMER -->
+        <p style="font-size:10px;color:#999999;line-height:1.6;margin-top:12px;
+                  border-top:1px solid #eeeeee;padding-top:10px;">
+          This e-mail message (including attachments, if any) is intended for the use of the individual
+          or the entity to whom it is addressed and may contain information that is privileged, proprietary,
+          confidential and exempt from disclosure. If you are not the intended recipient, you are notified
+          that any dissemination, distribution or copying of this communication is strictly prohibited.
+          If you have received this communication in error, please notify the sender and delete this
+          e-mail message immediately.
+        </p>
+
+      </td></tr>
+    </table>
+    </body></html>
+    """
+    _send(reply_subject, [to_email], body, html=html)
 
 
 def send_contact_admin_alert(admin_email: str, name: str, email: str, subject: str, message: str) -> None:
@@ -86,44 +113,6 @@ def send_contact_admin_alert(admin_email: str, name: str, email: str, subject: s
     _send(alert_subject, [admin_email], body)
 
 
-def send_booking_approved(user, booking, package) -> None:
-    """Send email when a booking is approved by admin."""
-    subject = f"Booking Approved! — {package.title}"
-    body = (
-        f"Hi {user.name},\n\n"
-        f"Great news! Your booking for '{package.title}' has been approved.\n\n"
-        f"  Booking ID  : #{booking.id}\n"
-        f"  Travel date : {booking.travel_date.strftime('%B %d, %Y')}\n"
-        f"  Travelers   : {booking.num_travelers}\n"
-        f"  Total price : {package.currency} {booking.total_price:,.2f}\n"
-        f"  Status      : APPROVED\n\n"
-        "Get ready for an amazing adventure! "
-        "We'll contact you with further details closer to your travel date.\n\n"
-        "Thank you for choosing Travel Worthy PH!"
-    )
-    _send(subject, [user.email], body)
-
-
-def send_booking_rejected(user, booking, package, reason: str = "") -> None:
-    """Send email when a booking is rejected by admin."""
-    subject = f"Booking Status Update — {package.title}"
-    body = (
-        f"Hi {user.name},\n\n"
-        f"We regret to inform you that your booking for '{package.title}' "
-        f"could not be processed at this time.\n\n"
-        f"  Booking ID  : #{booking.id}\n"
-        f"  Status      : CANCELLED\n"
-    )
-    if reason:
-        body += f"\nReason:\n{reason}\n"
-    body += (
-        "\nPlease feel free to reach out to us if you'd like to discuss alternative options "
-        "or have any questions.\n\n"
-        "Best regards,\nTravel Worthy PH Team"
-    )
-    _send(subject, [user.email], body)
-
-
 def send_user_registration_welcome(user) -> None:
     """Send welcome email to newly registered users."""
     subject = "Welcome to Travel Worthy PH!"
@@ -131,9 +120,9 @@ def send_user_registration_welcome(user) -> None:
         f"Hi {user.name},\n\n"
         "Welcome to Travel Worthy PH! Your account has been successfully created.\n\n"
         "You can now:\n"
-        "  • Browse and book amazing travel packages\n"
+        "  • Browse our travel packages\n"
         "  • Submit custom trip inquiries\n"
-        "  • View your bookings and travel history\n"
+        "  • Track your inquiry status anytime\n"
         "  • Save your favorite packages\n\n"
         "Start exploring our collection of unforgettable travel experiences!\n\n"
         "Best regards,\nTravel Worthy PH Team"
@@ -156,19 +145,75 @@ def send_inquiry_reply(inquiry, admin_response: str) -> None:
     _send(subject, [inquiry.email], body)
 
 
-def send_booking_cancellation(user, booking, package) -> None:
-    """Send email when a booking is cancelled."""
-    subject = f"Booking Cancelled — {package.title}"
+def send_admin_new_inquiry(admin_email: str, inquiry) -> None:
+    """Notify admin when a customer submits a new inquiry.
+
+    If the inquiry's package has an assigned agent, that agent is CC'd
+    automatically so they're looped in without Admin needing to forward it.
+    Visa inquiries (no package, tagged '[FOR VISA]' in special_requests)
+    instead CC the single site-wide visa agent, if one is configured.
+    """
+    package_ref = f" [{inquiry.package.title}]" if inquiry.package_id and inquiry.package else ""
+    subject = f"[Admin] New Inquiry: {inquiry.destination}{package_ref} — {inquiry.reference_number}"
     body = (
-        f"Hi {user.name},\n\n"
-        f"Your booking for '{package.title}' has been cancelled.\n\n"
-        f"  Booking ID  : #{booking.id}\n"
-        f"  Travel date : {booking.travel_date.strftime('%B %d, %Y')}\n"
-        f"  Status      : CANCELLED\n\n"
-        "If you'd like to rebook or need assistance, please contact us anytime.\n\n"
-        "Thank you,\nTravel Worthy PH Team"
+        f"A new trip inquiry has been submitted.\n\n"
+        f"  Reference : {inquiry.reference_number}\n"
+        f"  Name      : {inquiry.name}\n"
+        f"  Email     : {inquiry.email}\n"
+        f"  Phone     : {inquiry.contact_number}\n"
+        f"  Destination: {inquiry.destination}\n"
     )
-    _send(subject, [user.email], body)
+    cc_list = None
+    if inquiry.package_id and inquiry.package:
+        body += f"  Package   : {inquiry.package.title}\n"
+        agent = inquiry.package.assigned_agent
+        if agent and agent.is_active and agent.email:
+            cc_list = [agent.email]
+            body += f"  Assigned agent: {agent.name} (CC'd on this email)\n"
+    elif inquiry.special_requests and inquiry.special_requests.startswith('[FOR VISA]'):
+        from models.agent import Agent
+        agent = Agent.query.filter_by(is_visa_agent=True, is_active=True).first()
+        if agent and agent.email:
+            cc_list = [agent.email]
+            body += f"  Inquiry type: Visa request\n"
+            body += f"  Assigned agent: {agent.name} (CC'd on this email)\n"
+    body += (
+        f"  Dates     : {inquiry.travel_date_from.strftime('%b %d')} — "
+        f"{inquiry.travel_date_to.strftime('%b %d, %Y')}\n"
+        f"  Pax       : {inquiry.num_adults} adult(s), "
+        f"{inquiry.num_children} child(ren), {inquiry.num_infants} infant(s)\n"
+    )
+    if inquiry.special_requests:
+        body += f"\nSpecial requests:\n{inquiry.special_requests}\n"
+    _send(subject, [admin_email], body, cc=cc_list)
+
+def send_inquiry_confirmed(inquiry) -> None:
+    """Notify customer when admin confirms their inquiry (slot reserved)."""
+    package_ref = f" for {inquiry.package.title}" if inquiry.package_id and inquiry.package else ""
+    subject = f"Your {inquiry.destination} inquiry has been confirmed! — {inquiry.reference_number}"
+    base_url = current_app.config.get('SITE_URL', request.host_url).rstrip('/')
+    tracking_url = f"{base_url}/inquiry/{inquiry.reference_number}"
+    body = (
+        f"Hi {inquiry.name},\n\n"
+        f"Great news! Your trip inquiry{package_ref} to {inquiry.destination} "
+        f"has been confirmed by our team.\n\n"
+        f"  Reference  : {inquiry.reference_number}\n"
+        f"  Destination: {inquiry.destination}\n"
+        f"  Dates      : {inquiry.travel_date_from.strftime('%B %d')} — "
+        f"{inquiry.travel_date_to.strftime('%B %d, %Y')}\n"
+        f"  Travelers  : {inquiry.num_adults} adult(s), "
+        f"{inquiry.num_children} child(ren), {inquiry.num_infants} infant(s)\n\n"
+        f"Your slot has been reserved. Our representative will be in touch shortly "
+        f"with the next steps to finalize your booking.\n\n"
+        f"Track your inquiry anytime:\n{tracking_url}\n\n"
+        f"For immediate assistance:\n"
+        f"  Phone / SMS  : +63 917 824 7128\n"
+        f"  Email        : travelworthyph@gmail.com\n"
+        f"  Office Hours : Monday – Sunday | 9:00 AM – 6:00 PM\n\n"
+        f"Sincerely,\nTravel Worthy PH Team\n"
+        f"✈️ Making Your Travel Dreams Real"
+    )
+    _send(subject, [inquiry.email], body)
 
 
 def send_inquiry_receipt(inquiry) -> None:
@@ -184,7 +229,8 @@ def send_inquiry_receipt(inquiry) -> None:
         inquiry: The Inquiry object that was just created
     """
     subject = f"We received your {inquiry.destination} inquiry!"
-    tracking_url = f"{current_app.config.get('SITE_URL', 'https://travelworthyph.com')}/inquiry/{inquiry.reference_number}"
+    base_url = current_app.config.get('SITE_URL', request.host_url).rstrip('/')
+    tracking_url = f"{base_url}/inquiry/{inquiry.reference_number}"
     
     body = (
         f"Hi {inquiry.name},\n\n"
@@ -211,7 +257,14 @@ def send_inquiry_receipt(inquiry) -> None:
         f"  • Our travel blog for destination tips\n"
         f"  • Visa requirements for {inquiry.destination}\n"
         f"  • Similar package recommendations\n\n"
-        f"Questions? Feel free to reply to this email or contact us directly.\n\n"
+        f"📞 WANT TO START THE CONVERSATION NOW?\n"
+        f"You don't have to wait — reach out directly anytime:\n"
+        f"  Phone / SMS  : +63 917 824 7128\n"
+        f"  Email        : travelworthyph@gmail.com\n"
+        f"  Facebook     : facebook.com/travelworthyph\n"
+        f"  Instagram    : instagram.com/travelworthyph\n"
+        f"  TikTok       : tiktok.com/@travelworthyph\n"
+        f"  Office Hours : Monday – Sunday | 9:00 AM – 6:00 PM\n\n"
         f"Best regards,\n"
         f"Travel Worthy PH Team\n"
         f"✈️ Making Your Travel Dreams Real"

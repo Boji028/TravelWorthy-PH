@@ -167,7 +167,6 @@
       <h3>{{ package.title }}</h3>
       <div class="meta">
         <span><i class="fas fa-clock"></i>{{ package.duration_days }}d</span>
-        <span><i class="fas fa-users"></i>{{ package.available_slots }} slots</span>
         <span><i class="fas fa-tag"></i>{% if package.currency == 'USD' %}${% elif package.currency == 'EUR' %}€{% else %}₱{% endif %}{{ "{:,.0f}".format(package.price) }}/person</span>
       </div>
     </div>

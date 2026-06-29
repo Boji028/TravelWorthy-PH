@@ -2,7 +2,7 @@
 import pytest
 from forms import (
     RegisterForm, LoginForm, ChangePasswordForm, ContactForm,
-    BookingForm, InquiryForm, StrongPasswordValidator
+    InquiryForm, StrongPasswordValidator
 )
 from datetime import date, timedelta
 
@@ -87,42 +87,6 @@ class TestRegisterForm:
                 'email': 'invalid-email',
                 'password': 'ValidPassword123',
                 'confirm_password': 'ValidPassword123'
-            })
-
-
-class TestBookingForm:
-    """Test booking form validation."""
-
-    def test_booking_form_valid(self, app):
-        """Test valid booking form."""
-        with app.test_request_context():
-            future_date = date.today() + timedelta(days=30)
-            form = BookingForm(data={
-                'num_travelers': 2,
-                'travel_date': future_date,
-                'contact_number': '+1234567890',
-                'special_requests': 'Window seat'
-            })
-            assert form.num_travelers.data == 2
-
-    def test_booking_form_past_date(self, app):
-        """Test booking form with past date."""
-        with app.test_request_context():
-            past_date = date.today() - timedelta(days=10)
-            form = BookingForm(data={
-                'num_travelers': 2,
-                'travel_date': past_date,
-                'contact_number': '+1234567890'
-            })
-
-    def test_booking_form_invalid_travelers(self, app):
-        """Test booking form with invalid traveler count."""
-        with app.test_request_context():
-            future_date = date.today() + timedelta(days=30)
-            form = BookingForm(data={
-                'num_travelers': 0,
-                'travel_date': future_date,
-                'contact_number': '+1234567890'
             })
 
 

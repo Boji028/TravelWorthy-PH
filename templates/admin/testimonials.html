@@ -25,6 +25,21 @@
     align-items: center;
   }
 
+  .testimonial-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--teal);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: .85rem;
+    flex-shrink: 0;
+    text-transform: uppercase;
+  }
+
   .user-info h4 {
     margin: 0;
     color: var(--bark);
@@ -47,6 +62,31 @@
     font-size: .92rem;
     line-height: 1.6;
     margin: 1rem 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .testimonial-message.clamped {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .testimonial-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--teal);
+    font-size: .82rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    margin: -.5rem 0 .5rem;
+  }
+
+  .testimonial-toggle.visible {
+    display: inline-block;
   }
 
   .testimonial-images {
@@ -65,6 +105,7 @@
 
   .testimonial-footer {
     display: flex;
+    justify-content: space-between;
     gap: .75rem;
     flex-wrap: wrap;
     padding-top: 1rem;
@@ -80,6 +121,18 @@
     display: flex;
     gap: .5rem;
   }
+
+  .testimonial-filter-bar { display: flex; gap: .6rem; margin-bottom: .8rem; flex-wrap: wrap; align-items: center; max-width: 900px; margin-left: auto; margin-right: auto; }
+  .testimonial-search-wrap { flex: 1; min-width: 180px; position: relative; }
+  .testimonial-search-wrap i { position: absolute; left: .8rem; top: 50%; transform: translateY(-50%); color: var(--mist); font-size: .8rem; }
+  .testimonial-search-wrap input { padding-left: 2.2rem !important; }
+
+  .rating-pills { display: flex; gap: .4rem; margin-bottom: 1.2rem; flex-wrap: wrap; max-width: 900px; margin-left: auto; margin-right: auto; }
+  .rating-pill { text-decoration: none; border-radius: 999px; padding: .4rem .8rem; font-size: .76rem; font-weight: 600; background: var(--white); border: 1px solid var(--linen); color: var(--mist); transition: opacity .15s; }
+  .rating-pill:hover { opacity: .8; }
+  .rating-pill.active { background: rgba(23,89,104,.08); color: var(--teal); border-color: transparent; }
+  .rating-pill.all.active { background: rgba(23,89,104,.08); color: var(--teal); }
+  .rating-pill.stars.active { background: rgba(239,130,51,.1); color: var(--amber); }
 
   @media (max-width: 600px) {
     .testimonial-header {
@@ -108,83 +161,218 @@
   <p>Manage customer reviews and remove photos as needed</p>
 </div>
 
-{% if testimonials %}
-<div style="max-width: 900px; margin: 0 auto;">
-  {% for testimonial in testimonials %}
-  <div class="testimonial-card">
-    <div class="testimonial-header">
-      <div class="testimonial-user">
-        <div class="user-info">
-          <h4>{{ testimonial.user.name }}</h4>
-          <p>{{ testimonial.created_at.strftime('%B %d, %Y') }}</p>
+<div id="testimonialsApp">
+
+  <form method="GET" action="{{ url_for('admin.testimonials') }}" class="testimonial-filter-bar" id="testimonial-filter-form">
+    <div class="testimonial-search-wrap">
+      <i class="fas fa-search"></i>
+      <input type="text" name="search" value="{{ search }}" placeholder="Search by name or email..." class="form-control">
+    </div>
+    <input type="hidden" name="rating" value="{{ rating_filter }}">
+    <button type="submit" class="btn btn-outline btn-sm">Filter</button>
+  </form>
+
+  <div class="rating-pills">
+    <a href="{{ url_for('admin.testimonials', search=search) }}"
+       class="rating-pill all {{ 'active' if not rating_filter }}">All {{ rating_counts.all }}</a>
+    {% for r in range(5, 0, -1) %}
+    <a href="{{ url_for('admin.testimonials', search=search, rating=r) }}"
+       class="rating-pill stars {{ 'active' if rating_filter == r|string }}">★{{ r }} {{ rating_counts[r|string] }}</a>
+    {% endfor %}
+  </div>
+
+  {% if testimonials %}
+  <div style="max-width: 900px; margin: 0 auto;">
+    {% for testimonial in testimonials %}
+    {% set name_parts = testimonial.user.name.split() %}
+    <div class="testimonial-card" id="testimonial-{{ testimonial.id }}">
+      <div class="testimonial-header">
+        <div class="testimonial-user">
+          <div class="testimonial-avatar">{{ name_parts[0][0] }}{{ name_parts[-1][0] if name_parts|length > 1 else '' }}</div>
+          <div class="user-info">
+            <h4>{{ testimonial.user.name }}</h4>
+            <p>{{ testimonial.created_at.strftime('%B %d, %Y') }} · {{ testimonial.user.email }}</p>
+          </div>
+        </div>
+        <div class="testimonial-rating">
+          {% for i in range(testimonial.rating) %}
+            <i class="fas fa-star"></i>
+          {% endfor %}
+          {% for i in range(5 - testimonial.rating) %}
+            <i class="fas fa-star" style="color: var(--linen);"></i>
+          {% endfor %}
         </div>
       </div>
-      <div class="testimonial-rating">
-        {% for i in range(testimonial.rating) %}
-          <i class="fas fa-star"></i>
-        {% endfor %}
-        {% for i in range(5 - testimonial.rating) %}
-          <i class="fas fa-star" style="color: var(--linen);"></i>
+
+      <div class="testimonial-message clamped" id="msg-{{ testimonial.id }}">{{ testimonial.message }}</div>
+      <button type="button" class="testimonial-toggle" data-target="msg-{{ testimonial.id }}">Show more</button>
+
+      {% if testimonial.images %}
+      <div class="testimonial-images">
+        {% for img in testimonial.images %}
+          <img src="{{ img.path }}" alt="Review photo" class="testimonial-img" />
         {% endfor %}
       </div>
-    </div>
+      {% endif %}
 
-    <div class="testimonial-message">
-      {{ testimonial.message }}
+      <div class="testimonial-footer">
+        <div class="actions">
+          {% if testimonial.images %}
+            <form method="POST" action="{{ url_for('admin.delete_testimonial_photo', testimonial_id=testimonial.id) }}" style="display: inline;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Remove all photos from this testimonial?')">
+                <i class="fas fa-image-slash"></i> Remove Photos
+              </button>
+            </form>
+          {% endif %}
+          <button type="button" class="btn btn-danger btn-sm" data-delete-testimonial-url="{{ url_for('main.delete_testimonial', testimonial_id=testimonial.id) }}">
+            <i class="fas fa-trash"></i> Delete Review
+          </button>
+        </div>
+        <div style="font-size: .82rem; color: var(--mist);">
+          ID: #{{ testimonial.id }}
+        </div>
+      </div>
     </div>
+    {% endfor %}
 
-    {% if testimonial.image %}
-    <div class="testimonial-images">
-      {% for img_path in testimonial.image.split(',') %}
-        <img src="/uploads/{{ img_path.strip() }}" alt="Review photo" class="testimonial-img" />
-      {% endfor %}
+    {% if pagination.pages > 1 %}
+    <div style="text-align: center; margin-top: 2rem; padding: 1.5rem; background: var(--white); border-radius: var(--radius-lg);">
+      {% if pagination.has_prev %}
+        <a href="{{ url_for('admin.testimonials', page=pagination.prev_num, search=search, rating=rating_filter) }}" class="btn btn-outline btn-sm">
+          <i class="fas fa-chevron-left"></i> Previous
+        </a>
+      {% endif %}
+
+      <span style="margin: 0 1rem; color: var(--mist); font-size: .9rem;">
+        Page {{ pagination.page }} of {{ pagination.pages }}
+      </span>
+
+      {% if pagination.has_next %}
+        <a href="{{ url_for('admin.testimonials', page=pagination.next_num, search=search, rating=rating_filter) }}" class="btn btn-outline btn-sm">
+          Next <i class="fas fa-chevron-right"></i>
+        </a>
+      {% endif %}
     </div>
     {% endif %}
-
-    <div class="testimonial-footer">
-      <div class="actions">
-        {% if testimonial.image %}
-          <form method="POST" action="{{ url_for('admin.delete_testimonial_photo', testimonial_id=testimonial.id) }}" style="display: inline;">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-            <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Remove all photos from this testimonial?')">
-              <i class="fas fa-image-slash"></i> Remove Photos
-            </button>
-          </form>
-        {% endif %}
-      </div>
-      <div style="font-size: .82rem; color: var(--mist);">
-        ID: #{{ testimonial.id }} | User: {{ testimonial.user.email }}
-      </div>
-    </div>
   </div>
-  {% endfor %}
-
-  <!-- Pagination -->
-  {% if pagination.pages > 1 %}
-  <div style="text-align: center; margin-top: 2rem; padding: 1.5rem; background: var(--white); border-radius: var(--radius-lg);">
-    {% if pagination.has_prev %}
-      <a href="{{ url_for('admin.testimonials', page=pagination.prev_num) }}" class="btn btn-outline btn-sm">
-        <i class="fas fa-chevron-left"></i> Previous
-      </a>
-    {% endif %}
-
-    <span style="margin: 0 1rem; color: var(--mist); font-size: .9rem;">
-      Page {{ pagination.page }} of {{ pagination.pages }}
-    </span>
-
-    {% if pagination.has_next %}
-      <a href="{{ url_for('admin.testimonials', page=pagination.next_num) }}" class="btn btn-outline btn-sm">
-        Next <i class="fas fa-chevron-right"></i>
-      </a>
+  {% else %}
+  <div style="max-width: 900px; margin: 3rem auto; padding: 2rem; background: var(--white); border-radius: var(--radius-lg); text-align: center;">
+    <i class="fas fa-star" style="font-size: 3rem; color: var(--mist); opacity: 0.5; display: block; margin-bottom: 1rem;"></i>
+    {% if search or rating_filter %}
+      <h3 style="color: var(--mist);">No reviews match your filters</h3>
+      <p><a href="{{ url_for('admin.testimonials') }}" style="color:var(--teal)">Clear filters</a></p>
+    {% else %}
+      <h3 style="color: var(--mist);">No testimonials yet</h3>
+      <p style="color: var(--mist);">Customer reviews will appear here once users submit them.</p>
     {% endif %}
   </div>
   {% endif %}
+
 </div>
-{% else %}
-<div style="max-width: 900px; margin: 3rem auto; padding: 2rem; background: var(--white); border-radius: var(--radius-lg); text-align: center;">
-  <i class="fas fa-star" style="font-size: 3rem; color: var(--mist); opacity: 0.5; display: block; margin-bottom: 1rem;"></i>
-  <h3 style="color: var(--mist);">No testimonials yet</h3>
-  <p style="color: var(--mist);">Customer reviews will appear here once users submit them.</p>
-</div>
-{% endif %}
+
+<script nonce="{{ csp_nonce() }}">
+(function () {
+  var testimonialsApp = document.getElementById('testimonialsApp');
+
+  function initTestimonialClamps() {
+    testimonialsApp.querySelectorAll('.testimonial-message.clamped').forEach(function (msg) {
+      var btn = testimonialsApp.querySelector('.testimonial-toggle[data-target="' + msg.id + '"]');
+      if (!btn) return;
+      if (msg.scrollHeight > msg.clientHeight + 2) {
+        btn.classList.add('visible');
+      } else {
+        btn.classList.remove('visible');
+      }
+    });
+  }
+
+  function buildUrlFromForm(form) {
+    var params = new URLSearchParams();
+    for (var i = 0; i < form.elements.length; i++) {
+      var el = form.elements[i];
+      if (!el.name || el.disabled) continue;
+      params.set(el.name, el.value || '');
+    }
+    var action = form.getAttribute('action') || window.location.pathname;
+    return action.split('?')[0] + '?' + params.toString();
+  }
+
+  async function loadTestimonials(url, pushState) {
+    if (pushState === undefined) pushState = true;
+    testimonialsApp.style.opacity = '0.5';
+    testimonialsApp.style.pointerEvents = 'none';
+    try {
+      var res = await fetch(url, { headers: { 'X-Requested-With': 'fetch' } });
+      if (!res.ok) throw new Error('Request failed: ' + res.status);
+      var html = await res.text();
+      var doc = new DOMParser().parseFromString(html, 'text/html');
+      var fresh = doc.getElementById('testimonialsApp');
+      if (!fresh) throw new Error('testimonialsApp not found in response');
+      testimonialsApp.innerHTML = fresh.innerHTML;
+      if (doc.title) document.title = doc.title;
+      if (pushState) history.pushState({ testimonialsUrl: url }, '', url);
+      initTestimonialClamps();
+    } catch (err) {
+      window.location.href = url;
+    } finally {
+      testimonialsApp.style.opacity = '';
+      testimonialsApp.style.pointerEvents = '';
+    }
+  }
+
+  testimonialsApp.addEventListener('click', function (e) {
+    var toggleBtn = e.target.closest('.testimonial-toggle');
+    if (toggleBtn) {
+      var target = document.getElementById(toggleBtn.getAttribute('data-target'));
+      if (!target) return;
+      target.classList.toggle('clamped');
+      toggleBtn.textContent = target.classList.contains('clamped') ? 'Show more' : 'Show less';
+      return;
+    }
+
+    var deleteBtn = e.target.closest('[data-delete-testimonial-url]');
+    if (deleteBtn) {
+      if (!confirm('Delete this review permanently?')) return;
+      var url = deleteBtn.getAttribute('data-delete-testimonial-url');
+      var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': csrfMeta ? csrfMeta.getAttribute('content') : ''
+        }
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.success) return;
+        var card = deleteBtn.closest('.testimonial-card');
+        if (card) card.remove();
+      })
+      .catch(function () {});
+      return;
+    }
+
+    var link = e.target.closest('a');
+    if (!link) return;
+    if (link.classList.contains('no-ajax')) return;
+    if (link.hasAttribute('target')) return;
+    if (link.origin !== window.location.origin) return;
+    e.preventDefault();
+    loadTestimonials(link.href);
+  });
+
+  testimonialsApp.addEventListener('submit', function (e) {
+    if (e.target.id !== 'testimonial-filter-form') return;
+    e.preventDefault();
+    loadTestimonials(buildUrlFromForm(e.target));
+  });
+
+  window.addEventListener('popstate', function () {
+    loadTestimonials(window.location.href, false);
+  });
+
+  initTestimonialClamps();
+})();
+</script>
 {% endblock %}

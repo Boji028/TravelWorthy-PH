@@ -1,7 +1,7 @@
 """Email verification service for handling verification workflows."""
 from typing import Optional, Tuple
 from datetime import datetime, timezone
-from flask import url_for
+from flask import url_for, current_app
 from flask_mail import Message
 from app import db, mail
 from models.email_verification import EmailVerificationToken
@@ -28,7 +28,7 @@ class EmailVerificationService:
             ValueError: If user not found
         """
         try:
-            user = User.query.get(user_id)
+            user = db.session.get(User, user_id)
             if not user:
                 raise ValueError(f"User {user_id} not found")
             
@@ -62,7 +62,7 @@ class EmailVerificationService:
             raise
 
     @staticmethod
-    def send_verification_email(user_email: str, user_name: str, token: str, is_resend: bool = False) -> bool:
+    def send_verification_email(user_email: str, user_name: str, token: str, is_resend: bool = False, expires_in_hours: int = 24) -> bool:
         """Send verification email to user.
         
         Args:
@@ -75,6 +75,15 @@ class EmailVerificationService:
             True if email sent successfully
         """
         try:
+            if not current_app.config.get('MAIL_USERNAME'):
+                StructuredLogger.log_error(
+                    'email_verification',
+                    'Mail not configured — verification email skipped',
+                    {'email': user_email},
+                    'WARNING',
+                )
+                return False
+
             # Build verification URL
             verification_url = url_for('auth.verify_email', token=token, _external=True)
             
@@ -89,7 +98,7 @@ Please verify your email address by clicking the link below:
 
 {verification_url}
 
-This link will expire in 24 hours.
+This link will expire in {expires_in_hours} hours.
 
 If you did not create this account, please ignore this email.
 
@@ -107,7 +116,7 @@ Travel Agency Team"""
         </a>
     </p>
     <p>Or copy and paste this link: <a href="{verification_url}">{verification_url}</a></p>
-    <p style="color: #666; font-size: 12px;">This link will expire in 24 hours.</p>
+    <p style="color: #666; font-size: 12px;">This link will expire in {expires_in_hours} hours.</p>
     <p style="color: #666; font-size: 12px;">If you did not create this account, please ignore this email.</p>
     <p>Best regards,<br>Travel Agency Team</p>
 </body>
@@ -158,7 +167,7 @@ Travel Agency Team"""
                 return False, "Invalid or expired verification link", None
             
             # Get user
-            user = User.query.get(token_obj.user_id)
+            user = db.session.get(User, token_obj.user_id)
             if not user:
                 return False, "User not found", None
             
@@ -248,10 +257,10 @@ Travel Agency Team"""
         try:
             now = datetime.now(timezone.utc)
             
-            # Delete expired and used tokens
+            # Delete all expired tokens (whether used or not)
+            # Used tokens that haven't expired yet are kept for audit purposes
             result = EmailVerificationToken.query.filter(
-                EmailVerificationToken.expires_at < now,
-                EmailVerificationToken.is_used == False
+                EmailVerificationToken.expires_at < now
             ).delete()
             
             db.session.commit()

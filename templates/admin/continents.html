@@ -1,65 +1,298 @@
 {% extends "admin/base_admin.html" %}
-{% block title %}Continents{% endblock %}
+{% block title %}Manage Continents — Admin{% endblock %}
 
-{% block content %}
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-  <div>
-    <div
-      style="font-size:.75rem; text-transform:uppercase; letter-spacing:.1em; color:var(--teal); font-weight:900; margin-bottom:.25rem;">
-      <i class="fas fa-earth-asia"></i> Manage
+{% block admin_styles %}
+<style>
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .87rem;
+  }
+
+  .admin-table th {
+    text-align: left;
+    padding: .6rem .75rem;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--mist);
+    border-bottom: 1px solid var(--linen);
+    font-weight: 600;
+  }
+
+  .admin-table td {
+    padding: .85rem .75rem;
+    border-bottom: 1px solid var(--linen);
+    color: var(--bark);
+    vertical-align: middle;
+  }
+
+  .admin-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .admin-table tr:hover td {
+    background: #faf6f0;
+  }
+
+  .table-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(58, 46, 34, .07);
+  }
+
+  .table-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--linen);
+  }
+
+  .table-toolbar h3 {
+    font-family: 'Pogonia', serif;
+    font-size: 1.2rem;
+    color: var(--bark);
+  }
+
+  .region-thumb {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: var(--linen);
+  }
+
+  .region-thumb-placeholder {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: var(--teal);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+  }
+
+  .count-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: .15rem .6rem;
+    border-radius: 999px;
+    font-size: .8rem;
+    font-weight: 600;
+  }
+
+  .count-badge.countries {
+    background: var(--sand);
+    color: var(--teal);
+  }
+
+  .count-badge.packages {
+    background: rgba(239, 130, 51, .12);
+    color: var(--amber-d);
+  }
+
+  .action-btns {
+    display: flex;
+    gap: .4rem;
+  }
+
+  .toggle-active {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    font-size: .75rem;
+    padding: .2rem .65rem;
+    border-radius: 999px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: opacity .15s;
+  }
+
+  .toggle-active:hover {
+    opacity: .8;
+  }
+
+  .toggle-active.on {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  .toggle-active.off {
+    background: #f8d7da;
+    color: #721c24;
+  }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--linen);
+    background: var(--sand);
+    flex-wrap: wrap;
+  }
+
+  .filter-search {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    background: var(--white);
+    border: 1px solid var(--linen);
+    border-radius: 999px;
+    padding: .45rem .9rem;
+    flex: 1;
+    min-width: 220px;
+    max-width: 320px;
+  }
+
+  .filter-search input {
+    border: none;
+    background: none;
+    outline: none;
+    font-size: .85rem;
+    color: var(--bark);
+    width: 100%;
+    font-family: inherit;
+  }
+
+  .filter-select {
+    border: 1px solid var(--linen);
+    border-radius: var(--radius);
+    padding: .45rem .75rem;
+    font-size: .82rem;
+    color: var(--bark);
+    background: var(--white);
+    font-family: inherit;
+  }
+
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <div style="display:flex;justify-content:space-between;align-items:flex-end">
+    <div>
+      <h1>Continents</h1>
+      <p>Manage travel regions and their countries</p>
     </div>
-    <h2 style="font-family:'Pogonia',serif; font-size:1.9rem; color:var(--teal); margin: 10px;;">Continents</h2>
+    <a href="{{ url_for('admin.add_continent') }}" class="btn btn-amber">
+      <i class="fas fa-plus"></i> Add Continent
+    </a>
   </div>
-  <a href="{{ url_for('admin.add_continent') }}" class="btn btn-primary">+ Add Continent</a>
+</div>
+<div class="table-card">
+  <div class="table-toolbar">
+    <h3>All Regions ({{ continents|length }})</h3>
+  </div>
+
+  <!-- SEARCH / FILTER -->
+  <form method="GET" action="{{ url_for('admin.continents') }}" class="filter-bar">
+    <div class="filter-search">
+      <i class="fas fa-search" style="color:var(--mist);font-size:.8rem"></i>
+      <input type="text" name="search" placeholder="Search regions…" value="{{ search }}" />
+    </div>
+    <select name="status" class="filter-select" onchange="this.form.submit()">
+      <option value="">All Status</option>
+      <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+      <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Apply</button>
+    {% if search or status_filter %}
+    <a href="{{ url_for('admin.continents') }}" class="btn btn-ghost btn-sm">Clear</a>
+    {% endif %}
+  </form>
+
+  <div style="overflow-x:auto">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Region</th>
+          <th>Countries</th>
+          <th>Packages</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for continent in continents %}
+        {% set stats = continent_stats.get(continent.id, {'country_count': 0, 'package_count': 0}) %}
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:.7rem">
+              {% if continent.image %}
+              <img class="region-thumb"
+                src="{{ continent.image if continent.image.startswith('http') else '/uploads/' + continent.image }}"
+                alt="" />
+              {% else %}
+              <div class="region-thumb-placeholder">{{ continent.flag_emoji or '🌍' }}</div>
+              {% endif %}
+              <a href="{{ url_for('admin.countries', continent_id=continent.id) }}"
+                style="font-weight:600;color:var(--bark);text-decoration:none">{{ continent.name }}</a>
+            </div>
+          </td>
+          <td><span class="count-badge countries">{{ stats.country_count }}</span></td>
+          <td><span class="count-badge packages">{{ stats.package_count }}</span></td>
+          <td>
+            <button type="button" class="toggle-active {% if continent.is_active %}on{% else %}off{% endif %}"
+              id="active-toggle-{{ continent.id }}" onclick="toggleContinentActive({{ continent.id }})">
+              <i class="fas fa-circle" style="font-size:.45rem"></i>
+              <span id="active-label-{{ continent.id }}">{{ 'Active' if continent.is_active else 'Inactive' }}</span>
+            </button>
+          </td>
+          <td>
+            <div class="action-btns">
+              <a href="{{ url_for('admin.edit_continent', continent_id=continent.id) }}" class="btn-sm-edit"
+                title="Edit"><i class="fas fa-edit"></i> Edit</a>
+              <form method="POST" action="{{ url_for('admin.delete_continent', continent_id=continent.id) }}"
+                onsubmit="return confirm('Delete this continent? This only works if it has no countries assigned.')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button type="submit" class="btn btn-danger btn-sm" title="Delete"><i class="fas fa-trash"></i></button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" style="text-align:center;color:var(--mist);padding:3rem">
+            {% if search or status_filter %}
+            No regions match your search/filter. <a href="{{ url_for('admin.continents') }}"
+              style="color:var(--teal)">Clear filters →</a>
+            {% else %}
+            No continents yet. <a href="{{ url_for('admin.add_continent') }}" style="color:var(--teal)">Add one →</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 
-<table
-  style="width:100%; border-collapse:collapse; background:white; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,.07);">
-  <thead style="background:var(--teal); color:white;">
-    <tr>
-      <th style="padding:1rem; text-align:center; width:80px;">Emoji</th>
-      <th style="padding:1rem; text-align:center; width:200px;">Name</th>
-      <th style="padding:1rem; text-align:center; width:120px;">Status</th>
-      <th style="padding:1rem; text-align:center; width:160px;">Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for continent in continents %}
-    <tr style="border-bottom:1px solid #f0ebe3;">
-      <td style="padding:1rem; text-align:center; font-size:1.4rem;">{{ continent.flag_emoji or '🌍' }}</td>
-      <td style="padding:1rem; text-align:center;">
-        <a href="{{ url_for('admin.countries', continent_id=continent.id) }}"
-          style="display:inline-flex; align-items:center; gap:.5rem; background:var(--teal); color:white; padding:.35rem .9rem; border-radius:999px; font-size:.88rem; font-weight:600; text-decoration:none; transition:background .2s;"
-          onmouseover="this.style.background='var(--amber)'" onmouseout="this.style.background='var(--teal)'">
-          {{ continent.name }} <span style="font-size:.75rem;">▶</span>
-        </a>
-      </td>
-      <td style="padding:1rem; text-align:center;">
-        {% if continent.is_active %}
-        <span
-          style="background:#d4edda; color:#155724; padding:.2rem .7rem; border-radius:999px; font-size:.8rem;">Active</span>
-        {% else %}
-        <span
-          style="background:#f8d7da; color:#721c24; padding:.2rem .7rem; border-radius:999px; font-size:.8rem;">Inactive</span>
-        {% endif %}
-      </td>
-      <td style="padding:1rem; text-align:center;">
-        <div style="display:flex; gap:.5rem; justify-content:center;">
-          <a href="{{ url_for('admin.edit_continent', continent_id=continent.id) }}"
-            class="btn-sm-edit"><i class="fas fa-edit"></i> Edit</a>
-          <form method="POST" action="{{ url_for('admin.delete_continent', continent_id=continent.id) }}"
-            onsubmit="return confirm('Delete this continent?')">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-          </form>
-        </div>
-      </td>
-    </tr>
-    {% else %}
-    <tr>
-      <td colspan="4" style="padding:2rem; text-align:center; color:#8fa8a3;">No continents added yet.</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<script nonce="{{ csp_nonce() }}">
+  function toggleContinentActive(continentId) {
+    fetch(`/admin/continents/toggle-active/${continentId}`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': '{{ csrf_token() }}'
+        }
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.success) return;
+        const btn = document.getElementById(`active-toggle-${continentId}`);
+        const label = document.getElementById(`active-label-${continentId}`);
+        btn.classList.toggle('on', data.is_active);
+        btn.classList.toggle('off', !data.is_active);
+        label.textContent = data.is_active ? 'Active' : 'Inactive';
+      })
+      .catch(() => alert('Failed to update status. Please try again.'));
+  }
+
+</script>
 {% endblock %}

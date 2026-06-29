@@ -23,21 +23,6 @@
     padding: .2rem .7rem; border-radius: 999px; font-weight: 600;
     text-transform: uppercase; letter-spacing: .06em;
   }
-  .section-label {
-    font-size: .8rem; font-weight: 600; text-transform: uppercase;
-    letter-spacing: .1em; color: var(--mist); margin-bottom: 1rem;
-  }
-  .booking-row {
-    background: var(--white); border-radius: var(--radius); padding: 1.2rem 1.5rem;
-    margin-bottom: .75rem; display: grid; grid-template-columns: 1fr auto;
-    align-items: center; gap: 1rem; box-shadow: 0 1px 6px rgba(58,46,34,.06); transition: box-shadow .15s;
-  }
-  .booking-row:hover { box-shadow: 0 4px 16px rgba(58,46,34,.1); }
-  .booking-pkg { font-weight: 500; color: var(--bark); margin-bottom: .3rem; }
-  .booking-meta { font-size: .82rem; color: var(--mist); display: flex; gap: 1rem; }
-  .booking-meta i { color: var(--teal); margin-right: .2rem; }
-  .empty-state { text-align: center; padding: 3rem; color: var(--mist); background: var(--white); border-radius: var(--radius-lg); }
-  .empty-state i { font-size: 2.5rem; opacity: .3; display: block; margin-bottom: .75rem; }
 
   /* Password change card */
   .pw-card {
@@ -75,9 +60,6 @@
         <span><i class="fas fa-calendar" style="color:var(--teal);margin-right:.3rem"></i>Joined {{ current_user.created_at.strftime('%B %Y') }}</span>
       </div>
     </div>
-    <div style="margin-left:auto">
-      <a href="{{ url_for('bookings.my_bookings') }}" class="btn btn-outline btn-sm">View All Bookings</a>
-    </div>
   </div>
 
   <!-- Change password -->
@@ -105,36 +87,6 @@
     </form>
   </div>
 
-  <!-- Recent bookings -->
-  <div class="section-label">Recent Bookings</div>
-  {% if bookings %}
-    {% for booking in bookings[:5] %}
-      <div class="booking-row">
-        <div>
-          <div class="booking-pkg">{{ booking.package.title }}</div>
-          <div class="booking-meta">
-            <span><i class="fas fa-location-dot"></i>{{ booking.package.destination }}</span>
-            <span><i class="fas fa-calendar-check"></i>{{ booking.travel_date.strftime('%b %d, %Y') }}</span>
-            <span><i class="fas fa-users"></i>{{ booking.num_travelers }} traveler{{ 's' if booking.num_travelers > 1 }}</span>
-            <span><i class="fas fa-peso-sign"></i>{{ "{:,.0f}".format(booking.total_price) }}</span>
-          </div>
-        </div>
-        <div>
-          <span class="badge badge-{{ booking.status }}">{{ booking.status.title() }}</span>
-        </div>
-      </div>
-    {% endfor %}
-    {% if bookings|length > 5 %}
-      <div style="text-align:center;margin-top:1.5rem">
-        <a href="{{ url_for('bookings.my_bookings') }}" class="btn btn-ghost">See all {{ bookings|length }} bookings</a>
-      </div>
-    {% endif %}
-  {% else %}
-    <div class="empty-state">
-      <i class="fas fa-suitcase-rolling"></i>
-      <p>No bookings yet. <a href="{{ url_for('packages.list_packages') }}" style="color:var(--teal)">Explore packages →</a></p>
-    </div>
-  {% endif %}
 
 </div>
 {% endblock %}

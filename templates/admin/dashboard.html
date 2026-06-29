@@ -3,6 +3,48 @@
 
 {% block admin_styles %}
 <style>
+  .quick-actions {
+    display: flex;
+    gap: .6rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .qa-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: .82rem;
+    font-weight: 600;
+    padding: .55rem 1rem;
+    border-radius: 999px;
+    text-decoration: none;
+    transition: transform .15s, box-shadow .15s;
+  }
+
+  .qa-btn:hover {
+    transform: translateY(-2px);
+  }
+
+  .qa-btn.primary {
+    background: var(--teal);
+    color: #fff;
+  }
+
+  .qa-btn.primary:hover {
+    box-shadow: 0 6px 16px rgba(45, 122, 111, .3);
+  }
+
+  .qa-btn.secondary {
+    background: var(--white);
+    border: 1px solid var(--linen);
+    color: var(--bark);
+  }
+
+  .qa-btn.secondary:hover {
+    box-shadow: 0 6px 16px rgba(58, 46, 34, .1);
+  }
+
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -18,7 +60,31 @@
     display: flex;
     align-items: center;
     gap: 1rem;
+    border-left: 3px solid transparent;
+    transition: transform .2s, box-shadow .2s;
+    opacity: 0;
+    animation: dashCardRise .5s ease forwards;
   }
+
+  .stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 28px rgba(58,46,34,.13);
+  }
+
+  @keyframes dashCardRise {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stat-card { animation: none; opacity: 1; }
+  }
+
+  .stat-card.teal   { border-left-color: var(--teal); }
+  .stat-card.amber  { border-left-color: var(--amber); }
+  .stat-card.bark   { border-left-color: var(--bark); }
+  .stat-card.danger { border-left-color: var(--danger); }
+  .stat-card.info   { border-left-color: #2980b9; }
 
   .stat-icon {
     width: 52px;
@@ -35,6 +101,7 @@
   .stat-icon.amber  { background: rgba(200,135,74,.1); color: var(--amber); }
   .stat-icon.bark   { background: rgba(58,46,34,.08);  color: var(--bark); }
   .stat-icon.danger { background: rgba(192,57,43,.1);  color: var(--danger); }
+  .stat-icon.info   { background: rgba(41,128,185,.1); color: #2980b9; }
 
   .stat-num {
     font-family: 'Pogonia', serif;
@@ -51,6 +118,7 @@
     border-radius: var(--radius-lg);
     padding: 1.5rem;
     box-shadow: 0 2px 12px rgba(58,46,34,.07);
+    margin-bottom: 1.5rem;
   }
 
   .card-header {
@@ -66,6 +134,74 @@
     font-family: 'Pogonia', serif;
     font-size: 1.25rem;
     color: var(--bark);
+  }
+
+  /* ── BOOKINGS TREND CHART ── */
+  .trend-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    height: 110px;
+    padding-top: 24px;
+  }
+
+  .trend-bar-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    height: 100%;
+    justify-content: flex-end;
+    position: relative;
+  }
+
+  .trend-bar {
+    width: 100%;
+    border-radius: 5px 5px 0 0;
+    background: linear-gradient(180deg, var(--teal-d), var(--teal));
+    min-height: 4px;
+    transition: opacity .2s;
+    opacity: 0;
+    animation: trendGrow .6s ease forwards;
+    transform-origin: bottom;
+  }
+
+  .trend-bar:hover { opacity: .85; }
+
+  .trend-bar.peak {
+    background: linear-gradient(180deg, var(--amber), var(--amber-d));
+  }
+
+  @keyframes trendGrow {
+    from { opacity: 0; transform: scaleY(0); }
+    to { opacity: 1; transform: scaleY(1); }
+  }
+
+  .trend-count {
+    position: absolute;
+    top: -20px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: .7rem;
+    color: var(--mist);
+    font-weight: 600;
+  }
+
+  .trend-day-label {
+    text-align: center;
+    font-size: .68rem;
+    color: var(--mist);
+    margin-top: .4rem;
+  }
+
+  .trend-days {
+    display: flex;
+    gap: 10px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .trend-bar { animation: none; opacity: 1; transform: none; }
   }
 
   .admin-table {
@@ -104,37 +240,49 @@
   <p>Welcome back, {{ current_user.name }}. Here's what's happening today.</p>
 </div>
 
+<div class="quick-actions">
+  <a href="{{ url_for('admin.add_package') }}" class="qa-btn primary">
+    <i class="fas fa-plus"></i> Add Package
+  </a>
+  <a href="{{ url_for('admin.add_blog') }}" class="qa-btn secondary">
+    <i class="fas fa-pen"></i> Write Story
+  </a>
+  <a href="{{ url_for('admin.inquiries') }}" class="qa-btn secondary">
+    <i class="fas fa-envelope"></i> View Inquiries
+  </a>
+</div>
+
 <div class="stats-grid">
-  <div class="stat-card">
+  <div class="stat-card teal" style="animation-delay:.02s">
     <div class="stat-icon teal"><i class="fas fa-users"></i></div>
     <div>
       <div class="stat-num">{{ total_users }}</div>
       <div class="stat-label">Registered Users</div>
     </div>
   </div>
-  <div class="stat-card">
+  <div class="stat-card amber" style="animation-delay:.08s">
     <div class="stat-icon amber"><i class="fas fa-suitcase"></i></div>
     <div>
       <div class="stat-num">{{ total_packages }}</div>
       <div class="stat-label">Tour Packages</div>
     </div>
   </div>
-  <div class="stat-card">
-    <div class="stat-icon bark"><i class="fas fa-calendar-check"></i></div>
+  <div class="stat-card bark" style="animation-delay:.14s">
+    <div class="stat-icon bark"><i class="fas fa-envelope"></i></div>
     <div>
-      <div class="stat-num">{{ total_bookings }}</div>
-      <div class="stat-label">Total Bookings</div>
+      <div class="stat-num">{{ total_inquiries }}</div>
+      <div class="stat-label">Total Inquiries</div>
     </div>
   </div>
-  <div class="stat-card">
+  <div class="stat-card danger" style="animation-delay:.2s">
     <div class="stat-icon danger"><i class="fas fa-clock"></i></div>
     <div>
-      <div class="stat-num">{{ pending_bookings }}</div>
-      <div class="stat-label">Pending Bookings</div>
+      <div class="stat-num">{{ in_progress_inquiries }}</div>
+      <div class="stat-label">In Progress</div>
     </div>
   </div>
-  <div class="stat-card">
-    <div class="stat-icon info" style="background:rgba(41,128,185,.1);color:#2980b9"><i class="fas fa-envelope-open-text"></i></div>
+  <div class="stat-card info" style="animation-delay:.26s">
+    <div class="stat-icon info"><i class="fas fa-envelope-open-text"></i></div>
     <div>
       <div class="stat-num">{{ new_inquiries }}</div>
       <div class="stat-label">New Inquiries</div>
@@ -142,41 +290,70 @@
   </div>
 </div>
 
+<!-- INQUIRIES TREND CHART -->
 <div class="recent-card">
   <div class="card-header">
-    <h3>Recent Bookings</h3>
-    <a href="{{ url_for('admin.bookings') }}" class="btn btn-outline btn-sm">View All</a>
+    <h3>Inquiries — Last 7 Days</h3>
+    <span style="font-size:.8rem;color:var(--mist)">
+      Total: {{ inquiry_trend | sum(attribute='count') if inquiry_trend else 0 }}
+    </span>
   </div>
 
-  {% if recent_bookings %}
+  {% if inquiry_trend %}
+  <div class="trend-chart">
+    {% for day in inquiry_trend %}
+    <div class="trend-bar-wrap">
+      <span class="trend-count">{{ day.count }}</span>
+      <div class="trend-bar {% if max_trend_count and day.count == max_trend_count and day.count > 0 %}peak{% endif %}"
+        style="height: {{ ((day.count / max_trend_count) * 100) if max_trend_count else 4 }}%; animation-delay: {{ loop.index0 * 0.06 }}s;"
+        title="{{ day.label }}: {{ day.count }} inquir{{ 'y' if day.count == 1 else 'ies' }}"></div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="trend-days">
+    {% for day in inquiry_trend %}
+    <div class="trend-day-label" style="flex:1">{{ day.label }}</div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:2rem;color:var(--mist)">No inquiry data yet.</div>
+  {% endif %}
+</div>
+
+<!-- RECENT INQUIRIES -->
+<div class="recent-card">
+  <div class="card-header">
+    <h3>Recent Inquiries</h3>
+    <a href="{{ url_for('admin.inquiries') }}" class="btn btn-outline btn-sm">View All</a>
+  </div>
+
+  {% if recent_inquiries %}
     <table class="admin-table">
       <thead>
         <tr>
-          <th>#</th>
-          <th>Traveler</th>
-          <th>Package</th>
-          <th>Travel Date</th>
-          <th>Travelers</th>
-          <th>Total</th>
+          <th>Reference</th>
+          <th>Name</th>
+          <th>Destination</th>
+          <th>Travel Dates</th>
+          <th>Pax</th>
           <th>Status</th>
         </tr>
       </thead>
       <tbody>
-        {% for booking in recent_bookings %}
+        {% for inq in recent_inquiries %}
           <tr>
-            <td style="color:var(--mist)">#{{ booking.id }}</td>
-            <td>{{ booking.user.name }}</td>
-            <td>{{ booking.package.title }}</td>
-            <td>{{ booking.travel_date.strftime('%b %d, %Y') }}</td>
-            <td>{{ booking.num_travelers }}</td>
-            <td style="font-weight:500">₱{{ "{:,.0f}".format(booking.total_price) }}</td>
-            <td><span class="badge badge-{{ booking.status }}">{{ booking.status.title() }}</span></td>
+            <td style="color:var(--mist)">{{ inq.reference_number }}</td>
+            <td>{{ inq.name }}</td>
+            <td>{{ inq.destination }}</td>
+            <td>{{ inq.travel_date_from.strftime('%b %d') }} – {{ inq.travel_date_to.strftime('%b %d, %Y') }}</td>
+            <td>{{ inq.total_pax }}</td>
+            <td><span class="badge badge-{{ inq.status }}">{{ inq.status.title() }}</span></td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
   {% else %}
-    <div style="text-align:center;padding:2rem;color:var(--mist)">No bookings yet.</div>
+    <div style="text-align:center;padding:2rem;color:var(--mist)">No inquiries yet.</div>
   {% endif %}
 </div>
 {% endblock %}

@@ -9,9 +9,32 @@ setTimeout(() => {
       if (wrap && wrap.children.length === 0) wrap.remove();
     }, 500);
   });
-}, 3000);
+}, 4000);
 
-// Nav toggle
-document.getElementById('navToggle').addEventListener('click', () => {
-  document.querySelector('.nav-links').classList.toggle('open');
+// Mobile nav toggle
+const navToggle = document.getElementById('navToggle');
+const navLinks  = document.querySelector('.nav-links');
+if (navToggle && navLinks) {
+  navToggle.addEventListener('click', () => {
+    navLinks.classList.toggle('nav-open');
+  });
+}
+// Mobile dropdown — tap to toggle
+document.querySelectorAll('.dropdown-toggle').forEach(function(toggle) {
+  toggle.addEventListener('click', function(e) {
+    if (window.innerWidth <= 768) {
+      e.preventDefault();
+      var menu = this.nextElementSibling;
+      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    }
+  });
+});
+
+// Close dropdown when tapping outside
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.dropdown')) {
+    document.querySelectorAll('.dropdown-menu').forEach(function(m) {
+      m.style.display = '';
+    });
+  }
 });

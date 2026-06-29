@@ -1,43 +1,186 @@
 {% extends "admin/base_admin.html" %}
 {% block title %}Edit Country — Admin{% endblock %}
 
+{% block admin_styles %}
+<style>
+  .file-upload-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .file-upload-wrapper input[type="file"] {
+    display: none;
+  }
+
+  .file-upload-btn {
+    background: var(--teal);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background 0.2s;
+  }
+
+  .file-upload-btn:hover {
+    background: var(--bark);
+  }
+
+  .file-upload-label {
+    color: var(--mist);
+    font-size: 0.9rem;
+  }
+
+  .size-warning {
+    display: none;
+    font-size: 0.78rem;
+    color: var(--warning);
+    background: rgba(230, 126, 34, .1);
+    border: 1px solid rgba(230, 126, 34, .3);
+    border-radius: var(--radius);
+    padding: 0.5rem 0.75rem;
+    margin-top: 0.6rem;
+  }
+
+  .new-image-preview {
+    display: none;
+    margin-top: .75rem;
+  }
+
+  .new-image-preview img {
+    height: 90px;
+    border-radius: var(--radius);
+    object-fit: cover;
+  }
+
+  .new-image-preview .label {
+    font-size: .78rem;
+    color: var(--mist);
+    margin-top: .3rem;
+  }
+</style>
+{% endblock %}
+
 {% block admin_content %}
 <div class="admin-header">
-  <h1>Edit Country</h1>
-  <a href="{{ url_for('admin.countries', continent_id=country.continent_id) }}" class="btn btn-ghost"><i
-      class="fas fa-arrow-left"></i> Back</a>
+  <div style="display:flex;justify-content:space-between;align-items:flex-end">
+    <div>
+      <h1>{{ country.flag_emoji or '🏳️' }} Edit Country</h1>
+      <p>{{ country.name }}</p>
+    </div>
+    <a href="{{ url_for('admin.countries', continent_id=country.continent_id) }}" class="btn btn-ghost">
+      <i class="fas fa-arrow-left"></i> Back
+    </a>
+  </div>
 </div>
 
-<div
-  style="background:var(--white);border-radius:var(--radius-lg);padding:2rem;box-shadow:0 2px 12px rgba(58,46,34,.07);max-width:600px;">
-  <form method="POST" action="{{ url_for('admin.edit_country', country_id=country.id) }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-    <div class="form-row" style="display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:end;">
-      <div class="form-group">
-        <label>Country Name <span style="color:var(--danger)">*</span></label>
-        <input type="text" name="name" class="form-control" required value="{{ country.name }}" />
+<div style="max-width:600px">
+  <div class="card" style="padding:2rem;">
+    <form method="POST" action="{{ url_for('admin.edit_country', country_id=country.id) }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <div class="form-row" style="display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:end;">
+        <div class="form-group">
+          <label>Country Name <span style="color:var(--danger)">*</span></label>
+          <input type="text" name="name" class="form-control" required value="{{ country.name }}" />
+        </div>
+        <div class="form-group">
+          <label>Flag Emoji</label>
+          <input type="text" name="flag_emoji" class="form-control" value="{{ country.flag_emoji or '' }}"
+            style="width:80px;text-align:center;font-size:1.5rem;" />
+        </div>
       </div>
+
       <div class="form-group">
-        <label>Flag Emoji</label>
-        <input type="text" name="flag_emoji" class="form-control" value="{{ country.flag_emoji or '' }}"
-          style="width:80px;text-align:center;font-size:1.5rem;" />
+        <label>Description</label>
+        <textarea name="description" class="form-control" rows="3">{{ country.description or '' }}</textarea>
       </div>
-    </div>
 
-    <div class="form-group">
-      <label>Description</label>
-      <textarea name="description" class="form-control" rows="3">{{ country.description or '' }}</textarea>
-    </div>
+      <div class="form-group">
+        <label>Country Photo</label>
+        {% if country.image %}
+        <div style="margin-bottom:.75rem;">
+          <img src="{{ country.image if country.image.startswith('http') else '/uploads/' + country.image }}"
+            style="height:100px;border-radius:var(--radius);object-fit:cover;" />
+          <div style="font-size:.78rem;color:var(--mist);margin-top:.3rem">
+            Current image
+            {% if country.image_size_kb %}· {{ "%.1f"|format(country.image_size_kb) }} KB{% endif %}
+            {% if country.image_uploaded_at %}· {{ country.image_uploaded_at.strftime('%b %d, %Y') }}{% endif %}
+          </div>
+        </div>
+        {% endif %}
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+          <div class="file-upload-wrapper" style="flex:1;">
+            <button type="button" class="file-upload-btn" onclick="this.nextElementSibling.click()">
+              <i class="fas fa-image"></i> {{ 'Replace Photo' if country.image else 'Choose Photo' }}
+            </button>
+            <input type="file" name="image" id="image-input" accept="image/*"
+              onchange="handleImagePreview(this)" />
+            <span class="file-upload-label" id="image-filename">{% if country.image %}Keeping current{% else %}No file chosen{% endif %}</span>
+          </div>
+          {% if country.image %}
+          <button type="button" class="btn btn-danger btn-sm" style="padding:0.5rem 0.75rem;"
+            onclick="document.getElementById('remove-image-form').submit();" title="Remove Photo">
+            <i class="fas fa-trash"></i>
+          </button>
+          {% endif %}
+        </div>
+        <div class="new-image-preview" id="new-image-preview">
+          <img id="new-image-thumb" src="" alt="" />
+          <div class="label">New photo</div>
+        </div>
+        <div class="size-warning" id="image-size-warning"></div>
+        <div style="font-size:.78rem;color:var(--mist);margin-top:.3rem">Leave empty to keep current image. 600px wide or more recommended.</div>
+      </div>
 
-    <div class="form-group" style="display:flex;align-items:center;gap:.5rem">
-      <input type="checkbox" name="is_active" id="is_active" {{ 'checked' if country.is_active }} />
-      <label for="is_active" style="margin:0">Active (visible to users)</label>
-    </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:.5rem">
+        <input type="checkbox" name="is_active" id="is_active" {{ 'checked' if country.is_active }} />
+        <label for="is_active" style="margin:0">Active (visible to users)</label>
+      </div>
 
-    <div style="display:flex;gap:1rem;margin-top:1.5rem">
-      <button type="submit" class="btn btn-amber">Save Changes</button>
-      <a href="{{ url_for('admin.countries', continent_id=country.continent_id) }}" class="btn btn-ghost">Cancel</a>
-    </div>
-  </form>
+      <div style="display:flex;gap:1rem;margin-top:1.5rem">
+        <button type="submit" class="btn btn-amber">Save Changes</button>
+        <a href="{{ url_for('admin.countries', continent_id=country.continent_id) }}" class="btn btn-ghost">Cancel</a>
+      </div>
+    </form>
+  </div>
 </div>
+
+<!-- Kept OUTSIDE the main form above — nested <form> elements are invalid HTML and won't submit reliably. -->
+{% if country.image %}
+<form id="remove-image-form" method="POST"
+  action="{{ url_for('admin.remove_country_image', country_id=country.id) }}" style="display:none;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+</form>
+{% endif %}
+
+<script nonce="{{ csp_nonce() }}">
+  function handleImagePreview(input) {
+    const file = input.files[0];
+    document.getElementById('image-filename').textContent = file ? file.name : '{{ "Keeping current" if country.image else "No file chosen" }}';
+    const preview = document.getElementById('new-image-preview');
+    const warningEl = document.getElementById('image-size-warning');
+    if (!file) { preview.style.display = 'none'; warningEl.style.display = 'none'; return; }
+
+    const thumb = document.getElementById('new-image-thumb');
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = function () {
+      thumb.src = url;
+      preview.style.display = 'block';
+      if (img.naturalWidth < 600) {
+        warningEl.textContent = 'This photo is ' + img.naturalWidth + '×' + img.naturalHeight +
+          'px and may look blurry. 600px wide or more works best.';
+        warningEl.style.display = 'block';
+      } else {
+        warningEl.style.display = 'none';
+      }
+    };
+    img.src = url;
+  }
+</script>
 {% endblock %}

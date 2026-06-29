@@ -7,13 +7,14 @@
     color: #3a2e22 !important;
   }
 
-  /* rest of the existing styles... */
-  
+  /* ── HERO ── */
   .page-hero {
     background: linear-gradient(135deg, var(--teal-d), var(--teal));
     color: var(--white);
-    padding: 4rem 2rem;
+    padding: 4rem 2rem 4.5rem;
     text-align: center;
+    position: relative;
+    overflow: hidden;
   }
 
   .page-hero h1 {
@@ -21,9 +22,48 @@
     font-size: 3rem;
     font-weight: 300;
     margin-bottom: .5rem;
+    opacity: 0;
+    animation: abHeroFade .7s ease .05s forwards;
   }
 
-  .page-hero p { opacity: .8; font-size: 1rem; }
+  .page-hero p {
+    opacity: 0;
+    animation: abHeroFadeDim .7s ease .2s forwards;
+  }
+
+  .page-hero-wave {
+    position: absolute; left: 0; right: 0; bottom: -1px; height: 50px; width: 200%;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 60' preserveAspectRatio='none'%3E%3Cpath d='M0,26 C180,52 360,4 600,24 C840,44 1020,8 1200,26 L1200,60 L0,60 Z' fill='%23f5efe6'/%3E%3C/svg%3E");
+    background-size: 1200px 50px; background-repeat: repeat-x;
+    animation: abWaveFlow 10s linear infinite;
+  }
+
+  @keyframes abWaveFlow { to { transform: translateX(-1200px); } }
+
+  @keyframes abHeroFade { to { opacity: 1; } }
+  @keyframes abHeroFadeDim { to { opacity: .8; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .page-hero h1 { animation: none; opacity: 1; }
+    .page-hero p { animation: none; opacity: .8; }
+    .page-hero-wave { animation: none; }
+  }
+
+  /* ── SCROLL REVEAL ── */
+  .ab-reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity .8s ease, transform .8s cubic-bezier(.2,.7,.3,1);
+  }
+  .ab-reveal.ab-in { opacity: 1; transform: none; }
+  .ab-d1 { transition-delay: .12s; }
+  .ab-d2 { transition-delay: .24s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ab-reveal { transition: none; opacity: 1; transform: none; }
+  }
+
+  /* rest of the existing styles... */
 
   .about-inner {
     max-width: 900px;
@@ -45,6 +85,22 @@
     margin-bottom: 1.5rem;
   }
 
+  .ab-lead-accent {
+    width: 40px;
+    height: 3px;
+    background: var(--amber);
+    border-radius: 2px;
+    margin-bottom: 1.2rem;
+  }
+
+  .ab-lead {
+    font-family: 'Pogonia', serif;
+    font-style: italic;
+    font-size: 1.25rem;
+    color: var(--bark);
+    line-height: 1.6;
+  }
+
   .about-values {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -58,6 +114,14 @@
     padding: 1.75rem;
     text-align: center;
     box-shadow: 0 2px 12px rgba(58,46,34,.07);
+    border-top: 3px solid transparent;
+    transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
+  }
+
+  .value-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 14px 32px rgba(58,46,34,.14);
+    border-top-color: var(--amber);
   }
 
   .value-icon {
@@ -81,30 +145,55 @@
 <div class="page-hero">
   <h1>About Travel Worthy PH</h1>
   <p>Crafting unforgettable journeys since 2019</p>
+  <div class="page-hero-wave"></div>
 </div>
 
 <div class="about-inner">
-  <h2>Our Story</h2>
-  <p>For Travel Worthy PH, that step was taken in August 2019, fueled by a simple yet powerful passion for the art of travelling. From our humble beginnings as a digital startup to the opening of our first physical office since in November 2019, our growth has been defined by one mission: ensuring every itinerary was craft is truly "Worthy"</p>
-  <p>As we enter this new era of our brand, we aren't just changing our look; <strong>we are deeepening our commitment</strong>. This rebranding marks a milestone in our evolution, a reflection of the seamless, meaningful, and unforgettable experiences we've built for our community over the years. We invite you to explore the new face of Travel Worthy PH, where our heart for service meets a vision for the future of travel.</p>
-  <p>Our team of expert travel consultants has first-hand experience in all the destinations we offer. We work with trusted local guides and partners to deliver authentic, meaningful travel that goes beyond the ordinary tourist trail.</p>
+  <h2 class="ab-reveal">Our Story</h2>
+
+  <div class="ab-reveal ab-d1">
+    <div class="ab-lead-accent"></div>
+    <p class="ab-lead">For Travel Worthy PH, that step was taken in August 2019, fueled by a simple yet powerful passion for the art of travelling.</p>
+  </div>
+  <p class="ab-reveal ab-d1">From our humble beginnings as a digital startup to the opening of our first physical office in November 2019, our growth has been defined by one mission: ensuring every itinerary is truly "Worthy."</p>
+  <p class="ab-reveal ab-d2">As we enter this new era of our brand, we aren't just changing our look; <strong>we are deepening our commitment</strong>. This rebranding marks a milestone in our evolution, a reflection of the seamless, meaningful, and unforgettable experiences we've built for our community over the years. We invite you to explore the new face of Travel Worthy PH, where our heart for service meets a vision for the future of travel.</p>
+  <p class="ab-reveal ab-d2">Our team of expert travel consultants has first-hand experience in all the destinations we offer. We work with trusted local guides and partners to deliver authentic, meaningful travel that goes beyond the ordinary tourist trail.</p>
 
   <div class="about-values">
-    <div class="value-card">
+    <div class="value-card ab-reveal">
       <div class="value-icon"><i class="fas fa-bullseye"></i></div>
       <h3>Mission</h3>
       <p>At Travel Worthy PH, our mission is to provide a personalized,  reliable, and high-quality travel services that cater to every traveler's needs and aspirations. We are committed to creating enjoyable, stress-free, and meaningful journeys by offering trusted guidance, memorable experiences, and exceptional value. </p>
     </div>
-    <div class="value-card">
+    <div class="value-card ab-reveal ab-d1">
       <div class="value-icon"><i class="fas fa-eye"></i></div>
       <h3>Vision</h3>
-      <p>To become Batangas'most trusted and customer-centered travel agency, one that inspires people to explore more and experience more. Over the next years, we envision expanding our reach, growing our branches, nd continuously elevating the way travelers discover the world.</p>
+      <p>To become Batangas' most trusted and customer-centered travel agency, one that inspires people to explore more and experience more. Over the next years, we envision expanding our reach, growing our branches, and continuously elevating the way travelers discover the world.</p>
     </div>
-    <div class="value-card">
+    <div class="value-card ab-reveal ab-d2">
       <div class="value-icon"><i class="fas fa-quote-left"></i></div>
       <h3>Tagline</h3>
       <p>Your Travel, made <strong>worth it</strong>.</p>
     </div>
   </div>
+
+  <div class="ab-reveal" style="text-align:center;margin-top:3rem;padding:2rem;background:var(--white);border-radius:var(--radius-lg);box-shadow:0 2px 12px rgba(58,46,34,.07);">
+    <p style="color:var(--mist);font-size:.95rem;margin-bottom:1rem;">Want to plan your next adventure with us?</p>
+    <a href="{{ url_for('main.contact') }}" class="btn btn-amber">
+      <i class="fas fa-envelope"></i> Get In Touch
+    </a>
+  </div>
+
 </div>
+
+<script nonce="{{ csp_nonce() }}">
+  (function () {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('ab-in'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.16 });
+    document.querySelectorAll('.ab-reveal').forEach(function (el) { io.observe(el); });
+  })();
+</script>
 {% endblock %}

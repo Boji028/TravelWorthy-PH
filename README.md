@@ -123,3 +123,16 @@ travel_agency/
 - Admin routes are protected by a custom `@admin_required` decorator
 - File uploads are validated by extension and saved with `secure_filename`
 - Never share or commit your `.env` file
+
+### Email verification (production)
+
+Set in `.env` before deploying:
+
+```env
+FLASK_ENV=production
+REQUIRE_EMAIL_VERIFICATION=true
+MAIL_USERNAME=your_email@gmail.com
+MAIL_PASSWORD=your_app_password
+```
+
+When enabled, new users must click the link in their verification email before they can log in. It defaults to **on** when `FLASK_ENV=production`, and **off** in development. Admin accounts are always treated as verified.

@@ -25,6 +25,23 @@ class EmailVerificationToken(db.Model):
         return f'<EmailVerificationToken {self.email}>'
 
     @staticmethod
+    def _aware(dt: Optional[datetime]) -> Optional[datetime]:
+        """Normalize a datetime read back from the DB to timezone-aware UTC.
+
+        `expires_at` is stored as a plain db.DateTime (no `timezone=True`),
+        so after a commit (which expires/refreshes the object) or any fresh
+        query, SQLAlchemy hands back a naive datetime on both SQLite and
+        Postgres — even though it was written as tz-aware UTC. Comparing
+        that naive value directly against `datetime.now(timezone.utc)`
+        raises `TypeError: can't compare offset-naive and offset-aware
+        datetimes`. Treat a naive value as UTC (which is what it always is
+        here, since every write path uses `datetime.now(timezone.utc)`).
+        """
+        if dt is not None and dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt
+
+    @staticmethod
     def generate_token(user_id: int, email: str, expires_in_hours: int = 24) -> 'EmailVerificationToken':
         """Generate a new verification token for a user.
         
@@ -44,7 +61,8 @@ class EmailVerificationToken(db.Model):
             user_id=user_id,
             token=token,
             email=email,
-            expires_at=expires_at
+            expires_at=expires_at,
+            is_used=False
         )
         
         return verification_token
@@ -70,7 +88,7 @@ class EmailVerificationToken(db.Model):
             return None
         
         # Check if token has expired
-        if verification.expires_at < now:
+        if EmailVerificationToken._aware(verification.expires_at) < now:
             return None
         
         return verification
@@ -84,8 +102,8 @@ class EmailVerificationToken(db.Model):
         if self.is_used:
             return False
         
-        if self.expires_at < datetime.now(timezone.utc):
-            return False
+        if self._aware(self.expires_at) < datetime.now(timezone.utc):
+            return False    
         
         self.is_used = True
         self.verified_at = datetime.now(timezone.utc)
@@ -112,4 +130,4 @@ class EmailVerificationToken(db.Model):
         Returns:
             True if token has expired
         """
-        return self.expires_at < datetime.now(timezone.utc)
+        return self._aware(self.expires_at) < datetime.now(timezone.utc)

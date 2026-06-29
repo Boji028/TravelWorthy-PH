@@ -1,0 +1,364 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Site Settings{% endblock %}
+
+{% block admin_styles %}
+<style>
+  .file-upload-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .file-upload-wrapper input[type="file"] {
+    display: none;
+  }
+
+  .file-upload-btn {
+    background: var(--teal);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background 0.2s;
+  }
+
+  .file-upload-btn:hover {
+    background: var(--bark);
+  }
+
+  .file-upload-label {
+    color: var(--mist);
+    font-size: 0.9rem;
+  }
+
+  .site-img-block {
+    padding-bottom: 1.75rem;
+    margin-bottom: 1.75rem;
+    border-bottom: 1px solid var(--linen);
+  }
+
+  .site-img-block:last-of-type {
+    border-bottom: 0;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .site-img-block h3 {
+    font-size: 1rem;
+    color: var(--bark);
+    margin-bottom: 0.3rem;
+  }
+
+  .site-img-block .hint {
+    font-size: 0.8rem;
+    color: var(--mist);
+    margin-bottom: 0.9rem;
+  }
+
+  .size-warning {
+    display: none;
+    font-size: 0.78rem;
+    color: var(--warning);
+    background: rgba(230, 126, 34, .1);
+    border: 1px solid rgba(230, 126, 34, .3);
+    border-radius: var(--radius);
+    padding: 0.5rem 0.75rem;
+    margin-top: 0.6rem;
+  }
+
+  .settings-card-header {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--linen);
+  }
+
+  .settings-last-saved {
+    font-size: 0.72rem;
+    color: var(--mist);
+  }
+
+  .settings-toast {
+    display: none;
+    font-size: 0.85rem;
+    padding: 0.65rem 0.9rem;
+    border-radius: var(--radius);
+    margin-bottom: 1.25rem;
+  }
+
+  .settings-toast.success {
+    background: rgba(39, 174, 96, .1);
+    color: var(--success);
+    border: 1px solid rgba(39, 174, 96, .25);
+  }
+
+  .settings-toast.danger {
+    background: rgba(192, 57, 43, .1);
+    color: var(--danger);
+    border: 1px solid rgba(192, 57, 43, .25);
+  }
+
+  .save-btn[disabled] {
+    opacity: .6;
+    cursor: not-allowed;
+  }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <h1>Site Settings</h1>
+  <p>Replace the homepage background photos without needing file access. Each section uses your default beach photo until you upload a custom one.</p>
+</div>
+
+<div style="max-width:640px; margin:0 auto;">
+  <div class="card" style="padding:2rem;">
+
+    <div class="settings-card-header">
+      <span class="settings-last-saved" id="last-saved-label">
+        {% if settings.updated_at %}Last saved {{ settings.updated_at.strftime('%b %d, %Y') }}{% else %}Not saved yet{% endif %}
+      </span>
+    </div>
+
+    <div class="settings-toast" id="settings-toast"></div>
+
+    <form method="POST" enctype="multipart/form-data" id="site-settings-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+      <!-- HERO -->
+      <div class="site-img-block" data-field="hero_image">
+        <h3>Hero background</h3>
+        <div class="hint">Shown behind "Your Travel made worth it." at the top of the homepage.</div>
+
+        <div class="img-preview-wrap" style="{{ '' if settings.hero_image else 'display:none;' }}margin-bottom:.75rem;">
+          <img class="img-preview-img" src="{{ settings.hero_image if settings.hero_image and settings.hero_image.startswith('http') else ('/uploads/' + settings.hero_image if settings.hero_image else '') }}"
+            style="height:120px;border-radius:var(--radius);object-fit:cover;" />
+          <div class="img-meta" style="font-size:.78rem;color:var(--mist);margin-top:.3rem">
+            {% if settings.hero_image %}
+            Current image
+            {% if settings.hero_image_size_kb %}· {{ "%.1f"|format(settings.hero_image_size_kb) }} KB{% endif %}
+            {% if settings.hero_image_uploaded_at %}· {{ settings.hero_image_uploaded_at.strftime('%b %d, %Y') }}{% endif %}
+            {% endif %}
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+          <div class="file-upload-wrapper">
+            <button type="button" class="file-upload-btn" onclick="this.nextElementSibling.click()">
+              <i class="fas fa-image"></i> <span class="upload-btn-text">{{ 'Replace Photo' if settings.hero_image else 'Choose Photo' }}</span>
+            </button>
+            <input type="file" name="hero_image" accept="image/*"
+              onchange="this.nextElementSibling.textContent = this.files[0]?.name || 'No file chosen'; checkImageSize(this, this.closest('.site-img-block').querySelector('.size-warning'), 1600);" />
+            <span class="file-upload-label">{% if settings.hero_image %}Keeping current{% else %}No file chosen{% endif %}</span>
+          </div>
+          <button type="button" class="btn btn-danger btn-sm remove-img-btn" style="padding:0.5rem 0.75rem;{{ '' if settings.hero_image else 'display:none;' }}"
+            data-remove-url="{{ url_for('admin.remove_site_image', field='hero_image') }}" title="Remove Photo">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+        <div class="size-warning"></div>
+      </div>
+
+      <!-- TESTIMONIALS -->
+      <div class="site-img-block" data-field="testimonial_image">
+        <h3>Testimonials section background</h3>
+        <div class="hint">The blurred, darkened background behind the rotating traveler quotes.</div>
+
+        <div class="img-preview-wrap" style="{{ '' if settings.testimonial_image else 'display:none;' }}margin-bottom:.75rem;">
+          <img class="img-preview-img" src="{{ settings.testimonial_image if settings.testimonial_image and settings.testimonial_image.startswith('http') else ('/uploads/' + settings.testimonial_image if settings.testimonial_image else '') }}"
+            style="height:120px;border-radius:var(--radius);object-fit:cover;" />
+          <div class="img-meta" style="font-size:.78rem;color:var(--mist);margin-top:.3rem">
+            {% if settings.testimonial_image %}
+            Current image
+            {% if settings.testimonial_image_size_kb %}· {{ "%.1f"|format(settings.testimonial_image_size_kb) }} KB{% endif %}
+            {% if settings.testimonial_image_uploaded_at %}· {{ settings.testimonial_image_uploaded_at.strftime('%b %d, %Y') }}{% endif %}
+            {% endif %}
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+          <div class="file-upload-wrapper">
+            <button type="button" class="file-upload-btn" onclick="this.nextElementSibling.click()">
+              <i class="fas fa-image"></i> <span class="upload-btn-text">{{ 'Replace Photo' if settings.testimonial_image else 'Choose Photo' }}</span>
+            </button>
+            <input type="file" name="testimonial_image" accept="image/*"
+              onchange="this.nextElementSibling.textContent = this.files[0]?.name || 'No file chosen'; checkImageSize(this, this.closest('.site-img-block').querySelector('.size-warning'), 1600);" />
+            <span class="file-upload-label">{% if settings.testimonial_image %}Keeping current{% else %}No file chosen{% endif %}</span>
+          </div>
+          <button type="button" class="btn btn-danger btn-sm remove-img-btn" style="padding:0.5rem 0.75rem;{{ '' if settings.testimonial_image else 'display:none;' }}"
+            data-remove-url="{{ url_for('admin.remove_site_image', field='testimonial_image') }}" title="Remove Photo">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+        <div class="size-warning"></div>
+      </div>
+
+      <!-- CTA -->
+      <div class="site-img-block" data-field="cta_image">
+        <h3>Closing CTA background</h3>
+        <div class="hint">Shown behind "Ready to plan your trip?" near the bottom of the homepage.</div>
+
+        <div class="img-preview-wrap" style="{{ '' if settings.cta_image else 'display:none;' }}margin-bottom:.75rem;">
+          <img class="img-preview-img" src="{{ settings.cta_image if settings.cta_image and settings.cta_image.startswith('http') else ('/uploads/' + settings.cta_image if settings.cta_image else '') }}"
+            style="height:120px;border-radius:var(--radius);object-fit:cover;" />
+          <div class="img-meta" style="font-size:.78rem;color:var(--mist);margin-top:.3rem">
+            {% if settings.cta_image %}
+            Current image
+            {% if settings.cta_image_size_kb %}· {{ "%.1f"|format(settings.cta_image_size_kb) }} KB{% endif %}
+            {% if settings.cta_image_uploaded_at %}· {{ settings.cta_image_uploaded_at.strftime('%b %d, %Y') }}{% endif %}
+            {% endif %}
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+          <div class="file-upload-wrapper">
+            <button type="button" class="file-upload-btn" onclick="this.nextElementSibling.click()">
+              <i class="fas fa-image"></i> <span class="upload-btn-text">{{ 'Replace Photo' if settings.cta_image else 'Choose Photo' }}</span>
+            </button>
+            <input type="file" name="cta_image" accept="image/*"
+              onchange="this.nextElementSibling.textContent = this.files[0]?.name || 'No file chosen'; checkImageSize(this, this.closest('.site-img-block').querySelector('.size-warning'), 1600);" />
+            <span class="file-upload-label">{% if settings.cta_image %}Keeping current{% else %}No file chosen{% endif %}</span>
+          </div>
+          <button type="button" class="btn btn-danger btn-sm remove-img-btn" style="padding:0.5rem 0.75rem;{{ '' if settings.cta_image else 'display:none;' }}"
+            data-remove-url="{{ url_for('admin.remove_site_image', field='cta_image') }}" title="Remove Photo">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+        <div class="size-warning"></div>
+      </div>
+
+      <div style="display:flex; gap:1rem; margin-top:.5rem;">
+        <button type="submit" class="btn btn-amber save-btn">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+  function checkImageSize(input, warningEl, minWidth) {
+    var file = input.files[0];
+    if (!file) { warningEl.style.display = 'none'; return; }
+    var img = new Image();
+    var url = URL.createObjectURL(file);
+    img.onload = function () {
+      if (img.naturalWidth < minWidth) {
+        warningEl.textContent = '⚠️ This photo is ' + img.naturalWidth + '×' + img.naturalHeight +
+          'px — at full width it may look blurry. For a sharp background, ' + minWidth + 'px wide or more works best.';
+        warningEl.style.display = 'block';
+      } else {
+        warningEl.style.display = 'none';
+      }
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }
+
+  function showToast(message, type) {
+    var toast = document.getElementById('settings-toast');
+    toast.textContent = message;
+    toast.className = 'settings-toast ' + type;
+    toast.style.display = 'block';
+    clearTimeout(toast._hideTimer);
+    toast._hideTimer = setTimeout(function () {
+      toast.style.display = 'none';
+    }, 4000);
+  }
+
+  function applyImageData(field, data) {
+    var block = document.querySelector('.site-img-block[data-field="' + field + '"]');
+    if (!block) return;
+    var previewWrap = block.querySelector('.img-preview-wrap');
+    var previewImg = block.querySelector('.img-preview-img');
+    var metaEl = block.querySelector('.img-meta');
+    var btnText = block.querySelector('.upload-btn-text');
+    var fileLabel = block.querySelector('.file-upload-label');
+    var removeBtn = block.querySelector('.remove-img-btn');
+    var fileInput = block.querySelector('input[type="file"]');
+
+    if (data) {
+      previewImg.src = data.url;
+      previewWrap.style.display = '';
+      var metaParts = ['Current image'];
+      if (data.size_kb) metaParts.push(data.size_kb + ' KB');
+      if (data.uploaded_at) metaParts.push(data.uploaded_at);
+      metaEl.textContent = metaParts.join(' \u00b7 ');
+      btnText.textContent = 'Replace Photo';
+      removeBtn.style.display = '';
+    } else {
+      previewWrap.style.display = 'none';
+      previewImg.src = '';
+      metaEl.textContent = '';
+      btnText.textContent = 'Choose Photo';
+      removeBtn.style.display = 'none';
+    }
+
+    fileLabel.textContent = data ? 'Keeping current' : 'No file chosen';
+    fileInput.value = '';
+    var warningEl = block.querySelector('.size-warning');
+    warningEl.style.display = 'none';
+  }
+
+  var form = document.getElementById('site-settings-form');
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var saveBtn = form.querySelector('.save-btn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+
+    fetch(window.location.href, {
+      method: 'POST',
+      body: new FormData(form)
+    })
+      .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+      .then(function (result) {
+        if (result.ok && result.data.success) {
+          showToast(result.data.message, 'success');
+          if (result.data.updated_at) {
+            document.getElementById('last-saved-label').textContent = 'Last saved ' + result.data.updated_at;
+          }
+          Object.keys(result.data.images || {}).forEach(function (field) {
+            applyImageData(field, result.data.images[field]);
+          });
+        } else {
+          showToast(result.data.message || 'Something went wrong. Please try again.', 'danger');
+        }
+      })
+      .catch(function () {
+        showToast('Network error. Please try again.', 'danger');
+      })
+      .finally(function () {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Changes';
+      });
+  });
+
+  document.querySelectorAll('.remove-img-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+      var field = btn.closest('.site-img-block').dataset.field;
+      fetch(btn.dataset.removeUrl, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken }
+      })
+        .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+        .then(function (result) {
+          if (result.ok && result.data.success) {
+            applyImageData(field, null);
+            showToast(result.data.message, 'success');
+          } else {
+            showToast(result.data.message || 'Could not remove image.', 'danger');
+          }
+        })
+        .catch(function () {
+          showToast('Network error. Please try again.', 'danger');
+        });
+    });
+  });
+</script>
+{% endblock %}

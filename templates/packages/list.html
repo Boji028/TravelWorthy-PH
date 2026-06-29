@@ -1,4 +1,4 @@
-ead>{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}Tour Packages — Travel Worthy PH{% endblock %}
 
 {% block extra_styles %}
@@ -6,8 +6,10 @@ ead>{% extends "base.html" %}
   .page-hero {
     background: linear-gradient(135deg, var(--teal-d), #3a9088);
     color: var(--white);
-    padding: 3.5rem 2rem;
+    padding: 3.5rem 2rem 4.5rem;
     text-align: center;
+    position: relative;
+    overflow: hidden;
   }
 
   .page-hero h1 {
@@ -17,21 +19,57 @@ ead>{% extends "base.html" %}
     margin-bottom: .5rem;
   }
 
-  .page-hero p {
-    opacity: .8;
+  .page-hero h1 .hw {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(24px);
+    animation: pageHeroRise .8s cubic-bezier(.2, .7, .3, 1) forwards;
   }
 
-  /* ── COUNTRY TABS ── */
-  .country-tabs {
+  .page-hero p {
+    opacity: 0;
+    animation: pageHeroFadeDim .7s ease .2s forwards;
+  }
+
+  .page-hero-wave {
+    position: absolute; left: 0; right: 0; bottom: -1px; height: 50px; width: 200%;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 60' preserveAspectRatio='none'%3E%3Cpath d='M0,26 C180,52 360,4 600,24 C840,44 1020,8 1200,28 L1200,60 L0,60 Z' fill='%23f5efe6'/%3E%3C/svg%3E");
+    background-size: 1200px 50px; background-repeat: repeat-x;
+    animation: pageWaveFlow 10s linear infinite;
+  }
+
+  @keyframes pageWaveFlow { to { transform: translateX(-1200px); } }
+
+  @keyframes pageHeroRise { to { opacity: 1; transform: translateY(0); } }
+  @keyframes pageHeroFadeDim { to { opacity: .8; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .page-hero h1 .hw { animation: none; opacity: 1; transform: none; }
+    .page-hero p { animation: none; opacity: .8; }
+    .page-hero-wave { animation: none; }
+  }
+
+  /* ── TOOLBAR (continent tabs + filter, merged) ── */
+  .toolbar {
+    background: var(--white);
+    border-bottom: 1px solid var(--linen);
+    box-shadow: 0 2px 12px rgba(23, 89, 104, .05);
+    padding: 1rem 2rem;
+    position: sticky;
+    top: 68px;
+    z-index: 50;
+  }
+
+  .toolbar-inner {
     max-width: 1280px;
-    margin: 1.5rem auto 0;
-    padding: 0 2rem;
+    margin: 0 auto;
   }
 
   .country-tabs-inner {
     display: flex;
     gap: .5rem;
     flex-wrap: wrap;
+    margin-bottom: .75rem;
   }
 
   .country-tab {
@@ -62,21 +100,10 @@ ead>{% extends "base.html" %}
     border-color: var(--amber);
   }
 
-  /* ── FILTER BAR ── */
-  .filter-bar {
-    background: var(--white);
-    padding: 1rem 2rem;
-    position: sticky;
-    top: 68px;
-    z-index: 50;
-  }
-
   .filter-inner {
-    max-width: 1280px;
-    margin: 0 auto;
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: .75rem;
     flex-wrap: wrap;
   }
 
@@ -88,20 +115,65 @@ ead>{% extends "base.html" %}
     color: var(--mist);
   }
 
-  .filter-input {
-    border: 1.5px solid var(--linen);
-    border-radius: var(--radius);
+  .filter-search {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    background: var(--sand);
+    border: 1px solid var(--linen);
+    border-radius: 999px;
     padding: .5rem 1rem;
+    flex: 1;
+    min-width: 200px;
+    max-width: 320px;
+    transition: border-color .18s;
+  }
+
+  .filter-search:focus-within {
+    border-color: var(--teal);
+  }
+
+  .filter-search i {
+    color: var(--mist);
+    font-size: .85rem;
+  }
+
+  .filter-input {
+    border: 0;
+    background: none;
     font-family: 'Pogonia', sans-serif;
     font-size: .88rem;
     color: var(--ink);
     outline: none;
-    transition: border-color .18s;
-    background: var(--white);
+    width: 100%;
   }
 
-  .filter-input:focus {
-    border-color: var(--teal);
+  .active-filter-pill {
+    display: none;
+    align-items: center;
+    gap: .4rem;
+    background: var(--teal);
+    color: #fff;
+    font-size: .78rem;
+    font-weight: 600;
+    padding: .4rem .8rem;
+    border-radius: 999px;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
+  .active-filter-pill.visible {
+    display: inline-flex;
+  }
+
+  .active-filter-pill i {
+    cursor: pointer;
+    font-size: .75rem;
+    opacity: .85;
+  }
+
+  .active-filter-pill i:hover {
+    opacity: 1;
   }
 
   /* ── PACKAGES AREA ── */
@@ -134,232 +206,336 @@ ead>{% extends "base.html" %}
 
   .pkg-card {
     background: var(--white);
-    border-radius: var(--radius-lg);
-    transition: transform .3s ease, box-shadow .3s ease;
-    box-shadow: 0 2px 12px rgba(58, 46, 34, .07);
-    animation: cardIn .3s ease both;
+    border: 1px solid var(--linen);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(23, 89, 104, .06);
+    cursor: pointer;
     display: flex;
     flex-direction: column;
-  }
-
-  @keyframes cardIn {
-    from {
-      opacity: 0;
-      transform: translateY(12px);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    transition: transform .3s ease, box-shadow .3s ease;
+    opacity: 0;
+    animation: pkgRise 3s ease forwards;
   }
 
   .pkg-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 16px 48px rgba(58, 46, 34, .16);
+    transform: translateY(-4px);
+    box-shadow: 0 18px 44px rgba(23, 89, 104, .14);
+  }
+
+  @keyframes pkgRise {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pkg-card { animation: none; opacity: 1; }
+  }
+
+  .pkg-img-wrap {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    width: 100%;
+    background: var(--linen);
   }
 
   .pkg-img {
     width: 100%;
-    height: 350px;
-    object-fit: contain;
+    height: 100%;
+    object-fit: cover;
+    display: block;
     transition: transform .4s ease;
-    cursor: pointer;
   }
 
   .pkg-card:hover .pkg-img {
     transform: scale(1.04);
   }
 
-  .pkg-img-placeholder {
-    width: 100%;
-    height: 240px;
-    background: linear-gradient(135deg, var(--linen), #d4c9b6);
+  .pkg-slide {
+    opacity: 0;
+    transition: opacity .5s ease, transform .4s ease;
+  }
+
+  .pkg-slide.active {
+    opacity: 1;
+  }
+
+  .pkg-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(10, 40, 46, .5);
+    border: 0;
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 3rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity .2s, background .2s;
+    font-size: .7rem;
+  }
+
+  .pkg-img-wrap:hover .pkg-arrow {
+    opacity: 1;
+  }
+
+  .pkg-arrow:hover {
+    background: rgba(10, 40, 46, .75);
+  }
+
+  .pkg-arrow-prev {
+    left: 8px;
+  }
+
+  .pkg-arrow-next {
+    right: 8px;
+  }
+
+  .pkg-dots {
+    position: absolute;
+    bottom: 8px;
+    left: 0;
+    right: 0;
+    z-index: 3;
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  .pkg-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .45);
+    cursor: pointer;
+    transition: background .2s, transform .2s;
+  }
+
+  .pkg-dot.active {
+    background: rgba(255, 255, 255, .95);
+    transform: scale(1.3);
+  }
+
+  .pkg-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(255, 255, 255, .94);
+    color: var(--teal);
+    font-size: .72rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    z-index: 2;
+  }
+
+  .pkg-badge i {
+    color: var(--amber);
+  }
+
+  .pkg-img-placeholder {
+    width: 100%;
+    height: 100%;
+    background: var(--linen);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
     color: var(--mist);
   }
 
   .pkg-body {
-    padding: 1.4rem;
+    padding: 16px 18px 18px;
+  }
+
+  .pkg-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2px;
   }
 
   .pkg-destination {
-    display: flex;
-    align-items: center;
-    gap: .35rem;
-    font-size: .78rem;
-    color: var(--teal);
+    font-size: .88rem;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .07em;
-    margin-bottom: .5rem;
-    flex: 1;
-
+    color: var(--bark);
   }
 
   .pkg-title {
-    font-family: 'Pogonia', serif;
-    font-size: 1.35rem;
-    font-weight: 600;
-    color: var(--bark);
-    margin-bottom: .5rem;
-    line-height: 1.3;
-    min-height: 3.9rem;
-  }
-
-  .pkg-desc {
-    font-size: .85rem;
+    font-size: .82rem;
     color: var(--mist);
-    line-height: 1.6;
-    margin-bottom: 1rem;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
+    margin-bottom: 6px;
+    white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .pkg-meta {
     display: flex;
+    gap: 14px;
+    margin: 4px 0 10px;
+    font-size: .8rem;
+    color: var(--bark);
+  }
+
+  .pkg-mi {
+    display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding-top: 1rem;
-    border-top: 1px solid var(--linen);
+    gap: 5px;
   }
 
-  .pkg-price {
-    font-family: 'Pogonia', serif;
-    font-size: 1.5rem;
-    font-weight: 600;
+  .pkg-mi i {
     color: var(--amber);
+    font-size: .85rem;
   }
 
-  .pkg-price span {
-    font-size: .78rem;
+  .pkg-price-line {
+    font-size: 1.05rem;
+    color: var(--teal);
+    font-weight: 700;
+  }
+
+  .pkg-price-line strong {
+    font-size: 1.2rem;
+  }
+
+  .pkg-price-line .per {
+    font-size: .72rem;
     color: var(--mist);
     font-weight: 400;
+    margin-left: 4px;
   }
 
-  .pkg-info {
-    display: flex;
-    gap: .75rem;
-    font-size: .8rem;
-    color: var(--mist);
-  }
-
-  .pkg-info i {
-    color: var(--teal);
-    margin-right: .2rem;
-  }
-
-  .pkg-footer {
-    padding: 1rem 1.4rem;
+  /* ── SKELETON LOADING ── */
+  .skel-card {
     background: var(--white);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    border: 1px solid var(--linen);
+    border-radius: 16px;
+    overflow: hidden;
   }
 
-  .sold-out {
-    background: #f8d7da;
-    color: var(--danger);
-    font-size: .75rem;
-    font-weight: 600;
-    padding: .25rem .65rem;
-    border-radius: 999px;
+  .shimmer {
+    background: linear-gradient(90deg, var(--linen) 25%, var(--sand) 37%, var(--linen) 63%);
+    background-size: 400% 100%;
+    animation: shimmerMove 1.4s ease infinite;
   }
 
+  @keyframes shimmerMove {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+  }
+
+  /* ── EMPTY STATE ── */
   .empty-state {
     text-align: center;
-    padding: 5rem 2rem;
-    color: var(--mist);
-    grid-column: 1/-1;
+    padding: 4rem 2rem;
   }
 
-  .empty-state i {
-    font-size: 3rem;
-    opacity: .3;
-    display: block;
-    margin-bottom: 1rem;
-  }
-
-  /* ── LOADING SPINNER ── */
-  .spinner {
-    display: none;
-    width: 32px;
-    height: 32px;
-    border: 3px solid var(--linen);
-    border-top-color: var(--amber);
+  .empty-state-icon {
+    width: 72px;
+    height: 72px;
     border-radius: 50%;
-    animation: spin .7s linear infinite;
-    margin: 3rem auto;
-    grid-column: 1/-1;
+    background: var(--linen);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.1rem;
+    font-size: 1.9rem;
+    color: var(--mist);
   }
 
-  .spinner.visible {
-    display: block;
+  .empty-state h3 {
+    font-family: 'Pogonia', serif;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--bark);
+    margin-bottom: .4rem;
   }
 
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
+  .empty-state p {
+    font-size: .85rem;
+    color: var(--mist);
+    margin-bottom: 1.2rem;
   }
 
+  .empty-state-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    background: var(--teal);
+    color: #fff;
+    font-size: .85rem;
+    font-weight: 600;
+    padding: .65rem 1.3rem;
+    border-radius: 999px;
+    text-decoration: none;
+    transition: background .2s;
+  }
+
+  .empty-state-btn:hover {
+    background: #0f3d48;
+  }
   /* ── LIGHTBOX ── */
-.lightbox {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, .85);
-  z-index: 9999;
-  cursor: pointer;
-}
+  .lightbox {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, .85);
+    z-index: 9999;
+    cursor: pointer;
+  }
 
-.lightbox.active {
-  display: grid;
-  align-items: center;
-  justify-content: center;
-}
+  .lightbox.active {
+    display: grid;
+    align-items: center;
+    justify-content: center;
+  }
 
-.lightbox img {
-  max-width: 560px;
-  width: 85vw;
-  height: auto;
-  max-height: 85vh;
-  object-fit: contain;
-  border-radius: 0;
-  box-shadow: none;
-  cursor: zoom-in;
-}
+  .lightbox img {
+    max-width: 560px;
+    width: 85vw;
+    height: auto;
+    max-height: 85vh;
+    object-fit: contain;
+    border-radius: 0;
+    box-shadow: none;
+    cursor: zoom-in;
+  }
 
-.lightbox-close {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
-  color: white;
-  font-size: 2.5rem;
-  cursor: pointer;
-  z-index: 10000;
-  background: var(--amber);
-  width: 45px;
-  height: 45px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  transition: background .2s;
-}
+  .lightbox-close {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    color: white;
+    font-size: 2.5rem;
+    cursor: pointer;
+    z-index: 10000;
+    background: var(--amber);
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    transition: background .2s;
+  }
 
-.lightbox-close:hover {
-  background: var(--bark);
-}
+  .lightbox-close:hover {
+    background: var(--bark);
+  }
 
   .continent-dropdown {
     position: relative;
@@ -399,64 +575,115 @@ ead>{% extends "base.html" %}
   .continent-dropdown:hover .continent-menu {
     display: block;
   }
+
+  .type-pills {
+    display: flex;
+    gap: .4rem;
+  }
+
+  .type-pill {
+    padding: .4rem 1rem;
+    border-radius: 999px;
+    font-size: .82rem;
+    border: 1px solid var(--linen);
+    background: var(--white);
+    color: var(--mist);
+    cursor: pointer;
+    transition: background .2s, color .2s, border-color .2s;
+    height: 32px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .type-pill:hover {
+    background: var(--linen);
+    color: var(--bark);
+  }
+
+  .type-pill.active {
+    background: var(--teal);
+    color: white;
+    border-color: var(--teal);
+  }
+
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="page-hero">
-  <h1>Explore Our Packages</h1>
+  <h1><span class="hw" style="animation-delay:.1s">Explore</span> <span class="hw" style="animation-delay:.22s">Our</span> <span class="hw" style="animation-delay:.34s">Packages</span></h1>
   <p id="hero-subtitle">{{ active_country.name + ' Packages' if active_country else 'Handpicked tours to the world\'s
     most stunning destinations' }}</p>
+  <div class="page-hero-wave"></div>
 </div>
 
-{% if continents %}
-<div style="background:var(--white);padding:1rem 2rem;">
-  <div style="max-width:1280px;margin:0 auto;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+<div class="toolbar">
+  <div class="toolbar-inner">
+    {% if continents %}
+    <div class="country-tabs-inner">
 
-    <a class="country-tab {% if not active_continent %}active{% endif %}"
-      href="{{ url_for('packages.list_packages') }}">
-      🌐 All
-    </a>
-
-    {% for continent in continents %}
-    <div class="continent-dropdown">
-      <a class="country-tab {% if active_continent and active_continent.id == continent.id %}active{% endif %}"
-        href="{{ url_for('packages.list_packages', continent_id=continent.id) }}">
-        {{ continent.flag_emoji or '' }} {{ continent.name }} ▾
+      <a class="country-tab {% if not active_continent %}active{% endif %}"
+        href="{{ url_for('packages.list_packages') }}" data-label="">
+        🌐 All
       </a>
-      <div class="continent-menu">
-        <a href="{{ url_for('packages.list_packages', continent_id=continent.id) }}">
-          All {{ continent.name }}
+
+      {% for continent in continents %}
+      <div class="continent-dropdown">
+        <a class="country-tab {% if active_continent and active_continent.id == continent.id %}active{% endif %}"
+          href="{{ url_for('packages.list_packages', continent_id=continent.id) }}" data-label="{{ continent.name }}">
+          {{ continent.flag_emoji or '' }} {{ continent.name }} ▾
         </a>
-        {% for country in continent.countries %}
-        {% if country.is_active %}
-        <a href="{{ url_for('packages.list_packages', continent_id=continent.id, country_id=country.id) }}" {% if
-          active_country and active_country.id==country.id %}style="color:var(--amber);font-weight:600;" {% endif %}>
-          {{ country.flag_emoji or '' }} {{ country.name }}
-        </a>
-        {% endif %}
-        {% endfor %}
+        <div class="continent-menu">
+          <a href="{{ url_for('packages.list_packages', continent_id=continent.id) }}" data-label="{{ continent.name }}">
+            All {{ continent.name }}
+          </a>
+          {% for country in continent.countries %}
+          {% if country.is_active %}
+          <a href="{{ url_for('packages.list_packages', continent_id=continent.id, country_id=country.id) }}"
+            data-label="{{ continent.name }} → {{ country.name }}" {% if
+            active_country and active_country.id==country.id %}style="color:var(--amber);font-weight:600;" {% endif %}>
+            {{ country.flag_emoji or '' }} {{ country.name }}
+          </a>
+          {% endif %}
+          {% endfor %}
+        </div>
       </div>
+      {% endfor %}
+
     </div>
-    {% endfor %}
+    {% endif %}
 
-  </div>
-</div>
-{% endif %}
-
-
-<div class="filter-bar">
-  <div class="filter-inner">
-    <span class="filter-label">Filter:</span>
-    <input class="filter-input" id="filter-destination" type="text" placeholder="Destination…"
-      value="{{ request.args.get('destination','') }}" />
-    <button type="button" class="btn btn-primary btn-sm" id="btn-apply">
-      <i class="fas fa-filter"></i> Apply
-    </button>
-    <button type="button" class="btn btn-ghost btn-sm" id="btn-clear"
-      style="display:{% if request.args.get('destination') %}inline-flex{% else %}none{% endif %}">
-      Clear
-    </button>
+    <div class="filter-inner">
+      <div class="type-pills">
+        <button type="button" class="type-pill {% if not package_type %}active{% endif %}" data-type="">All types</button>
+        <button type="button" class="type-pill {% if package_type == 'domestic' %}active{% endif %}" data-type="domestic">Domestic</button>
+        <button type="button" class="type-pill {% if package_type == 'international' %}active{% endif %}" data-type="international">International</button>
+      </div>
+      <span class="filter-label">Filter:</span>
+      <div class="filter-search">
+        <i class="fas fa-search"></i>
+        <input class="filter-input" id="filter-destination" type="text" placeholder="Destination…"
+          value="{{ request.args.get('destination','') }}" />
+      </div>
+      <button type="button" class="btn btn-primary btn-sm" id="btn-apply">
+        <i class="fas fa-filter"></i> Apply
+      </button>
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-clear"
+        style="display:{% if request.args.get('destination') %}inline-flex{% else %}none{% endif %}">
+        Clear
+      </button>
+      {% set crumb_label = '' %}
+      {% if active_country %}
+      {% set crumb_label = (active_continent.name + ' → ' + active_country.name) if active_continent else active_country.name %}
+      {% elif active_continent %}
+      {% set crumb_label = active_continent.name %}
+      {% endif %}
+      <span class="active-filter-pill {% if crumb_label %}visible{% endif %}" id="active-filter-pill">
+        <span id="active-filter-text">{{ crumb_label }}</span>
+        <i class="fas fa-times" id="active-filter-clear"></i>
+      </span>
+    </div>
   </div>
 </div>
 
@@ -494,34 +721,109 @@ ead>{% extends "base.html" %}
   <img id="lightbox-img" src="" alt="" onclick="event.stopPropagation()" />
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
   // ── State ──
   let activeCountryId = "{{ active_country.id if active_country else '' }}";
   let activeDestination = "{{ request.args.get('destination','') }}";
+  let activePackageType = "{{ package_type or '' }}";
+
+  function appendType(url) {
+    if (!activePackageType) return url;
+    const u = new URL(url, window.location.origin);
+    u.searchParams.set('package_type', activePackageType);
+    return u.toString();
+  }
 
   const grid = document.getElementById('packages-grid');
   const resultsInfo = document.getElementById('results-info');
   const filterInput = document.getElementById('filter-destination');
   const btnClear = document.getElementById('btn-clear');
   const heroSubtitle = document.getElementById('hero-subtitle');
+  const activeFilterPill = document.getElementById('active-filter-pill');
+  const activeFilterText = document.getElementById('active-filter-text');
+
+  // ── Breadcrumb ──
+  function updateBreadcrumb(label) {
+    if (label) {
+      activeFilterText.textContent = label;
+      activeFilterPill.classList.add('visible');
+    } else {
+      activeFilterPill.classList.remove('visible');
+    }
+  }
+
+  document.getElementById('active-filter-clear').addEventListener('click', () => {
+    document.querySelector('.country-tab[data-label=""]').click();
+  });
+
+  // ── Skeleton loading placeholder ──
+  function skeletonHTML(count = 6) {
+    let html = '';
+    for (let i = 0; i < count; i++) {
+      html += `
+        <div class="skel-card">
+          <div class="shimmer" style="aspect-ratio:4/3;"></div>
+          <div style="padding:16px 18px;">
+            <div class="shimmer" style="height:12px;width:70%;border-radius:4px;margin-bottom:8px;"></div>
+            <div class="shimmer" style="height:10px;width:45%;border-radius:4px;"></div>
+          </div>
+        </div>`;
+    }
+    return html;
+  }
+
+  // ── Mini photo gallery on each card ──
+  function initGalleries() {
+    grid.querySelectorAll('.pkg-img-wrap').forEach(wrap => {
+      const slides = wrap.querySelectorAll('.pkg-slide');
+      if (slides.length < 2) return;
+      const dots = wrap.querySelectorAll('.pkg-dot');
+      const prevBtn = wrap.querySelector('.pkg-arrow-prev');
+      const nextBtn = wrap.querySelector('.pkg-arrow-next');
+      let idx = 0;
+
+      function goTo(i) {
+        idx = (i + slides.length) % slides.length;
+        slides.forEach((s, j) => s.classList.toggle('active', j === idx));
+        dots.forEach((d, j) => d.classList.toggle('active', j === idx));
+      }
+
+      if (prevBtn) prevBtn.addEventListener('click', e => { e.stopPropagation(); goTo(idx - 1); });
+      if (nextBtn) nextBtn.addEventListener('click', e => { e.stopPropagation(); goTo(idx + 1); });
+      dots.forEach((d, i) => d.addEventListener('click', e => { e.stopPropagation(); goTo(i); }));
+    });
+  }
+
+  // Stagger the entrance animation for cards rendered on initial page load
+  grid.querySelectorAll('.pkg-card').forEach((card, i) => {
+    card.style.animationDelay = `${i * 40}ms`;
+  });
+  initGalleries();
 
   // ── AJAX Fetch ──
-  function fetchPackages({ countryId = activeCountryId, destination = activeDestination } = {}) {
+  function fetchPackages({
+    countryId = activeCountryId,
+    destination = activeDestination
+  } = {}) {
     const params = new URLSearchParams();
     if (countryId) params.set('country_id', countryId);
     if (destination) params.set('destination', destination);
+    if (activePackageType) params.set('package_type', activePackageType);
 
     const url = `{{ url_for('packages.list_packages') }}?${params.toString()}`;
 
     // Update browser URL without reload
     history.pushState({}, '', url);
 
-    // Show loading state
+    // Show skeleton loading state
     grid.classList.add('loading');
+    grid.innerHTML = skeletonHTML();
 
     fetch(url, {
-      headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
       .then(r => r.text())
       .then(html => {
         grid.innerHTML = html;
@@ -531,6 +833,7 @@ ead>{% extends "base.html" %}
         grid.querySelectorAll('.pkg-card').forEach((card, i) => {
           card.style.animationDelay = `${i * 40}ms`;
         });
+        initGalleries();
 
         // Count visible cards
         const count = grid.querySelectorAll('.pkg-card').length;
@@ -540,7 +843,8 @@ ead>{% extends "base.html" %}
       })
       .catch(() => {
         grid.classList.remove('loading');
-        grid.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Something went wrong. Please try again.</p></div>';
+        grid.innerHTML =
+          '<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-exclamation-circle"></i></div><h3>Something went wrong</h3><p>Please try again in a moment.</p></div>';
       });
   }
 
@@ -550,10 +854,16 @@ ead>{% extends "base.html" %}
       e.preventDefault();
       document.querySelectorAll('.country-tab').forEach(t => t.classList.remove('active'));
       this.classList.add('active');
-      const url = this.getAttribute('href');
+      updateBreadcrumb(this.dataset.label);
+      const url = appendType(this.getAttribute('href'));
       history.pushState({}, '', url);
       grid.classList.add('loading');
-      fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      grid.innerHTML = skeletonHTML();
+      fetch(url, {
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        })
         .then(r => r.text())
         .then(html => {
           grid.innerHTML = html;
@@ -561,12 +871,14 @@ ead>{% extends "base.html" %}
           grid.querySelectorAll('.pkg-card').forEach((card, i) => {
             card.style.animationDelay = `${i * 40}ms`;
           });
+          initGalleries();
           const count = grid.querySelectorAll('.pkg-card').length;
           resultsInfo.innerHTML = `Showing <strong>${count}</strong> package${count !== 1 ? 's' : ''}`;
         })
         .catch(() => {
           grid.classList.remove('loading');
-          grid.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Something went wrong.</p></div>';
+          grid.innerHTML =
+            '<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-exclamation-circle"></i></div><h3>Something went wrong</h3><p>Please try again in a moment.</p></div>';
         });
     });
   });
@@ -575,10 +887,16 @@ ead>{% extends "base.html" %}
   document.querySelectorAll('.continent-menu a').forEach(link => {
     link.addEventListener('click', function (e) {
       e.preventDefault();
-      const url = this.getAttribute('href');
+      updateBreadcrumb(this.dataset.label);
+      const url = appendType(this.getAttribute('href'));
       history.pushState({}, '', url);
       grid.classList.add('loading');
-      fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      grid.innerHTML = skeletonHTML();
+      fetch(url, {
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        })
         .then(r => r.text())
         .then(html => {
           grid.innerHTML = html;
@@ -586,12 +904,50 @@ ead>{% extends "base.html" %}
           grid.querySelectorAll('.pkg-card').forEach((card, i) => {
             card.style.animationDelay = `${i * 40}ms`;
           });
+          initGalleries();
           const count = grid.querySelectorAll('.pkg-card').length;
           resultsInfo.innerHTML = `Showing <strong>${count}</strong> package${count !== 1 ? 's' : ''}`;
         })
         .catch(() => {
           grid.classList.remove('loading');
-          grid.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Something went wrong.</p></div>';
+          grid.innerHTML =
+            '<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-exclamation-circle"></i></div><h3>Something went wrong</h3><p>Please try again in a moment.</p></div>';
+        });
+    });
+  });
+
+  // ── Type Pills (Domestic / International) ──
+  document.querySelectorAll('.type-pill').forEach(pill => {
+    pill.addEventListener('click', function () {
+      document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('active'));
+      this.classList.add('active');
+      activePackageType = this.dataset.type;
+      const currentTab = document.querySelector('.country-tab.active');
+      const baseHref = currentTab ? currentTab.getAttribute('href') : "{{ url_for('packages.list_packages') }}";
+      const url = appendType(baseHref);
+      history.pushState({}, '', url);
+      grid.classList.add('loading');
+      grid.innerHTML = skeletonHTML();
+      fetch(url, {
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        })
+        .then(r => r.text())
+        .then(html => {
+          grid.innerHTML = html;
+          grid.classList.remove('loading');
+          grid.querySelectorAll('.pkg-card').forEach((card, i) => {
+            card.style.animationDelay = `${i * 40}ms`;
+          });
+          initGalleries();
+          const count = grid.querySelectorAll('.pkg-card').length;
+          resultsInfo.innerHTML = `Showing <strong>${count}</strong> package${count !== 1 ? 's' : ''}`;
+        })
+        .catch(() => {
+          grid.classList.remove('loading');
+          grid.innerHTML =
+            '<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-exclamation-circle"></i></div><h3>Something went wrong</h3><p>Please try again in a moment.</p></div>';
         });
     });
   });
@@ -600,7 +956,9 @@ ead>{% extends "base.html" %}
   document.getElementById('btn-apply').addEventListener('click', () => {
     activeDestination = filterInput.value.trim();
     btnClear.style.display = activeDestination ? 'inline-flex' : 'none';
-    fetchPackages({ destination: activeDestination });
+    fetchPackages({
+      destination: activeDestination
+    });
   });
 
   // ── Filter on Enter ──
@@ -613,13 +971,11 @@ ead>{% extends "base.html" %}
     filterInput.value = '';
     activeDestination = '';
     btnClear.style.display = 'none';
-    fetchPackages({ destination: '' });
+    fetchPackages({
+      destination: ''
+    });
   });
-  // Re-bind lightbox after AJAX updates (event delegation)
-  grid.addEventListener('click', e => {
-    const img = e.target.closest('.pkg-img');
-    if (img) openLightbox(img.src);
-  });
+
 </script>
 <script src="{{ url_for('static', filename='js/packages.js') }}"></script>
 {% endblock %}

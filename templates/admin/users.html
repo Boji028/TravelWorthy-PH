@@ -77,6 +77,92 @@
     text-transform: uppercase;
     letter-spacing: .06em;
   }
+
+  .verified-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    font-size: .8rem;
+    font-weight: 500;
+  }
+
+  .verified-badge.yes { color: var(--teal); }
+  .verified-badge.no  { color: var(--amber-d); }
+
+  .action-btns {
+    display: flex;
+    gap: .4rem;
+  }
+
+  .btn-sm-role {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .3rem .65rem;
+    font-size: .76rem;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .btn-sm-role.promote {
+    background: rgba(41, 128, 185, .1);
+    color: #2980b9;
+  }
+
+  .btn-sm-role.promote:hover { background: rgba(41, 128, 185, .2); }
+
+  .btn-sm-role.demote {
+    background: rgba(192, 57, 43, .08);
+    color: var(--danger);
+  }
+
+  .btn-sm-role.demote:hover { background: rgba(192, 57, 43, .16); }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--linen);
+    background: var(--sand);
+    flex-wrap: wrap;
+  }
+
+  .filter-search {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    background: var(--white);
+    border: 1px solid var(--linen);
+    border-radius: 999px;
+    padding: .45rem .9rem;
+    flex: 1;
+    min-width: 220px;
+    max-width: 320px;
+  }
+
+  .filter-search input {
+    border: none;
+    background: none;
+    outline: none;
+    font-size: .85rem;
+    color: var(--bark);
+    width: 100%;
+    font-family: inherit;
+  }
+
+  .filter-select {
+    border: 1px solid var(--linen);
+    border-radius: var(--radius);
+    padding: .45rem .75rem;
+    font-size: .82rem;
+    color: var(--bark);
+    background: var(--white);
+    font-family: inherit;
+  }
 </style>
 {% endblock %}
 
@@ -90,6 +176,24 @@
   <div class="table-toolbar">
     <h3>{{ pagination.total }} User{{ 's' if pagination.total != 1 }}</h3>
   </div>
+
+  <!-- SEARCH / FILTER -->
+  <form method="GET" action="{{ url_for('admin.users') }}" class="filter-bar">
+    <div class="filter-search">
+      <i class="fas fa-search" style="color:var(--mist);font-size:.8rem"></i>
+      <input type="text" name="search" placeholder="Search name, email…" value="{{ search }}" />
+    </div>
+    <select name="role" class="filter-select" onchange="this.form.submit()">
+      <option value="">All Roles</option>
+      <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>Admin</option>
+      <option value="customer" {% if role_filter == 'customer' %}selected{% endif %}>Customer</option>
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Apply</button>
+    {% if search or role_filter %}
+    <a href="{{ url_for('admin.users') }}" class="btn btn-ghost btn-sm">Clear</a>
+    {% endif %}
+  </form>
+
   <div style="overflow-x:auto">
     <table class="admin-table">
       <thead>
@@ -98,8 +202,10 @@
           <th>Email</th>
           <th>Phone</th>
           <th>Role</th>
-          <th>Bookings</th>
+          <th>Verified</th>
+          <th>Inquiries</th>
           <th>Joined</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -108,6 +214,9 @@
             <td>
               <span class="user-avatar">{{ user.name[0].upper() }}</span>
               <strong>{{ user.name }}</strong>
+              {% if user.id == current_user.id %}
+              <span style="color:var(--mist);font-weight:400">(you)</span>
+              {% endif %}
             </td>
             <td>{{ user.email }}</td>
             <td>{{ user.phone or '—' }}</td>
@@ -118,11 +227,47 @@
                 <span style="font-size:.82rem;color:var(--mist)">Customer</span>
               {% endif %}
             </td>
-            <td>{{ user.bookings|length }}</td>
+            <td>
+              {% if user.email_verified %}
+              <span class="verified-badge yes"><i class="fas fa-check-circle"></i> Verified</span>
+              {% else %}
+              <span class="verified-badge no"><i class="fas fa-clock"></i> Unverified</span>
+              {% endif %}
+            </td>
+            <td>{{ inquiry_counts_by_email.get(user.email, 0) }}</td>
             <td style="font-size:.82rem;color:var(--mist)">{{ user.created_at.strftime('%b %d, %Y') }}</td>
+            <td>
+              {% if user.id == current_user.id %}
+              <span style="font-size:.78rem;color:var(--mist)">No actions on your own account</span>
+              {% else %}
+              <div class="action-btns">
+                <form method="POST" action="{{ url_for('admin.toggle_user_admin', user_id=user.id) }}"
+                  onsubmit="return confirm('{{ 'Remove admin access from' if user.is_admin else 'Grant admin access to' }} {{ user.name }}?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <button type="submit" class="btn-sm-role {{ 'demote' if user.is_admin else 'promote' }}">
+                    <i class="fas fa-user-{{ 'minus' if user.is_admin else 'plus' }}"></i>
+                    {{ 'Remove Admin' if user.is_admin else 'Make Admin' }}
+                  </button>
+                </form>
+                <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}"
+                  onsubmit="return confirm('Delete {{ user.name }}? This cannot be undone.')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <button type="submit" class="btn btn-danger btn-sm" title="Delete"><i class="fas fa-trash"></i></button>
+                </form>
+              </div>
+              {% endif %}
+            </td>
           </tr>
         {% else %}
-          <tr><td colspan="6" style="text-align:center;color:var(--mist);padding:3rem">No users found.</td></tr>
+          <tr>
+            <td colspan="8" style="text-align:center;color:var(--mist);padding:3rem">
+              {% if search or role_filter %}
+              No users match your search/filter. <a href="{{ url_for('admin.users') }}" style="color:var(--teal)">Clear filters →</a>
+              {% else %}
+              No users found.
+              {% endif %}
+            </td>
+          </tr>
         {% endfor %}
       </tbody>
     </table>
@@ -133,7 +278,7 @@
 <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;">
   {% for p in pagination.iter_pages() %}
     {% if p %}
-      <a href="?page={{ p }}"
+      <a href="?page={{ p }}{% if search %}&search={{ search }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}"
          class="btn btn-sm {% if p == pagination.page %}btn-amber{% else %}btn-outline{% endif %}">{{ p }}</a>
     {% else %}
       <span style="padding:.3rem .5rem;color:var(--mist)">…</span>

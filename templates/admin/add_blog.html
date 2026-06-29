@@ -1,59 +1,88 @@
 {% extends "admin/base_admin.html" %}
-{% block title %}Add Story — Admin{% endblock %}
+{% block title %}New Story — Admin{% endblock %}
 
 {% block admin_styles %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.min.css">
 <style>
-  .form-card {
+  .editor-layout {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 1.5rem;
+    align-items: start;
+  }
+  .editor-main {
     background: var(--white);
     border-radius: var(--radius-lg);
-    padding: 2rem;
-    box-shadow: 0 2px 12px rgba(58, 46, 34, .07);
-    max-width: 800px;
+    padding: 1.75rem;
+    box-shadow: 0 2px 12px rgba(58,46,34,.07);
+    min-width: 0;
+    overflow: hidden;
   }
-
-  .form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+  .editor-sidebar {
+    display: flex;
+    flex-direction: column;
     gap: 1rem;
   }
-
-  textarea.form-control {
-    min-height: 300px;
-    resize: vertical;
+  .sidebar-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    box-shadow: 0 2px 12px rgba(58,46,34,.07);
   }
-
-  .file-upload-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+  .sidebar-card h4 {
+    font-size: .78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--mist);
+    margin-bottom: 1rem;
+    padding-bottom: .5rem;
+    border-bottom: 1px solid var(--linen);
   }
-
-  .file-upload-wrapper input[type="file"] {
+  #quill-editor {
+    min-height: 380px;
+    font-size: .92rem;
+    font-family: 'DM Sans', sans-serif;
+    border-radius: 0 0 var(--radius) var(--radius);
+  }
+  .ql-toolbar { border-radius: var(--radius) var(--radius) 0 0; border-color: var(--linen) !important; }
+  .ql-container { border-color: var(--linen) !important; border-radius: 0 0 var(--radius) var(--radius); }
+  .ql-editor { min-height: 380px; }
+  .char-counter { font-size: .72rem; color: var(--mist); text-align: right; margin-top: .25rem; }
+  .word-count-bar {
+    display: flex; gap: 1rem;
+    background: var(--sand); border-radius: var(--radius);
+    padding: .5rem .85rem; margin-bottom: .85rem;
+    font-size: .78rem; color: var(--mist);
+  }
+  .word-count-bar strong { color: var(--bark); }
+  .img-preview {
+    width: 100%; aspect-ratio: 16/9; object-fit: cover;
+    border-radius: var(--radius); margin-bottom: .75rem;
     display: none;
   }
-
+  .img-placeholder {
+    width: 100%; aspect-ratio: 16/9;
+    background: var(--linen); border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem; color: var(--mist); margin-bottom: .75rem;
+  }
   .file-upload-btn {
-    background: var(--teal);
-    color: white;
-    border: none;
-    border-radius: var(--radius);
-    padding: 0.5rem 1rem;
+    width: 100%; background: var(--teal); color: white;
+    border: none; border-radius: var(--radius); padding: .6rem;
+    cursor: pointer; font-size: .85rem; font-weight: 600;
+    display: flex; align-items: center; justify-content: center; gap: .4rem;
+    transition: background .18s;
+  }
+  .file-upload-btn:hover { background: #0d3d4a; }
+  .publish-toggle {
+    display: flex; align-items: center; gap: .6rem;
+    padding: .65rem .85rem;
+    background: var(--sand); border-radius: var(--radius);
     cursor: pointer;
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: background 0.2s;
   }
-
-  .file-upload-btn:hover {
-    background: var(--bark);
-  }
-
-  .file-upload-label {
-    color: var(--mist);
-    font-size: 0.9rem;
-  }
+  .publish-toggle input { width: 16px; height: 16px; accent-color: var(--teal); cursor: pointer; }
+  .publish-toggle label { font-size: .88rem; font-weight: 600; color: var(--bark); cursor: pointer; margin: 0; }
 </style>
 {% endblock %}
 
@@ -63,58 +92,148 @@
   <a href="{{ url_for('admin.blog') }}" class="btn btn-ghost"><i class="fas fa-arrow-left"></i> Back</a>
 </div>
 
-<div class="form-card">
-  <form method="POST" action="{{ url_for('admin.add_blog') }}" enctype="multipart/form-data">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-    <div class="form-group">
-      <label>Title <span style="color:var(--danger)">*</span></label>
-      <input type="text" name="title" class="form-control" required placeholder="Enter blog post title" />
+<form method="POST" action="{{ url_for('admin.add_blog') }}" enctype="multipart/form-data" id="story-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+  <textarea name="content" id="content-input" style="display:none"></textarea>
+
+  <div class="editor-layout">
+
+    <!-- MAIN EDITOR -->
+    <div class="editor-main">
+      <div class="form-group">
+        <label>Title <span style="color:var(--danger)">*</span></label>
+        <input type="text" name="title" class="form-control" required
+          placeholder="Write an engaging title..." style="font-size:1.05rem;font-weight:600" />
+      </div>
+
+      <div class="form-group">
+        <label>Short Description
+          <span style="font-size:.75rem;color:var(--mist);font-weight:400">(shown on the blog list page)</span>
+        </label>
+        <textarea name="short_description" class="form-control" rows="2" id="short-desc"
+          style="min-height:70px;resize:vertical"
+          placeholder="A brief summary that draws readers in..."></textarea>
+        <div class="char-counter"><span id="char-count">0</span> / 200 characters</div>
+      </div>
+
+      <div class="form-group">
+        <label>Content <span style="color:var(--danger)">*</span></label>
+        <div class="word-count-bar">
+          <span>Words: <strong id="word-count">0</strong></span>
+          <span>Est. read time: <strong id="read-time">0 min</strong></span>
+        </div>
+        <div id="quill-editor"></div>
+      </div>
     </div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label>Author</label>
-        <input type="text" name="author" class="form-control" value="Admin" placeholder="Author name" />
-      </div>
-      <div class="form-group">
-        <label>Category</label>
-        <input type="text" name="category" class="form-control" placeholder="e.g. Travel Tips, Destinations" />
-      </div>
-    </div>
+    <!-- SIDEBAR -->
+    <div class="editor-sidebar">
 
-    <div class="form-group">
-      <label>Featured Image</label>
-      <div class="file-upload-wrapper">
-        <button type="button" class="file-upload-btn" onclick="this.nextElementSibling.click()">
+      <!-- PUBLISH -->
+      <div class="sidebar-card">
+        <h4>Publishing</h4>
+        <div class="publish-toggle" onclick="document.getElementById('is_published').click()">
+          <input type="checkbox" name="is_published" id="is_published" checked />
+          <label for="is_published">Publish immediately</label>
+        </div>
+        <div style="margin-top:1rem;display:flex;flex-direction:column;gap:.5rem">
+          <button type="submit" class="btn btn-amber" style="width:100%;justify-content:center">
+            <i class="fas fa-paper-plane"></i> Publish Story
+          </button>
+          <a href="{{ url_for('admin.blog') }}" class="btn btn-ghost" style="width:100%;text-align:center">Cancel</a>
+        </div>
+      </div>
+
+      <!-- META -->
+      <div class="sidebar-card">
+        <h4>Story Details</h4>
+        <div class="form-group">
+          <label>Author</label>
+          <input type="text" name="author" class="form-control" value="Admin" />
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Category</label>
+          <input type="text" name="category" class="form-control"
+            placeholder="e.g. Beach, Adventure, Tips" />
+        </div>
+      </div>
+
+      <!-- FEATURED IMAGE -->
+      <div class="sidebar-card">
+        <h4>Featured Image</h4>
+        <div class="img-placeholder" id="img-placeholder">🖼️</div>
+        <img id="img-preview" class="img-preview" src="" alt="Preview" />
+        <input type="file" name="featured_image" id="featured-image-input"
+          accept="image/*" style="display:none" onchange="previewImage(this)" />
+        <button type="button" class="file-upload-btn"
+          onclick="document.getElementById('featured-image-input').click()">
           <i class="fas fa-image"></i> Choose Photo
         </button>
-        <input type="file" name="featured_image" accept="image/*"
-          onchange="this.nextElementSibling.textContent = this.files[0]?.name || 'No file chosen'" />
-        <span class="file-upload-label">No file chosen</span>
+        <div id="file-name" style="font-size:.75rem;color:var(--mist);margin-top:.4rem;text-align:center"></div>
       </div>
-    </div>
 
-    <div class="form-group">
-      <label>Short Description</label>
-      <textarea name="short_description" class="form-control" rows="2" style="min-height:70px"
-        placeholder="Brief summary shown on blog list page..."></textarea>
     </div>
+  </div>
+</form>
 
-    <div class="form-group">
-      <label>Content <span style="color:var(--danger)">*</span></label>
-      <textarea name="content" class="form-control" required
-        placeholder="Write your blog post content here... You can use HTML tags like &lt;p&gt;, &lt;strong&gt;, &lt;h2&gt;, etc."></textarea>
-    </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js"></script>
+<script nonce="{{ csp_nonce() }}">
+  // ── QUILL EDITOR ──
+  const quill = new Quill('#quill-editor', {
+    theme: 'snow',
+    placeholder: 'Write your story here...',
+    modules: {
+      toolbar: [
+        [{ header: [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        ['blockquote', 'link'],
+        [{ align: [] }],
+        ['clean']
+      ]
+    }
+  });
 
-    <div class="form-group" style="display:flex;align-items:center;gap:.5rem">
-      <input type="checkbox" name="is_published" id="is_published" checked />
-      <label for="is_published" style="margin:0">Publish immediately</label>
-    </div>
+  // Word count + read time
+  quill.on('text-change', function () {
+    const text = quill.getText().trim();
+    const words = text ? text.split(/\s+/).length : 0;
+    const mins = Math.max(1, Math.round(words / 200));
+    document.getElementById('word-count').textContent = words;
+    document.getElementById('read-time').textContent = mins + ' min';
+  });
 
-    <div style="display:flex;gap:1rem;margin-top:1.5rem">
-      <button type="submit" class="btn btn-amber">Publish Post</button>
-      <a href="{{ url_for('admin.blog') }}" class="btn btn-ghost">Cancel</a>
-    </div>
-  </form>
-</div>
+  // Short description character counter
+  const shortDesc = document.getElementById('short-desc');
+  const charCount = document.getElementById('char-count');
+  shortDesc.addEventListener('input', function () {
+    charCount.textContent = this.value.length;
+    charCount.style.color = this.value.length > 200 ? 'var(--danger)' : 'var(--mist)';
+  });
+
+  // Copy Quill content to hidden textarea on submit
+  document.getElementById('story-form').addEventListener('submit', function (e) {
+    const content = quill.root.innerHTML;
+    if (quill.getText().trim().length === 0) {
+      e.preventDefault();
+      alert('Please write some content for your story.');
+      return;
+    }
+    document.getElementById('content-input').value = content;
+  });
+
+  // Image preview
+  function previewImage(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      document.getElementById('img-preview').src = e.target.result;
+      document.getElementById('img-preview').style.display = 'block';
+      document.getElementById('img-placeholder').style.display = 'none';
+      document.getElementById('file-name').textContent = file.name;
+    };
+    reader.readAsDataURL(file);
+  }
+</script>
 {% endblock %}

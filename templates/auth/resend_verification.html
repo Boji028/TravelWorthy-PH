@@ -15,6 +15,7 @@
                     </p>
 
                     <form method="POST" class="needs-validation">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="mb-3">
                             <label for="email" class="form-label">Email Address</label>
                             <input 
@@ -24,6 +25,7 @@
                                 name="email" 
                                 required 
                                 placeholder="your@email.com"
+                                value="{{ email or '' }}"
                                 autofocus
                             >
                             <small class="form-text text-muted">

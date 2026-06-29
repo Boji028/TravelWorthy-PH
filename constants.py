@@ -2,17 +2,11 @@
 from enum import Enum
 
 
-class BookingStatus(Enum):
-    """Booking status constants."""
-    PENDING: str = 'pending'
-    CONFIRMED: str = 'confirmed'
-    CANCELLED: str = 'cancelled'
-
-
 class InquiryStatus(Enum):
     """Inquiry status constants."""
     NEW: str = 'new'
     CONTACTED: str = 'contacted'
+    CONFIRMED: str = 'confirmed'
     CLOSED: str = 'closed'
 
 

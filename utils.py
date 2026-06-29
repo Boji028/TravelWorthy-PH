@@ -49,27 +49,22 @@ def compress_image(file_path: str, max_size: int = 1200, quality: int = 82) -> N
             # Resize only if larger than max_size on either axis
             if max(img.size) > max_size:
                 img.thumbnail((max_size, max_size), Image.LANCZOS)
-            
-            # Strip EXIF and metadata (privacy protection)
-            # This removes GPS, camera model, timestamps, etc.
-            data = list(img.getdata())
-            image_without_exif = Image.new(img.mode, img.size)
-            image_without_exif.putdata(data)
+    
             
             # Save without metadata (format-aware, with proper error handling)
             file_ext = os.path.splitext(file_path)[1].lower()
             try:
                 if file_ext in ['.jpg', '.jpeg']:
-                    image_without_exif.save(file_path, format='JPEG', optimize=True, quality=quality)
+                    img.save(file_path, format='JPEG', optimize=True, quality=quality)
                 elif file_ext == '.png':
-                    image_without_exif.save(file_path, format='PNG', optimize=True)
+                    img.save(file_path, format='PNG', optimize=True)
                 elif file_ext == '.webp':
-                    image_without_exif.save(file_path, format='WEBP', quality=quality)
+                    img.save(file_path, format='WEBP', quality=quality)
                 elif file_ext == '.gif':
-                    image_without_exif.save(file_path, format='GIF', optimize=True)
+                    img.save(file_path, format='GIF', optimize=True)
                 else:
                     # Fallback: let PIL determine format from extension
-                    image_without_exif.save(file_path, optimize=True)
+                    img.save(file_path, optimize=True)
             except Exception as save_error:
                 current_app.logger.error(f'Image save failed for {file_path}: {save_error}', exc_info=True)
                 raise

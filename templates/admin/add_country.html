@@ -1,29 +1,87 @@
 {% extends "admin/base_admin.html" %}
 {% block title %}Add Country{% endblock %}
 
-{% block admin_content %}
-<div style="margin-bottom:1rem;">
-  <a href="{{ url_for('admin.countries', continent_id=continent.id) }}" style="
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-  color: var(--teal);
-  font-size: .85rem;
-  font-weight: 600;
-  text-decoration: none;
-  padding: .4rem 1rem;
-  border: 1.5px solid var(--teal);
-  border-radius: 999px;
-  transition: all .2s;
-" onmouseover="this.style.background='var(--teal)';this.style.color='white'"
-   onmouseout="this.style.background='transparent';this.style.color='var(--teal)'">
-  Back to {{ continent.name }}
-</a>
+{% block admin_styles %}
+<style>
+  .file-upload-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
 
-<div style="max-width:600px; margin:0 auto;">
-  <h2 style="margin-bottom:1.5rem;">Add Country to {{ continent.flag_emoji or '🌍' }} {{ continent.name }}</h2>
+  .file-upload-wrapper input[type="file"] {
+    display: none;
+  }
+
+  .file-upload-btn {
+    background: var(--teal);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background 0.2s;
+  }
+
+  .file-upload-btn:hover {
+    background: var(--bark);
+  }
+
+  .file-upload-label {
+    color: var(--mist);
+    font-size: 0.9rem;
+  }
+
+  .size-warning {
+    display: none;
+    font-size: 0.78rem;
+    color: var(--warning);
+    background: rgba(230, 126, 34, .1);
+    border: 1px solid rgba(230, 126, 34, .3);
+    border-radius: var(--radius);
+    padding: 0.5rem 0.75rem;
+    margin-top: 0.6rem;
+  }
+
+  .new-image-preview {
+    display: none;
+    margin-top: .75rem;
+  }
+
+  .new-image-preview img {
+    height: 90px;
+    border-radius: var(--radius);
+    object-fit: cover;
+  }
+
+  .new-image-preview .label {
+    font-size: .78rem;
+    color: var(--mist);
+    margin-top: .3rem;
+  }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <div style="display:flex;justify-content:space-between;align-items:flex-end">
+    <div>
+      <h1>{{ continent.flag_emoji or '🌍' }} Add Country</h1>
+      <p>Adding to {{ continent.name }}</p>
+    </div>
+    <a href="{{ url_for('admin.countries', continent_id=continent.id) }}" class="btn btn-ghost">
+      <i class="fas fa-arrow-left"></i> Back
+    </a>
+  </div>
+</div>
+
+<div style="max-width:600px">
   <div class="card" style="padding:2rem;">
-    <form method="POST">
+    <form method="POST" enctype="multipart/form-data">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <input type="hidden" name="continent_id" value="{{ continent.id }}"/>
       <div class="form-group">
@@ -38,6 +96,27 @@
         <label>Description</label>
         <textarea name="description" class="form-control" rows="3" placeholder="Short description..."></textarea>
       </div>
+
+      <div class="form-group">
+        <label>Country Photo</label>
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+          <div class="file-upload-wrapper" style="flex:1;">
+            <button type="button" class="file-upload-btn" onclick="this.nextElementSibling.click()">
+              <i class="fas fa-image"></i> Choose Photo
+            </button>
+            <input type="file" name="image" id="image-input" accept="image/*"
+              onchange="handleImagePreview(this)" />
+            <span class="file-upload-label" id="image-filename">No file chosen</span>
+          </div>
+        </div>
+        <div class="new-image-preview" id="new-image-preview">
+          <img id="new-image-thumb" src="" alt="" />
+          <div class="label">New photo</div>
+        </div>
+        <div class="size-warning" id="image-size-warning"></div>
+        <div style="font-size:.78rem;color:var(--mist);margin-top:.3rem">Optional. 600px wide or more recommended.</div>
+      </div>
+
       <div class="form-group" style="display:flex; align-items:center; gap:.5rem;">
         <input type="checkbox" name="is_active" id="is_active" checked/>
         <label for="is_active" style="margin:0;">Active</label>
@@ -49,4 +128,30 @@
     </form>
   </div>
 </div>
+
+<script nonce="{{ csp_nonce() }}">
+  function handleImagePreview(input) {
+    const file = input.files[0];
+    document.getElementById('image-filename').textContent = file ? file.name : 'No file chosen';
+    const preview = document.getElementById('new-image-preview');
+    const warningEl = document.getElementById('image-size-warning');
+    if (!file) { preview.style.display = 'none'; warningEl.style.display = 'none'; return; }
+
+    const thumb = document.getElementById('new-image-thumb');
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = function () {
+      thumb.src = url;
+      preview.style.display = 'block';
+      if (img.naturalWidth < 600) {
+        warningEl.textContent = 'This photo is ' + img.naturalWidth + '×' + img.naturalHeight +
+          'px and may look blurry. 600px wide or more works best.';
+        warningEl.style.display = 'block';
+      } else {
+        warningEl.style.display = 'none';
+      }
+    };
+    img.src = url;
+  }
+</script>
 {% endblock %}

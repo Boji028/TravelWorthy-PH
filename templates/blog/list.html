@@ -1,50 +1,79 @@
 {% extends "base.html" %}
-{% block title %}Blog — Travel Worthy PH{% endblock %}
+{% block title %}Stories — Travel Worthy PH{% endblock %}
 
 {% block extra_styles %}
 <style>
-  .blog-hero {
-    background: linear-gradient(135deg, var(--teal-d), var(--teal));
-    color: var(--white);
-    padding: 4rem 2rem;
+  /* ── HERO ── */
+  .stories-hero {
+    background: linear-gradient(135deg, #0d3d4a 0%, var(--teal) 100%);
+    color: white;
+    padding: 4rem 2rem 4.5rem;
     text-align: center;
+    position: relative;
+    overflow: hidden;
   }
-
-  .blog-hero h1 {
+  .stories-hero h1 {
     font-family: 'Pogonia', serif;
     font-size: 2.6rem;
-    margin-bottom: .5rem;
+    font-weight: 300;
+    margin-bottom: .4rem;
+  }
+  .stories-hero p { opacity: .8; font-size: 1rem; }
+
+  /* ── ANIMATIONS ── */
+  .stories-fade { opacity: 0; animation: storiesFade .7s ease forwards; }
+  .stories-word { display: inline-block; opacity: 0; transform: translateY(20px); animation: storiesRise .8s cubic-bezier(.2,.7,.3,1) forwards; }
+  @keyframes storiesFade { to { opacity: 1; } }
+  @keyframes storiesRise { to { opacity: 1; transform: translateY(0); } }
+
+  .stories-hero-wave {
+    position: absolute; left: 0; right: 0; bottom: -1px; height: 50px; width: 200%;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 60' preserveAspectRatio='none'%3E%3Cpath d='M0,26 C180,52 360,4 600,24 C840,44 1020,8 1200,26 L1200,60 L0,60 Z' fill='%23f5efe6'/%3E%3C/svg%3E");
+    background-size: 1200px 50px; background-repeat: repeat-x;
+    animation: storiesWaveFlow 10s linear infinite;
+  }
+  @keyframes storiesWaveFlow { to { transform: translateX(-1200px); } }
+
+  .stories-reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity .8s ease, transform .8s cubic-bezier(.2,.7,.3,1);
+  }
+  .stories-reveal.stories-in { opacity: 1; transform: none; }
+  .stories-d1 { transition-delay: .1s; }
+  .stories-d2 { transition-delay: .2s; }
+  .stories-d3 { transition-delay: .3s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stories-fade, .stories-word { animation: none; opacity: 1; transform: none; }
+    .stories-hero-wave { animation: none; }
+    .stories-reveal { transition: none; opacity: 1; transform: none; }
   }
 
-  .blog-hero p {
-    opacity: .8;
-    font-size: 1rem;
-  }
-
-  .blog-wrap {
+  /* ── WRAP ── */
+  .stories-wrap {
     max-width: 1280px;
     margin: 3rem auto;
-    padding: 0 2rem;
+    padding: 0 2rem 4rem;
   }
 
+  /* ── CATEGORY BAR ── */
   .category-bar {
     display: flex;
     gap: .5rem;
     flex-wrap: wrap;
     margin-bottom: 2rem;
   }
-
   .category-bar a {
-    padding: .4rem 1rem;
+    padding: .35rem 1rem;
     border-radius: 999px;
-    font-size: .82rem;
+    font-size: .8rem;
     text-decoration: none;
     border: 1px solid var(--linen);
     color: var(--mist);
     background: var(--white);
-    transition: all .2s;
+    transition: all .18s;
   }
-
   .category-bar a.active,
   .category-bar a:hover {
     background: var(--amber);
@@ -52,174 +81,414 @@
     border-color: var(--amber);
   }
 
-  .blog-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 2rem;
+  /* ── SECTION LABEL ── */
+  .section-lbl {
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--mist);
+    margin-bottom: 1rem;
   }
 
-  .blog-card {
+  /* ── MAGAZINE TOP ROW ── */
+  .magazine-top {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap: 1.25rem;
+    margin-bottom: 2.5rem;
+  }
+
+  /* ── FEATURED POST ── */
+  .featured-post {
+    position: relative;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    display: block;
+    text-decoration: none;
+    min-height: 380px;
+    background: var(--linen);
+    box-shadow: 0 4px 24px rgba(58,46,34,.1);
+    transition: transform .25s, box-shadow .25s;
+  }
+  .featured-post:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(58,46,34,.16);
+  }
+  .featured-post img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    position: absolute;
+    inset: 0;
+  }
+  .featured-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 5rem;
+    background: linear-gradient(135deg, var(--teal) 0%, #0d3d4a 100%);
+  }
+  .featured-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,.82) 0%, rgba(0,0,0,.15) 55%, transparent 75%);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 1.5rem;
+  }
+  .featured-badge {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    background: var(--amber);
+    color: white;
+    font-size: .68rem;
+    font-weight: 700;
+    padding: .2rem .65rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+  }
+  .featured-cat {
+    display: inline-flex;
+    align-items: center;
+    font-size: .72rem;
+    font-weight: 600;
+    color: rgba(255,255,255,.8);
+    background: rgba(255,255,255,.15);
+    padding: .2rem .65rem;
+    border-radius: 999px;
+    margin-bottom: .6rem;
+    width: fit-content;
+    backdrop-filter: blur(4px);
+  }
+  .featured-title {
+    font-family: 'Pogonia', serif;
+    font-size: 1.55rem;
+    font-weight: 600;
+    color: white;
+    line-height: 1.25;
+    margin-bottom: .65rem;
+  }
+  .featured-meta {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    font-size: .75rem;
+    color: rgba(255,255,255,.7);
+  }
+  .featured-meta span { display: flex; align-items: center; gap: .3rem; }
+
+  /* ── SIDE CARDS ── */
+  .side-cards {
+    display: flex;
+    flex-direction: column;
+    gap: .9rem;
+  }
+  .side-card {
+    display: flex;
     background: var(--white);
     border-radius: var(--radius-lg);
     overflow: hidden;
-    box-shadow: 0 2px 12px rgba(58, 46, 34, .07);
-    transition: transform 0.5s, box-shadow .25s;
-    perspective: 2500px;
-    transform-style: preserve-3d;
+    text-decoration: none;
+    border: 1px solid var(--linen);
+    transition: transform .2s, box-shadow .2s;
   }
-
-  .blog-card-img {
-    width: 100%;
-    height: 350px;
-    object-fit: contain;
-    background: var(--linen);
-    transition: transform 0.5s;
+  .side-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(58,46,34,.1);
   }
-
-  .blog-card:hover {
-    transform: rotateY(10deg) rotateX(5deg);
-    box-shadow: 0 16px 48px rgba(58, 46, 34, .14);
+  .side-card-img {
+    width: 110px;
+    flex-shrink: 0;
+    object-fit: cover;
+    display: block;
   }
-
-  .blog-card:hover .blog-card-img {
-    transform: rotateY(10deg) rotateX(5deg);
-  }
-
-  .blog-card-img-placeholder {
-    width: 100%;
-    height: 350px;
+  .side-card-placeholder {
+    width: 110px;
+    flex-shrink: 0;
     background: linear-gradient(135deg, var(--linen), #d4c9b6);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 3rem;
+    font-size: 1.8rem;
     color: var(--mist);
-    transition: transform 0.5s;
   }
-
-  .blog-card-body {
-    padding: 1.4rem;
-  }
-
-  .blog-meta {
+  .side-card-body {
+    padding: .85rem;
     display: flex;
-    gap: 1rem;
-    font-size: .78rem;
-    color: var(--mist);
-    margin-bottom: .75rem;
-    flex-wrap: wrap;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1;
+    min-width: 0;
   }
-
-  .blog-category {
-    background: rgba(200, 135, 74, .1);
-    color: var(--amber);
-    padding: .2rem .6rem;
-    border-radius: 999px;
-    font-size: .75rem;
+  .cat-pill {
+    display: inline-flex;
+    font-size: .68rem;
     font-weight: 600;
+    padding: .15rem .55rem;
+    border-radius: 999px;
+    background: rgba(200,135,74,.12);
+    color: var(--amber);
+    margin-bottom: .4rem;
+    width: fit-content;
   }
-
-  .blog-card h3 {
+  .side-card-title {
     font-family: 'Pogonia', serif;
-    font-size: 1.2rem;
+    font-size: .95rem;
     color: var(--bark);
-    margin-bottom: .5rem;
-    line-height: 1.3;
+    line-height: 1.35;
+    margin-bottom: .35rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .side-card-meta {
+    font-size: .72rem;
+    color: var(--mist);
+    display: flex;
+    align-items: center;
+    gap: .5rem;
   }
 
-  .blog-card p {
-    font-size: .85rem;
+  /* ── MORE STORIES GRID ── */
+  .more-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+  .story-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    text-decoration: none;
+    border: 1px solid var(--linen);
+    transition: transform .2s, box-shadow .2s;
+    display: flex;
+    flex-direction: column;
+  }
+  .story-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 28px rgba(58,46,34,.12);
+  }
+  .story-card-img {
+    width: 100%;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+    display: block;
+  }
+  .story-card-placeholder {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: linear-gradient(135deg, var(--linen), #d4c9b6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
     color: var(--mist);
-    line-height: 1.6;
-    margin-bottom: 1rem;
+  }
+  .story-card-body {
+    padding: 1.1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .story-card-title {
+    font-family: 'Pogonia', serif;
+    font-size: 1.05rem;
+    color: var(--bark);
+    line-height: 1.3;
+    margin-bottom: .4rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .story-card-excerpt {
+    font-size: .82rem;
+    color: var(--mist);
+    line-height: 1.65;
+    flex: 1;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    margin-bottom: .85rem;
   }
-
-  .blog-read-more {
-    font-size: .85rem;
+  .story-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: .75rem;
+    border-top: 1px solid var(--linen);
+  }
+  .read-more-link {
+    font-size: .8rem;
     color: var(--teal);
-    text-decoration: none;
     font-weight: 600;
     display: inline-flex;
     align-items: center;
     gap: .3rem;
-    transition: gap .2s;
+    transition: gap .18s;
   }
+  .read-more-link:hover { gap: .55rem; }
 
-  .blog-read-more:hover {
-    gap: .6rem;
-  }
-
+  /* ── EMPTY STATE ── */
   .empty-blog {
     text-align: center;
-    padding: 4rem 2rem;
+    padding: 5rem 2rem;
     color: var(--mist);
   }
-
   .empty-blog i {
     font-size: 3rem;
-    opacity: .3;
+    opacity: .25;
     display: block;
     margin-bottom: 1rem;
   }
 
-  .blog-card:hover .blog-card-img {
-    transform: scale(1.05);
+  @media (max-width: 768px) {
+    .magazine-top { grid-template-columns: 1fr; }
+    .featured-post { min-height: 280px; }
+    .featured-title { font-size: 1.2rem; }
+    .more-grid { grid-template-columns: 1fr; }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="blog-hero">
-  <h1>Our Stories</h1>
-  <p>Travel tips, destination guides, and our adventures on the road</p>
+
+<!-- HERO -->
+<div class="stories-hero">
+  <h1><span class="stories-word" style="animation-delay:.1s">Our</span> <span class="stories-word" style="animation-delay:.2s">Stories</span></h1>
+  <p class="stories-fade" style="animation-delay:.35s">Travel tips, destination guides, and adventures on the road</p>
+  <div class="stories-hero-wave"></div>
 </div>
 
-<div class="blog-wrap">
+<div class="stories-wrap">
+
+  <!-- CATEGORY FILTER -->
   {% if categories %}
-  <div class="category-bar">
+  <div class="category-bar stories-fade" style="animation-delay:.5s">
     <a href="{{ url_for('blog.blog_list') }}" class="{{ 'active' if not active_category }}">All</a>
     {% for cat in categories %}
-    <a href="{{ url_for('blog.blog_list', category=cat) }}" class="{{ 'active' if active_category == cat }}">{{ cat
-      }}</a>
+    <a href="{{ url_for('blog.blog_list', category=cat) }}"
+      class="{{ 'active' if active_category == cat }}">{{ cat }}</a>
     {% endfor %}
   </div>
   {% endif %}
 
   {% if posts %}
-  <div class="blog-grid">
-    {% for post in posts %}
-    <div class="blog-card">
-      {% if post.featured_image %}
-      <img class="blog-card-img" src="/uploads/{{ post.featured_image }}" alt="{{ post.title }}" />
+
+  <!-- MAGAZINE TOP ROW -->
+  <div class="section-lbl">Latest Stories</div>
+  <div class="magazine-top">
+
+    <!-- FEATURED POST -->
+    <a href="{{ url_for('blog.blog_detail', post_id=posts[0].id) }}" class="featured-post stories-reveal">
+      {% if posts[0].featured_image %}
+      <img src="{{ posts[0].featured_image }}" alt="{{ posts[0].title }}" loading="lazy" />
       {% else %}
-      <div class="blog-card-img-placeholder"><i class="fas fa-image"></i></div>
+      <div class="featured-placeholder">✈️</div>
       {% endif %}
-      <div class="blog-card-body">
-        <div class="blog-meta">
-          {% if post.category %}
-          <span class="blog-category">{{ post.category }}</span>
-          {% endif %}
-          <span><i class="fas fa-user"></i> {{ post.author }}</span>
-          <span><i class="fas fa-calendar"></i> {{ post.created_at.strftime('%b %d, %Y') }}</span>
+      <span class="featured-badge">✦ Featured</span>
+      <div class="featured-overlay">
+        {% if posts[0].category %}
+        <span class="featured-cat">{{ posts[0].category }}</span>
+        {% endif %}
+        <div class="featured-title">{{ posts[0].title }}</div>
+        <div class="featured-meta">
+          <span><i class="fas fa-user" style="font-size:.65rem"></i> {{ posts[0].author }}</span>
+          <span>·</span>
+          <span><i class="fas fa-calendar" style="font-size:.65rem"></i> {{ posts[0].created_at.strftime('%b %d, %Y') }}</span>
+          <span>·</span>
+          {% set mins = [(posts[0].content | length // 800), 1] | max %}
+          <span><i class="fas fa-clock" style="font-size:.65rem"></i> {{ mins }} min read</span>
         </div>
-        <h3>{{ post.title }}</h3>
-        <p>{{ post.short_description or post.content[:150] + '...' }}</p>
-        <a href="{{ url_for('blog.blog_detail', post_id=post.id) }}" class="blog-read-more">
-          Read More <i class="fas fa-arrow-right"></i>
-        </a>
       </div>
+    </a>
+
+    <!-- SIDE CARDS (posts 2–4) -->
+    <div class="side-cards">
+      {% for post in posts[1:4] %}
+      <a href="{{ url_for('blog.blog_detail', post_id=post.id) }}" class="side-card stories-reveal stories-d{{ loop.index }}">
+        {% if post.featured_image %}
+        <img class="side-card-img" src="{{ post.featured_image }}" alt="{{ post.title }}" loading="lazy" />
+        {% else %}
+        <div class="side-card-placeholder">📝</div>
+        {% endif %}
+        <div class="side-card-body">
+          {% if post.category %}
+          <span class="cat-pill">{{ post.category }}</span>
+          {% endif %}
+          <div class="side-card-title">{{ post.title }}</div>
+          <div class="side-card-meta">
+            <span>{{ post.created_at.strftime('%b %d, %Y') }}</span>
+            <span>·</span>
+            {% set mins = [(post.content | length // 800), 1] | max %}
+            <span>{{ mins }} min read</span>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
     </div>
+
+  </div>
+
+  <!-- MORE STORIES GRID (posts 5+) -->
+  {% if posts | length > 4 %}
+  <div class="section-lbl" style="margin-top:.5rem">More Stories</div>
+  <div class="more-grid">
+    {% for post in posts[4:] %}
+    <a href="{{ url_for('blog.blog_detail', post_id=post.id) }}" class="story-card stories-reveal" style="transition-delay: {{ (loop.index0 % 6) * 0.08 }}s">
+      {% if post.featured_image %}
+      <img class="story-card-img" src="{{ post.featured_image }}" alt="{{ post.title }}" loading="lazy" />
+      {% else %}
+      <div class="story-card-placeholder">📝</div>
+      {% endif %}
+      <div class="story-card-body">
+        {% if post.category %}
+        <span class="cat-pill" style="margin-bottom:.5rem">{{ post.category }}</span>
+        {% endif %}
+        <div class="story-card-title">{{ post.title }}</div>
+        <div class="story-card-excerpt">{{ post.short_description or post.content[:180] }}</div>
+        <div class="story-card-footer">
+          <div style="font-size:.72rem;color:var(--mist);display:flex;align-items:center;gap:.4rem">
+            <i class="fas fa-calendar" style="font-size:.62rem"></i>
+            {{ post.created_at.strftime('%b %d, %Y') }}
+          </div>
+          <span class="read-more-link">
+            Read More <i class="fas fa-arrow-right" style="font-size:.7rem"></i>
+          </span>
+        </div>
+      </div>
+    </a>
     {% endfor %}
   </div>
+  {% endif %}
+
   {% else %}
   <div class="empty-blog">
     <i class="fas fa-pen-nib"></i>
     <p>No stories yet. Check back soon!</p>
   </div>
   {% endif %}
+
 </div>
+
+<script nonce="{{ csp_nonce() }}">
+  (function () {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('stories-in'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.16 });
+    document.querySelectorAll('.stories-reveal').forEach(function (el) { io.observe(el); });
+  })();
+</script>
 {% endblock %}

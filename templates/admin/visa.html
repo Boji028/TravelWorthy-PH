@@ -3,100 +3,215 @@
 
 {% block admin_styles %}
 <style>
-  .admin-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: .87rem;
-  }
-
-  .admin-table th {
-    text-align: left;
-    padding: 1rem 1rem;
-    font-size: .72rem;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    color: var(--mist);
-    border-bottom: 1px solid var(--linen);
-    font-weight: 600;
-  }
-
-  .admin-table td {
-    padding: 1.2rem 1rem;
-    border-bottom: 1px solid var(--linen);
-    color: var(--bark);
-    vertical-align: middle;
-  }
-
-  .admin-table tr:last-child td {
-    border-bottom: none;
-  }
-
-  .admin-table tr:hover td {
-    background: #faf6f0;
-  }
+  .admin-table { width: 100%; border-collapse: collapse; font-size: .87rem; }
+  .admin-table th { text-align: left; padding: 1rem 1rem; font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--mist); border-bottom: 1px solid var(--linen); font-weight: 600; }
+  .admin-table td { padding: 1.1rem 1rem; border-bottom: 1px solid var(--linen); color: var(--bark); vertical-align: middle; }
+  .admin-table tr:last-child td { border-bottom: none; }
+  .admin-table tr:hover td { background: #faf6f0; }
+  .visa-filter-bar { display: flex; gap: .6rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+  .visa-search-wrap { flex: 1; min-width: 180px; position: relative; }
+  .visa-search-wrap i { position: absolute; left: .8rem; top: 50%; transform: translateY(-50%); color: var(--mist); font-size: .8rem; }
+  .visa-search-wrap input { padding-left: 2.2rem !important; }
+  .status-pills { display: flex; gap: .4rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .status-pill { text-decoration: none; border-radius: 999px; padding: .4rem .9rem; font-size: .78rem; font-weight: 600; background: var(--sand); color: var(--mist); transition: opacity .15s; }
+  .status-pill:hover { opacity: .8; }
+  .status-pill.active { background: rgba(23,89,104,.12); color: var(--teal); }
+  .status-pill-active.active { background: rgba(39,174,96,.12); color: var(--success); }
+  .status-pill-inactive.active { background: rgba(192,57,43,.1); color: var(--danger); }
+  .status-toggle { display: inline-flex; align-items: center; gap: .4rem; border-radius: 999px; padding: .25rem .7rem; font-size: .76rem; font-weight: 600; cursor: pointer; border: none; }
+  .status-toggle .status-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .status-toggle.status-active-on { background: rgba(39,174,96,.12); color: var(--success); }
+  .status-toggle.status-active-on .status-dot { background: var(--success); }
+  .status-toggle.status-active-off { background: rgba(192,57,43,.1); color: var(--danger); }
+  .status-toggle.status-active-off .status-dot { background: var(--danger); }
+  .region-type-cell div:first-child { color: var(--bark); }
+  .region-type-cell div:last-child { font-size: .76rem; color: var(--mist); }
 </style>
 {% endblock %}
 
 {% block admin_content %}
 <div class="admin-header">
   <h1>Visa Management</h1>
-  <a href="{{ url_for('admin.visa_add') }}" class="btn btn-amber">
+  <a href="{{ url_for('admin.visa_add') }}" class="btn btn-amber no-ajax">
     <i class="fas fa-plus"></i> Add Country
   </a>
 </div>
 
-<div style="background:var(--white);border-radius:var(--radius-lg);box-shadow:0 2px 12px rgba(58,46,34,.07);overflow:hidden;">
-  <table class="admin-table">
-    <thead>
-      <tr>
-        <th>Flag</th>
-        <th>Country</th>
-        <th>Requirements</th>
-        <th>Status</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for visa in visas %}
-      <tr>
-        <td style="font-size:1.5rem;">{{ visa.flag_emoji or '🌍' }}</td>
-        <td><strong>{{ visa.country_name }}</strong></td>
-        <td style="max-width:300px;color:var(--mist);font-size:.85rem;">
-          {% if visa.requirements_pdf %}
-          <a href="/uploads/visa_requirements/{{ visa.requirements_pdf }}" target="_blank" style="color:var(--teal);text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;"><i class="fas fa-file-pdf"></i> {{ visa.requirements_pdf }}</a>
-          {% else %}
-          —
-          {% endif %}
-        </td>
-        <td>
-          {% if visa.is_active %}
-          <span class="badge badge-success">Active</span>
-          {% else %}
-          <span class="badge badge-danger">Inactive</span>
-          {% endif %}
-        </td>
-        <td>
-          <a href="{{ url_for('admin.visa_edit', visa_id=visa.id) }}" class="btn-sm-edit">
-            <i class="fas fa-edit"></i> Edit
-          </a>
-          <form method="POST" action="{{ url_for('admin.visa_delete', visa_id=visa.id) }}" style="display:inline"
-            onsubmit="return confirm('Delete this visa entry?')">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-            <button type="submit" class="btn btn-danger btn-sm">
-              <i class="fas fa-trash"></i>
-            </button>
-          </form>
-        </td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="5" style="text-align:center;padding:3rem;color:var(--mist);">
-          <i class="fas fa-passport" style="font-size:2rem;opacity:.3;display:block;margin-bottom:.5rem;"></i>
-          No visa entries yet. Add your first country!
-        </td>
-      </tr>
+<div id="visaApp">
+
+  <form method="GET" action="{{ url_for('admin.visa_list') }}" class="visa-filter-bar" id="visa-filter-form">
+    <div class="visa-search-wrap">
+      <i class="fas fa-search"></i>
+      <input type="text" name="search" value="{{ search }}" placeholder="Search country..." class="form-control">
+    </div>
+    <select name="region" class="form-control" style="width:auto;">
+      <option value="">All regions</option>
+      {% for r in all_regions %}
+        <option value="{{ r }}" {{ 'selected' if r == region_filter }}>{{ r }}</option>
       {% endfor %}
-    </tbody>
-  </table>
+    </select>
+    <input type="hidden" name="status" value="{{ status_filter }}">
+    <button type="submit" class="btn btn-outline btn-sm">Filter</button>
+  </form>
+
+  <div class="status-pills">
+    <a href="{{ url_for('admin.visa_list', search=search, region=region_filter) }}"
+       class="status-pill {{ 'active' if not status_filter }}">All {{ status_counts.all }}</a>
+    <a href="{{ url_for('admin.visa_list', search=search, region=region_filter, status='active') }}"
+       class="status-pill status-pill-active {{ 'active' if status_filter == 'active' }}">Active {{ status_counts.active }}</a>
+    <a href="{{ url_for('admin.visa_list', search=search, region=region_filter, status='inactive') }}"
+       class="status-pill status-pill-inactive {{ 'active' if status_filter == 'inactive' }}">Inactive {{ status_counts.inactive }}</a>
+  </div>
+
+  <div style="background:var(--white);border-radius:var(--radius-lg);box-shadow:0 2px 12px rgba(58,46,34,.07);overflow:hidden;">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Country</th>
+          <th>Region / Type</th>
+          <th>Processing</th>
+          <th>Price</th>
+          <th>PDF</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for visa in visas %}
+        <tr>
+          <td style="display:flex;align-items:center;gap:.6rem;">
+            <span style="font-size:1.3rem;">{{ visa.flag_emoji or '🌍' }}</span>
+            <strong>{{ visa.country_name }}</strong>
+          </td>
+          <td class="region-type-cell">
+            <div>{{ visa.region or '—' }}</div>
+            <div>{{ visa.visa_type or '' }}</div>
+          </td>
+          <td style="font-size:.85rem;">{{ visa.processing_time or '—' }}</td>
+          <td>{{ '₱%.0f' % visa.price if visa.price else '—' }}</td>
+          <td>
+            {% if visa.requirements_pdf %}
+            <a href="/uploads/{{ visa.requirements_pdf }}" target="_blank" style="color:var(--teal);"><i class="fas fa-file-pdf"></i></a>
+            {% else %}
+            <span style="color:var(--mist)">—</span>
+            {% endif %}
+          </td>
+          <td>
+            <button type="button" class="status-toggle {{ 'status-active-on' if visa.is_active else 'status-active-off' }}"
+                    data-toggle-url="{{ url_for('admin.toggle_visa_active', visa_id=visa.id) }}">
+              <span class="status-dot"></span>
+              <span class="status-label">{{ 'Active' if visa.is_active else 'Inactive' }}</span>
+            </button>
+          </td>
+          <td>
+            <a href="{{ url_for('admin.visa_edit', visa_id=visa.id) }}" class="btn-sm-edit no-ajax">
+              <i class="fas fa-edit"></i> Edit
+            </a>
+            <form method="POST" action="{{ url_for('admin.visa_delete', visa_id=visa.id) }}" style="display:inline"
+              onsubmit="return confirm('Delete this visa entry?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button type="submit" class="btn btn-danger btn-sm">
+                <i class="fas fa-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" style="text-align:center;padding:3rem;color:var(--mist);">
+            <i class="fas fa-passport" style="font-size:2rem;opacity:.3;display:block;margin-bottom:.5rem;"></i>
+            {% if search or region_filter or status_filter %}
+              No visa entries match your filters. <a href="{{ url_for('admin.visa_list') }}" style="color:var(--teal)">Clear filters</a>.
+            {% else %}
+              No visa entries yet. Add your first country!
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
 </div>
+
+<script nonce="{{ csp_nonce() }}">
+(function () {
+  var visaApp = document.getElementById('visaApp');
+
+  function buildUrlFromForm(form) {
+    var params = new URLSearchParams();
+    for (var i = 0; i < form.elements.length; i++) {
+      var el = form.elements[i];
+      if (!el.name || el.disabled) continue;
+      params.set(el.name, el.value || '');
+    }
+    var action = form.getAttribute('action') || window.location.pathname;
+    return action.split('?')[0] + '?' + params.toString();
+  }
+
+  async function loadVisa(url, pushState) {
+    if (pushState === undefined) pushState = true;
+    visaApp.style.opacity = '0.5';
+    visaApp.style.pointerEvents = 'none';
+    try {
+      var res = await fetch(url, { headers: { 'X-Requested-With': 'fetch' } });
+      if (!res.ok) throw new Error('Request failed: ' + res.status);
+      var html = await res.text();
+      var doc = new DOMParser().parseFromString(html, 'text/html');
+      var fresh = doc.getElementById('visaApp');
+      if (!fresh) throw new Error('visaApp not found in response');
+      visaApp.innerHTML = fresh.innerHTML;
+      if (doc.title) document.title = doc.title;
+      if (pushState) history.pushState({ visaUrl: url }, '', url);
+    } catch (err) {
+      window.location.href = url;
+    } finally {
+      visaApp.style.opacity = '';
+      visaApp.style.pointerEvents = '';
+    }
+  }
+
+  visaApp.addEventListener('click', function (e) {
+    var toggleBtn = e.target.closest('.status-toggle');
+    if (toggleBtn) {
+      var url = toggleBtn.getAttribute('data-toggle-url');
+      var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'fetch',
+          'X-CSRFToken': csrfMeta ? csrfMeta.getAttribute('content') : ''
+        }
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.success) return;
+        toggleBtn.classList.toggle('status-active-on', data.is_active);
+        toggleBtn.classList.toggle('status-active-off', !data.is_active);
+        toggleBtn.querySelector('.status-label').textContent = data.is_active ? 'Active' : 'Inactive';
+      })
+      .catch(function () {});
+      return;
+    }
+
+    var link = e.target.closest('a');
+    if (!link) return;
+    if (link.classList.contains('no-ajax')) return;
+    if (link.hasAttribute('target')) return;
+    if (link.origin !== window.location.origin) return;
+    e.preventDefault();
+    loadVisa(link.href);
+  });
+
+  visaApp.addEventListener('submit', function (e) {
+    if (e.target.id !== 'visa-filter-form') return;
+    e.preventDefault();
+    loadVisa(buildUrlFromForm(e.target));
+  });
+
+  window.addEventListener('popstate', function () {
+    loadVisa(window.location.href, false);
+  });
+})();
+</script>
 {% endblock %}

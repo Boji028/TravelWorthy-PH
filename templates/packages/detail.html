@@ -1,199 +1,80 @@
 {% extends "base.html" %}
+{% block og_image %}
+{% if package.image and package.image.startswith('http') %}
+{{ package.image }}
+{% elif package.image %}
+{{ config['SITE_URL'] }}/uploads/{{ package.image }}
+{% else %}
+{{ url_for('static', filename='images/PrimaryBG.jpg', _external=True) }}
+{% endif %}
+{% endblock %}
 {% block title %}{{ package.title }} — Travel Worthy PH{% endblock %}
+{% block og_title %}{{ package.title }}{% endblock %}
+{% block og_description %}{{ package.description[:160] }}{% endblock %}
+{% block meta %}
+<meta name="description" content="{{ package.description[:160] }}" />
+<meta property="og:title" content="{{ package.title }} — Travel Worthy PH" />
+<meta property="og:description" content="{{ package.description[:160] }}" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="{{ request.url }}" />
+{% if package.image %}
+<meta property="og:image"
+  content="{{ package.image if package.image.startswith('http') else request.host_url + 'uploads/' + package.image }}" />
+{% else %}
+<meta property="og:image" content="{{ url_for('static', filename='images/PrimaryBG.jpg', _external=True) }}" />
+{% endif %}
+<meta name="twitter:card" content="summary_large_image" />
+{% endblock %}
 
 {% block extra_styles %}
 <style>
-  .detail-wrap {
-    max-width: 1100px;
-    margin: 3rem auto;
-    padding: 0 2rem;
-    display: grid;
-    grid-template-columns: 1fr 360px;
-    gap: 2.5rem;
-    align-items: start;
-  }
-
-  .detail-img {
-    width: 100%;
-    height: 420px;
-    object-fit: cover;
-    border-radius: var(--radius-lg);
-  }
-
-  .detail-img-placeholder {
-    width: 100%;
-    height: 420px;
-    background: linear-gradient(135deg, var(--linen), #d4c9b6);
-    border-radius: var(--radius-lg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 5rem;
-    color: var(--mist);
-  }
-
-  .detail-body {
-    margin-top: 1.5rem;
-  }
-
-  .detail-destination {
-    display: flex;
-    align-items: center;
-    gap: .4rem;
-    font-size: .82rem;
-    color: var(--teal);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .07em;
-    margin-bottom: .5rem;
-  }
-
-  .detail-title {
-    font-family: 'Pogonia', serif;
-    font-size: 2.2rem;
-    font-weight: 600;
-    color: var(--bark);
-    line-height: 1.2;
-    margin-bottom: 1rem;
-  }
-
-  .detail-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .5rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .chip {
-    display: inline-flex;
-    align-items: center;
-    gap: .35rem;
-    background: var(--linen);
-    border-radius: 999px;
-    padding: .35rem .85rem;
-    font-size: .82rem;
-    color: var(--bark);
-  }
-
-  .chip i {
-    color: var(--teal);
-  }
-
-  .detail-desc {
-    font-size: .95rem;
-    color: #6a5c4a;
-    line-height: 1.8;
-    margin-bottom: 2rem;
-  }
-
-  /* Sidebar */
-  .booking-sidebar {
+  /* ── SECTION NAV ── */
+  .sec-nav {
     background: var(--white);
-    border-radius: var(--radius-lg);
-    padding: 1.75rem;
-    box-shadow: 0 4px 24px rgba(58, 46, 34, .1);
-    position: sticky;
-    top: 90px;
-  }
-
-  .sidebar-price {
-    font-family: 'Pogonia', serif;
-    font-size: 2.2rem;
-    font-weight: 600;
-    color: var(--amber);
-    margin-bottom: .25rem;
-  }
-
-  .sidebar-price span {
-    font-size: .9rem;
-    color: var(--mist);
-    font-family: 'DM Sans', sans-serif;
-    font-weight: 400;
-  }
-
-  .sidebar-avail {
-    font-size: .85rem;
-    color: var(--mist);
-    margin-bottom: 1.5rem;
-    padding-bottom: 1.5rem;
     border-bottom: 1px solid var(--linen);
+    position: sticky;
+    top: 68px;
+    z-index: 90;
+    max-width: 100%;
   }
 
-  .sidebar-avail strong {
-    color: var(--teal);
-  }
-
-  .sidebar-btn {
-    display: block;
-    width: 100%;
-    text-align: center;
-    padding: .9rem;
-    background: var(--amber);
-    color: var(--white);
-    border-radius: var(--radius);
-    font-weight: 500;
-    text-decoration: none;
-    font-size: .95rem;
-    transition: background .18s;
-    margin-top: 1rem;
-  }
-
-  .sidebar-btn:hover {
-    background: var(--amber-d);
-  }
-
-  .sidebar-btn.disabled {
-    background: var(--mist);
-    cursor: not-allowed;
-    pointer-events: none;
-  }
-
-  .sidebar-note {
-    font-size: .78rem;
-    color: var(--mist);
-    text-align: center;
-    margin-top: .75rem;
-  }
-
-  .sidebar-note i {
-    color: var(--teal);
-  }
-
-  .highlights {
-    background: var(--sand);
-    border-radius: var(--radius);
-    padding: 1.2rem;
-    margin: 1.5rem 0;
-  }
-
-  .highlights h4 {
-    font-size: .82rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    color: var(--mist);
-    margin-bottom: .75rem;
-  }
-
-  .highlight-item {
+  .sec-nav-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 2rem;
     display: flex;
-    align-items: center;
-    gap: .6rem;
-    font-size: .88rem;
+    gap: 0;
+    overflow-x: auto;
+  }
+
+  .sec-tab {
+    padding: .7rem 1rem;
+    font-size: .82rem;
+    color: var(--mist);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all .18s;
+    white-space: nowrap;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .sec-tab:hover,
+  .sec-tab.active {
     color: var(--bark);
-    margin-bottom: .5rem;
+    border-bottom-color: var(--bark);
+    font-weight: 600;
   }
 
-  .highlight-item i {
-    color: var(--teal);
-    width: 16px;
-  }
-
+  /* ── BREADCRUMB ── */
   .breadcrumb {
     max-width: 1100px;
-    margin: 1.5rem auto 0;
+    margin: 1.25rem auto 0;
     padding: 0 2rem;
-    font-size: .83rem;
+    font-size: .82rem;
     color: var(--mist);
     display: flex;
     align-items: center;
@@ -205,7 +86,655 @@
     text-decoration: none;
   }
 
-  /* ── MODAL STYLES ── */
+  .breadcrumb a:hover {
+    text-decoration: underline;
+  }
+
+  /* ── PHOTO GRID ── */
+  .photo-grid {
+    position: relative;
+    max-width: 1100px;
+    margin: 1rem auto 0;
+    padding: 0 2rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 320px;
+    gap: 6px;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .photo-main {
+    cursor: pointer;
+    overflow: hidden;
+    border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  }
+
+  .photo-main img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: var(--sand);
+    transition: transform .3s;
+  }
+
+  .photo-main:hover img {
+    transform: scale(1.03);
+  }
+
+  .photo-side {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .photo-side-item {
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+  }
+
+  .photo-side-item:nth-child(2) {
+    border-radius: 0 var(--radius-lg) 0 0;
+  }
+
+  .photo-side-item:nth-child(4) {
+    border-radius: 0 0 var(--radius-lg) 0;
+  }
+
+  .photo-side-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform .3s;
+  }
+
+  .photo-side-item:hover img {
+    transform: scale(1.05);
+  }
+
+  .photo-more-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, .5);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
+  .show-all-btn {
+    position: absolute;
+    bottom: .75rem;
+    right: 2.5rem;
+    background: white;
+    border: 1.5px solid var(--bark);
+    border-radius: var(--radius);
+    padding: .4rem .9rem;
+    font-size: .82rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    transition: background .18s;
+    color: var(--bark);
+  }
+
+  .show-all-btn:hover {
+    background: var(--linen);
+  }
+
+  /* ── MAIN LAYOUT ── */
+  .detail-wrap {
+    max-width: 1100px;
+    margin: 1.5rem auto 0;
+    padding: 0 2rem 4rem;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 3rem;
+    align-items: start;
+  }
+
+  /* ── LEFT COLUMN ── */
+  .pkg-title {
+    font-family: 'Pogonia', serif;
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: var(--bark);
+    line-height: 1.2;
+    margin-bottom: .35rem;
+  }
+
+  .pkg-meta {
+    font-size: .82rem;
+    color: var(--mist);
+    margin-bottom: .65rem;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    flex-wrap: wrap;
+  }
+
+  .pkg-rating {
+    display: inline-flex;
+    align-items: center;
+    gap: .2rem;
+    color: var(--bark);
+    font-weight: 600;
+  }
+
+  .pkg-rating .star {
+    color: var(--amber);
+  }
+
+  .pkg-sep {
+    color: var(--linen);
+  }
+
+  /* HOST ROW */
+  .host-row {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: 1rem 0;
+    border-top: 1px solid var(--linen);
+    border-bottom: 1px solid var(--linen);
+    margin: .75rem 0 1rem;
+  }
+
+  .host-av {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--teal);
+    color: white;
+    font-weight: 700;
+    font-size: .85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .host-name {
+    font-weight: 600;
+    font-size: .9rem;
+    color: var(--bark);
+  }
+
+  .host-sub {
+    font-size: .75rem;
+    color: var(--mist);
+  }
+
+  .verified-badge {
+    background: #fdf3e3;
+    color: #a86830;
+    font-size: .68rem;
+    font-weight: 600;
+    padding: .12rem .5rem;
+    border-radius: 999px;
+    border: 1px solid #e8c97a;
+  }
+
+  /* CHIPS */
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin: .75rem 0 1rem;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    background: var(--linen);
+    border-radius: 999px;
+    padding: .28rem .75rem;
+    font-size: .8rem;
+    color: var(--bark);
+  }
+
+  .chip i {
+    color: var(--teal);
+  }
+
+  /* HIGHLIGHTS */
+  .highlights-airbnb {
+    border: 1px solid var(--linen);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin: .75rem 0 1rem;
+  }
+
+  .hl-item {
+    display: flex;
+    align-items: flex-start;
+    gap: .9rem;
+    padding: .85rem 1.1rem;
+    border-bottom: 1px solid var(--linen);
+  }
+
+  .hl-item:last-child {
+    border-bottom: none;
+  }
+
+  .hl-icon {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+    margin-top: .05rem;
+  }
+
+  .hl-title {
+    font-weight: 600;
+    font-size: .88rem;
+    color: var(--bark);
+    margin-bottom: .1rem;
+  }
+
+  .hl-desc {
+    font-size: .8rem;
+    color: var(--mist);
+    line-height: 1.5;
+  }
+
+  /* SECTIONS */
+  .detail-section {
+    padding: 1.25rem 0;
+    border-top: 1px solid var(--linen);
+  }
+
+  .detail-section h3 {
+    font-family: 'Pogonia', serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--bark);
+    margin-bottom: .75rem;
+  }
+
+  /* DESCRIPTION */
+  .desc-text {
+    font-size: .9rem;
+    line-height: 1.85;
+    color: var(--bark);
+  }
+
+  .desc-collapsed {
+    max-height: 100px;
+    overflow: hidden;
+  }
+
+  .read-more-btn {
+    background: none;
+    border: none;
+    color: var(--teal);
+    font-size: .85rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    margin-top: .5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: .2rem;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .read-more-btn:hover {
+    text-decoration: underline;
+  }
+
+  /* INCLUSIONS GRID */
+  .inc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .inc-box {
+    background: var(--sand);
+    border-radius: var(--radius);
+    padding: 1rem;
+  }
+
+  .inc-box h4 {
+    font-size: .8rem;
+    font-weight: 700;
+    margin-bottom: .6rem;
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+  }
+
+  .inc-item {
+    display: flex;
+    align-items: flex-start;
+    gap: .4rem;
+    font-size: .82rem;
+    color: var(--bark);
+    padding: .15rem 0;
+    line-height: 1.45;
+  }
+
+  /* AMENITIES */
+  .amenities-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .4rem .75rem;
+  }
+
+  .am-item {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: .88rem;
+    color: var(--bark);
+    padding: .25rem 0;
+  }
+
+  .am-item i {
+    color: var(--teal);
+    width: 18px;
+    flex-shrink: 0;
+  }
+
+  .show-more-btn {
+    border: 1.5px solid var(--bark);
+    background: none;
+    border-radius: var(--radius);
+    padding: .5rem 1.1rem;
+    font-size: .85rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: .75rem;
+    color: var(--bark);
+    transition: background .18s;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .show-more-btn:hover {
+    background: var(--sand);
+  }
+
+  /* REVIEWS */
+  .rating-summary {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5rem;
+    padding: .75rem 0;
+    margin-bottom: .75rem;
+    border-bottom: 1px solid var(--linen);
+  }
+
+  .big-rating {
+    font-family: 'Pogonia', serif;
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: var(--bark);
+    line-height: 1;
+  }
+
+  .big-rating-stars {
+    color: var(--amber);
+    font-size: 1rem;
+    margin-top: .2rem;
+  }
+
+  .big-rating-count {
+    font-size: .75rem;
+    color: var(--mist);
+    margin-top: .15rem;
+  }
+
+  .rating-bars {
+    flex: 1;
+  }
+
+  .rating-row {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    margin-bottom: .3rem;
+  }
+
+  .rating-label {
+    font-size: .75rem;
+    color: var(--mist);
+    width: 90px;
+    flex-shrink: 0;
+  }
+
+  .rating-bar-bg {
+    flex: 1;
+    background: var(--linen);
+    border-radius: 999px;
+    height: 4px;
+  }
+
+  .rating-bar-fill {
+    height: 100%;
+    background: var(--bark);
+    border-radius: 999px;
+  }
+
+  .rating-num {
+    font-size: .75rem;
+    color: var(--mist);
+    width: 22px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .reviews-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .review-card {
+    border: 1px solid var(--linen);
+    border-radius: var(--radius);
+    padding: 1rem;
+  }
+
+  .rv-top {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    margin-bottom: .5rem;
+  }
+
+  .rv-av {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    color: white;
+    font-size: .75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .rv-name {
+    font-weight: 600;
+    font-size: .85rem;
+    color: var(--bark);
+  }
+
+  .rv-date {
+    font-size: .75rem;
+    color: var(--mist);
+  }
+
+  .rv-stars {
+    color: var(--amber);
+    font-size: .78rem;
+    margin-left: auto;
+  }
+
+  .rv-text {
+    font-size: .82rem;
+    line-height: 1.65;
+    color: var(--bark);
+  }
+
+  /* SIDEBAR */
+  .booking-sidebar {
+    background: var(--white);
+    border: 1.5px solid var(--linen);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    position: sticky;
+    top: 120px;
+    box-shadow: 0 4px 24px rgba(58, 46, 34, .08);
+  }
+
+  .sidebar-price {
+    font-family: 'Pogonia', serif;
+    font-size: 1.9rem;
+    font-weight: 600;
+    color: var(--amber);
+  }
+
+  .sidebar-price span {
+    font-size: .88rem;
+    color: var(--mist);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 400;
+  }
+
+  .sidebar-rating {
+    font-size: .8rem;
+    color: var(--mist);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+  }
+
+  .sidebar-rating .star {
+    color: var(--amber);
+  }
+
+  .date-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border: 1.5px solid var(--bark);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: .5rem;
+  }
+
+  .date-cell {
+    padding: .55rem .8rem;
+  }
+
+  .date-cell:first-child {
+    border-right: 1px solid var(--bark);
+  }
+
+  .date-cell label {
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--bark);
+    display: block;
+    margin-bottom: .1rem;
+  }
+
+  .date-cell input {
+    border: none;
+    background: transparent;
+    font-size: .82rem;
+    color: var(--bark);
+    width: 100%;
+    outline: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .guests-field {
+    border: 1.5px solid var(--bark);
+    border-radius: var(--radius);
+    padding: .55rem .8rem;
+    margin-bottom: .75rem;
+  }
+
+  .guests-field label {
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--bark);
+    display: block;
+    margin-bottom: .1rem;
+  }
+
+  .sidebar-btn {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: .85rem;
+    background: var(--amber);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Pogonia', serif;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+    margin-bottom: .65rem;
+    text-decoration: none;
+  }
+
+  .sidebar-btn:hover {
+    background: var(--amber-d);
+    transform: translateY(-1px);
+  }
+
+  .sidebar-note {
+    font-size: .75rem;
+    color: var(--mist);
+    text-align: center;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+  }
+
+  .sidebar-note i {
+    color: var(--teal);
+  }
+
+  .price-breakdown {
+    border-top: 1px solid var(--linen);
+    padding-top: .75rem;
+  }
+
+  .pb-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: .82rem;
+    color: var(--bark);
+    padding: .2rem 0;
+  }
+
+  .pb-row.total {
+    font-family: 'Pogonia', serif;
+    font-size: .95rem;
+    font-weight: 600;
+    border-top: 1px solid var(--linen);
+    margin-top: .4rem;
+    padding-top: .5rem;
+  }
+
+  /* MODAL */
   .modal {
     display: none;
     position: fixed;
@@ -219,8 +748,13 @@
   }
 
   @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
   }
 
   .modal.active {
@@ -240,13 +774,20 @@
     padding: 2.5rem;
     box-shadow: 0 8px 48px rgba(58, 46, 34, .2);
     animation: slideUp .3s ease-out;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
+
+  .modal-content::-webkit-scrollbar {
+    display: none;
+  } 
 
   @keyframes slideUp {
     from {
       transform: translateY(30px);
       opacity: 0;
     }
+
     to {
       transform: translateY(0);
       opacity: 1;
@@ -288,20 +829,60 @@
     gap: 1rem;
   }
 
-  @media (max-width: 600px) {
-    .modal-content {
-      width: 95%;
-      padding: 1.5rem;
+  /* LOCATION MAP */
+  .location-section {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 2rem 3rem;
+  }
+
+  .location-section h3 {
+    font-family: 'Pogonia', serif;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--bark);
+    margin-bottom: 1rem;
+  }
+
+  .map-frame {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--linen);
+    margin-bottom: 1rem;
+  }
+
+  @media (max-width: 768px) {
+    .detail-wrap {
+      grid-template-columns: 1fr;
+    }
+
+    .inc-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .reviews-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .amenities-grid {
+      grid-template-columns: 1fr;
     }
 
     .form-row {
       grid-template-columns: 1fr;
     }
+
+    .photo-grid {
+      grid-template-rows: 220px;
+    }
   }
+
 </style>
 {% endblock %}
 
 {% block content %}
+
+<!-- BREADCRUMB -->
 <div class="breadcrumb">
   <a href="{{ url_for('main.home') }}">Home</a>
   <i class="fas fa-chevron-right" style="font-size:.65rem"></i>
@@ -310,118 +891,433 @@
   <span>{{ package.title }}</span>
 </div>
 
+<!-- PHOTO GRID -->
+{% set all_images = [] %}
+{% if package.image and package.image != 'default_tour.jpg' %}
+{% set _ = all_images.append(package.image) %}
+{% endif %}
+{% for img in package.images %}
+{% set _ = all_images.append(img.path) %}
+{% endfor %}
+
+{% if all_images %}
+<div class="photo-grid" id="s-photos">
+  <div class="photo-main" onclick="openPhotoViewer(0)">
+    <img src="{{ (all_images[0] | cloudinary_enhance) if all_images[0].startswith('http') else all_images[0] }}"
+      alt="{{ package.title }}" loading="lazy" />
+  </div>
+  <div class="photo-side">
+    {% for i in range(1, [all_images|length, 5]|min) %}
+    <div class="photo-side-item {% if loop.last and all_images|length > 5 %}photo-more{% endif %}"
+      onclick="openPhotoViewer({{ i }})">
+      <img src="{{ (all_images[i] | cloudinary_card) if all_images[i].startswith('http') else all_images[i] }}"
+        alt="{{ package.title }} photo {{ i }}" loading="lazy" />
+      {% if loop.last and all_images|length > 5 %}
+      <div class="photo-more-overlay"><i class="fas fa-images"></i> +{{ all_images|length - 5 }} more</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% if all_images|length > 1 %}
+  <button class="show-all-btn" onclick="openPhotoViewer(0)">
+    <i class="fas fa-grip-horizontal"></i> Show all photos
+  </button>
+  {% endif %}
+</div>
+{% else %}
+<div style="max-width:1100px;margin:1rem auto 0;padding:0 2rem;">
+  <div
+    style="width:100%;height:320px;background:var(--linen);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;font-size:4rem;color:var(--mist);">
+    <i class="fas fa-mountain"></i>
+  </div>
+</div>
+{% endif %}
+
+<!-- SECTION NAV -->
+<div class="sec-nav">
+  <div class="sec-nav-inner">
+    <button class="sec-tab active" onclick="goTo('s-about', this)">About</button>
+    {% if package.inclusions or package.exclusions %}<button class="sec-tab"
+      onclick="goTo('s-inclusions', this)">Inclusions</button>{% endif %}
+    {% if package.amenities %}<button class="sec-tab" onclick="goTo('s-amenities', this)">Amenities</button>{% endif %}
+    <button class="sec-tab" onclick="goTo('s-reviews', this)">Reviews</button>
+    {% if package.location_description or package.latitude %}<button class="sec-tab"
+      onclick="goTo('s-location', this)">Location</button>{% endif %}
+    {% if package.flier_image %}<button class="sec-tab" onclick="openFliersModal()">Fliers</button>{% endif %}
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
 <div class="detail-wrap">
+
+  <!-- LEFT COLUMN -->
   <div>
-    {% if package.image and package.image != 'default_tour.jpg' %}
-    <img class="detail-img" <img class="detail-img" src="{{ package.image if package.image.startswith('http') else '/uploads/' + package.image }}" alt="{{ package.title }}" />
-      alt="{{ package.title }}" />
-    {% else %}
-    <div class="detail-img-placeholder"><i class="fas fa-mountain"></i></div>
+
+    <!-- TITLE + META -->
+    <div id="s-about">
+      <div class="pkg-title">{{ package.title }}</div>
+      <div class="pkg-meta">
+        <span class="pkg-rating">
+          <span class="star">★</span>
+          {{ avg_rating if avg_rating else '—' }}
+        </span>
+        <span class="pkg-sep">·</span>
+        <span><i class="fas fa-location-dot" style="color:var(--teal)"></i> {{ package.destination }}</span>
+        {% if package.country %}
+        <span class="pkg-sep">·</span>
+        <span>{{ package.country.flag_emoji or '' }} {{ package.country.name }}</span>
+        {% endif %}
+      </div>
+
+      <div class="host-row">
+        <div class="host-av">TW</div>
+        <div>
+          <div class="host-name">Hosted by Travel Worthy PH <span class="verified-badge">⭐ Verified Agency</span></div>
+          <div class="host-sub">Based in Batangas City · Replies within 1 hour · Since 2019</div>
+        </div>
+      </div>
+
+      <div class="chips">
+        <span class="chip"><i class="fas fa-clock"></i> {{ package.duration_days }}
+          Day{{ 's' if package.duration_days > 1 }}</span>
+        <span class="chip"><i class="fas fa-calendar-check"></i> Flexible dates</span>
+        <span class="chip"><i class="fas fa-shield-halved"></i> Fully insured</span>
+      </div>
+      <div class="highlights-airbnb">
+        <div class="hl-item">
+          <div class="hl-icon">✈️</div>
+          <div>
+            <div class="hl-title">Expert travel consultants</div>
+            <div class="hl-desc">Our team has first-hand experience in all destinations we offer</div>
+          </div>
+        </div>
+        <div class="hl-item">
+          <div class="hl-icon">🗺️</div>
+          <div>
+            <div class="hl-title">Trusted local guides</div>
+            <div class="hl-desc">Authentic, meaningful travel that goes beyond the ordinary tourist trail</div>
+          </div>
+        </div>
+        <div class="hl-item">
+          <div class="hl-icon">💬</div>
+          <div>
+            <div class="hl-title">Free inquiry — no payment required</div>
+            <div class="hl-desc">Send an inquiry and our team will contact you within 24 hours</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h3>About this package</h3>
+        <div class="desc-text desc-collapsed" id="desc-text">{{ package.description }}</div>
+        <button class="read-more-btn" id="read-more-btn" onclick="toggleDesc()">Show more <i class="fas fa-chevron-down"
+            style="font-size:.7rem"></i></button>
+      </div>
+    </div>
+
+    <!-- INCLUSIONS -->
+    {% if package.inclusions or package.exclusions %}
+    <div class="detail-section" id="s-inclusions">
+      <h3>What's included</h3>
+      <div class="inc-grid">
+        {% if package.inclusions %}
+        <div class="inc-box">
+          <h4 style="color:#0f6e56"><i class="fas fa-check-circle" style="color:#0f6e56"></i> Included</h4>
+          {% for item in package.inclusions.split('\n') %}{% if item.strip() %}
+          <div class="inc-item"><i class="fas fa-check" style="color:#0f6e56;flex-shrink:0;margin-top:.15rem"></i>
+            {{ item.strip() }}</div>
+          {% endif %}{% endfor %}
+        </div>
+        {% endif %}
+        {% if package.exclusions %}
+        <div class="inc-box">
+          <h4 style="color:#993c1d"><i class="fas fa-times-circle" style="color:#993c1d"></i> Not included</h4>
+          {% for item in package.exclusions.split('\n') %}{% if item.strip() %}
+          <div class="inc-item"><i class="fas fa-times" style="color:#993c1d;flex-shrink:0;margin-top:.15rem"></i>
+            {{ item.strip() }}</div>
+          {% endif %}{% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
     {% endif %}
 
-    <div class="detail-body">
-      <div class="detail-destination"><i class="fas fa-location-dot"></i>{{ package.destination }}</div>
-      <div class="detail-title">{{ package.title }}</div>
-
-      <div class="detail-chips">
-        <span class="chip"><i class="fas fa-clock"></i>{{ package.duration_days }} Day{{ 's' if package.duration_days >
-          1 }}</span>
-        <span class="chip"><i class="fas fa-users"></i>{{ package.available_slots }} slots available</span>
-        <span class="chip"><i class="fas fa-calendar-check"></i>Flexible dates</span>
-        <span class="chip"><i class="fas fa-shield-halved"></i>Fully insured</span>
+    <!-- AMENITIES -->
+    {% if package.amenities %}
+    <div class="detail-section" id="s-amenities">
+      <h3>What this package offers</h3>
+      {% set amenity_list = package.amenities.split('\n') | selectattr('strip') | list %}
+      <div class="amenities-grid" id="amenities-grid">
+        {% for item in amenity_list[:8] %}{% if item.strip() %}
+        <div class="am-item"><i class="fas fa-check-circle"></i> {{ item.strip() }}</div>
+        {% endif %}{% endfor %}
       </div>
-
-      <div class="detail-desc">{{ package.description }}</div>
-
-      {% if package.inclusions or package.exclusions %}
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin:1.5rem 0;">
-
-        {% if package.inclusions %}
-        <div class="highlights">
-          <h4><i class="fas fa-check-circle" style="color:var(--teal);margin-right:.4rem"></i>What's Included</h4>
-          {% for item in package.inclusions.split('\n') %}
-          {% if item.strip() %}
-          <div class="highlight-item">
-            <i class="fas fa-check" style="color:var(--teal)"></i> {{ item.strip() }}
-          </div>
-          {% endif %}
-          {% endfor %}
+      {% if amenity_list|length > 8 %}
+      <div id="extra-amenities" style="display:none;">
+        <div class="amenities-grid" style="margin-top:.4rem">
+          {% for item in amenity_list[8:] %}{% if item.strip() %}
+          <div class="am-item"><i class="fas fa-check-circle"></i> {{ item.strip() }}</div>
+          {% endif %}{% endfor %}
         </div>
-        {% endif %}
-
-        {% if package.exclusions %}
-        <div class="highlights">
-          <h4><i class="fas fa-times-circle" style="color:var(--danger);margin-right:.4rem"></i>What's Excluded</h4>
-          {% for item in package.exclusions.split('\n') %}
-          {% if item.strip() %}
-          <div class="highlight-item">
-            <i class="fas fa-times" style="color:var(--danger)"></i> {{ item.strip() }}
-          </div>
-          {% endif %}
-          {% endfor %}
-        </div>
-        {% endif %}
-
       </div>
+      <button class="show-more-btn" id="amenities-btn" onclick="toggleAmenities()">Show all {{ amenity_list|length }}
+        amenities</button>
       {% endif %}
     </div>
+    {% endif %}
+
+    <!-- REVIEWS -->
+    <div class="detail-section" id="s-reviews">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+        <h3 style="margin-bottom:0">Reviews</h3>
+        {% if reviews %}<span style="font-size:.8rem;color:var(--mist)">{{ reviews|length }}
+          review{{ 's' if reviews|length != 1 }}</span>{% endif %}
+      </div>
+
+      {% if reviews %}
+      <div
+        style="display:grid;grid-template-columns:140px 1fr;gap:1.5rem;background:var(--sand);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:1.5rem;border:1px solid var(--linen)">
+        <div
+          style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border-right:1px solid var(--linen);padding-right:1.5rem">
+          <div style="font-family:'Pogonia',serif;font-size:3rem;font-weight:600;color:var(--bark);line-height:1">
+            {{ avg_rating }}</div>
+          <div style="color:var(--amber);font-size:1.1rem;margin:.35rem 0">
+            {% for i in range(1,6) %}{% if i <= avg_rating|int %}★{% else %}☆{% endif %}{% endfor %}</div>
+          <div style="font-size:.72rem;color:var(--mist)">{{ reviews|length }} review{{ 's' if reviews|length != 1 }}
+          </div>
+          <div
+            style="margin-top:.5rem;font-size:.68rem;font-weight:600;color:#1a7a5a;background:#e8f5ee;padding:.18rem .55rem;border-radius:999px">
+            ✓ {% if avg_rating >= 4.5 %}Excellent{% elif avg_rating >= 4.0 %}Very
+            Good{% elif avg_rating >= 3.0 %}Good{% else %}Fair{% endif %}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.55rem;justify-content:center">
+          {% for star in [5,4,3,2,1] %}
+          {% set count = reviews | selectattr('rating', 'equalto', star) | list | length %}
+          {% set pct = ((count / reviews|length) * 100) | int %}
+          <div style="display:flex;align-items:center;gap:.65rem">
+            <span
+              style="font-size:.72rem;color:var(--mist);width:12px;text-align:center;flex-shrink:0">{{ star }}</span>
+            <div style="flex:1;background:var(--linen);border-radius:999px;height:6px;overflow:hidden">
+              <div style="height:100%;width:{{ pct }}%;background:var(--amber);border-radius:999px"></div>
+            </div>
+            <span style="font-size:.7rem;color:var(--mist);width:28px;text-align:right;flex-shrink:0">{{ pct }}%</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="reviews-grid" style="margin-bottom:1.5rem">
+        {% for review in reviews %}
+        {% set av_colors = ['var(--teal)','#f5a623','#3a6a9a','#8a4a8a','#2a6a3a','#8a3a3a'] %}
+        {% set av_color = av_colors[loop.index0 % av_colors|length] %}
+        <div class="review-card" style="display:flex;flex-direction:column">
+          <div style="display:flex;align-items:flex-start;gap:.65rem;margin-bottom:.6rem">
+            <div
+              style="width:36px;height:36px;border-radius:50%;background:{{ av_color }};color:white;font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              {{ review.user.name[:2].upper() if review.user else '??' }}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:.85rem;color:var(--bark)">
+                {{ review.user.name if review.user else 'Anonymous' }}</div>
+              <div style="font-size:.72rem;color:var(--mist)">{{ review.created_at.strftime('%B %Y') }}</div>
+              <div style="color:var(--amber);font-size:.78rem;margin-top:.15rem">
+                {{ '★' * review.rating }}{{ '☆' * (5 - review.rating) }}</div>
+              <div
+                style="display:inline-flex;align-items:center;gap:3px;font-size:.65rem;font-weight:600;color:#1a7a5a;background:#e8f5ee;padding:.12rem .45rem;border-radius:999px;margin-top:.2rem">
+                ✓ Verified traveler</div>
+            </div>
+          </div>
+          <div style="font-size:.82rem;line-height:1.7;color:var(--bark);flex:1">{{ review.message }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div style="border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--linen)">
+        <div
+          style="background:linear-gradient(135deg,var(--teal) 0%,#0d3d4a 100%);padding:1rem 1.25rem;display:flex;align-items:center;gap:.75rem">
+          <div
+            style="width:38px;height:38px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">
+            ✍️</div>
+          <div>
+            <div style="font-family:'Pogonia',serif;font-size:.95rem;color:white;margin-bottom:.1rem">Share your
+              experience</div>
+            <div style="font-size:.75rem;color:rgba(255,255,255,.7)">Your honest review helps other travelers decide
+            </div>
+          </div>
+        </div>
+        <div style="padding:1.25rem;background:var(--white)">
+          {% if not current_user.is_authenticated %}
+          <div
+            style="background:var(--sand);border-radius:var(--radius);padding:1rem;font-size:.88rem;color:var(--mist)">
+            <a href="{{ url_for('auth.login', next=request.path + '#s-reviews') }}"
+              style="color:var(--teal);font-weight:600">Log in</a> to leave a review for this package.
+          </div>
+          {% elif user_reviewed %}
+          <div
+            style="background:#EAF3DE;border-radius:var(--radius);padding:1rem;font-size:.88rem;color:#3B6D11;display:flex;align-items:center;gap:.5rem">
+            <i class="fas fa-check-circle"></i> You've already reviewed this package. Thank you!
+          </div>
+          {% else %}
+          <form method="POST" action="{{ url_for('bookings.inquire_package', package_id=package.id) }}" autocomplete="off">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="rating" id="rating-input" value="5" />
+            <label
+              style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--mist);display:block;margin-bottom:.4rem">Your
+              rating</label>
+            <div id="star-selector" style="display:flex;gap:5px;margin-bottom:.2rem">
+              <span class="star-opt" data-val="1" style="font-size:1.7rem;cursor:pointer;color:var(--amber)">★</span>
+              <span class="star-opt" data-val="2" style="font-size:1.7rem;cursor:pointer;color:var(--amber)">★</span>
+              <span class="star-opt" data-val="3" style="font-size:1.7rem;cursor:pointer;color:var(--amber)">★</span>
+              <span class="star-opt" data-val="4" style="font-size:1.7rem;cursor:pointer;color:var(--amber)">★</span>
+              <span class="star-opt" data-val="5" style="font-size:1.7rem;cursor:pointer;color:var(--amber)">★</span>
+            </div>
+            <div id="rating-label" style="font-size:.75rem;color:var(--mist);margin-bottom:.85rem">5 stars — Excellent
+            </div>
+            <label
+              style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--mist);display:block;margin-bottom:.4rem">Your
+              review</label>
+            <textarea name="message" class="form-control" rows="3" required id="review-msg"
+              placeholder="What did you love? Any tips for future travelers?"
+              style="resize:vertical;width:100%;margin-bottom:.25rem" oninput="updateReviewChar()"></textarea>
+            <div
+              style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--mist);margin-bottom:.85rem">
+              <span id="review-char-hint">Be specific — longer reviews are more helpful</span>
+              <span id="review-char-count">0 / 500</span>
+            </div>
+            <button type="submit" class="btn btn-amber" style="width:100%;justify-content:center;padding:.75rem">
+              <i class="fas fa-paper-plane"></i> Submit Review
+            </button>
+            <div style="text-align:center;margin-top:.5rem;font-size:.72rem;color:var(--mist)">
+              <i class="fas fa-lock" style="color:var(--teal)"></i> Reviews are tied to your account
+            </div>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
   </div>
 
-  <!-- SIDEBAR -->
+  <!-- RIGHT COLUMN — SIDEBAR -->
   <div class="booking-sidebar">
-    <div class="sidebar-price">{% if package.currency == 'USD' %}${% elif package.currency == 'EUR' %}€{% else %}₱{% endif %}{{ "{:,.0f}".format(package.price) }} <span>/ person</span></div>
-    <div class="sidebar-avail">
-      {% if package.available_slots > 0 %}
-      <i class="fas fa-circle" style="font-size:.5rem;color:var(--success);margin-right:.3rem"></i>
-      <strong>{{ package.available_slots }}</strong> slots remaining
-      {% else %}
-      <i class="fas fa-circle" style="font-size:.5rem;color:var(--danger);margin-right:.3rem"></i>
-      <strong>Sold out</strong> — join waitlist
-      {% endif %}
+    <div class="sidebar-price">
+      {% if package.currency == 'USD' %}${% elif package.currency == 'EUR' %}€{% else %}₱{% endif %}{{ "{:,.0f}".format(package.price) }}
+      <span>/ person</span>
     </div>
-
-    <div class="form-group">
-      <label
-        style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--mist)">Duration</label>
-      <div style="font-size:.95rem;font-weight:500;color:var(--bark);margin-top:.25rem">
-        <i class="fas fa-clock" style="color:var(--teal);margin-right:.35rem"></i>{{ package.duration_days }} Day{{ 's'
-        if package.duration_days > 1 }}
-      </div>
+    <div class="sidebar-rating">
+      <span class="star">★</span> {{ avg_rating if avg_rating else '—' }} ·
+      <span style="text-decoration:underline;cursor:pointer">Travel Worthy PH</span>
     </div>
-
+    <div
+      style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mist);margin-bottom:.3rem">
+      Duration</div>
+    <div style="font-size:.92rem;font-weight:600;color:var(--bark);margin-bottom:.9rem">
+      <i class="fas fa-clock" style="color:var(--teal);margin-right:.3rem"></i>
+      {{ package.duration_days }} Day{{ 's' if package.duration_days > 1 }}
+    </div>
     {% if current_user.is_authenticated %}
-    {% if package.available_slots > 0 %}
     <button type="button" class="sidebar-btn" onclick="openInquireModal()">
       <i class="fas fa-comment-dots"></i> Inquire Now
     </button>
-    {% else %}
-    <span class="sidebar-btn disabled">Sold Out</span>
-    {% endif %}
     {% else %}
     <a href="{{ url_for('auth.login', next=request.path) }}" class="sidebar-btn">
       <i class="fas fa-arrow-right-to-bracket"></i> Login to Inquire
     </a>
     {% endif %}
-
     <div class="sidebar-note">
-      <i class="fas fa-lock"></i> Secure booking — free cancellation within 48h
+      <i class="fas fa-lock"></i> No payment required · We'll contact you within 24 hours
+    </div>
+    <div class="price-breakdown">
+      <div class="pb-row"><span>Price per
+          person</span><span>{% if package.currency == 'USD' %}${% elif package.currency == 'EUR' %}€{% else %}₱{% endif %}{{ "{:,.0f}".format(package.price) }}</span>
+      </div>
+      <div class="pb-row" style="color:var(--success)"><span>🎁 No booking fees</span><span>₱0</span></div>
+      <div class="pb-row total"><span>Starting
+          from</span><span>{% if package.currency == 'USD' %}${% elif package.currency == 'EUR' %}€{% else %}₱{% endif %}{{ "{:,.0f}".format(package.price) }}</span>
+      </div>
     </div>
   </div>
+
+</div>
+
+<!-- LOCATION SECTION (full width below the grid) -->
+{% if package.location_description or package.latitude %}
+<div class="location-section" id="s-location">
+  <h3>Location</h3>
+  {% if package.latitude and package.longitude %}
+  <div class="map-frame">
+    <iframe width="100%" height="280" frameborder="0" style="border:0;display:block;"
+      src="https://maps.google.com/maps?q={{ package.latitude }},{{ package.longitude }}&z=14&output=embed"
+      allowfullscreen loading="lazy">
+    </iframe>
+  </div>
+  {% endif %}
+  {% if package.location_description %}
+  <p style="font-size:.9rem;line-height:1.8;color:var(--bark);">{{ package.location_description }}</p>
+  {% endif %}
+</div>
+{% endif %}
+<!-- FLIERS MODAL -->
+{% if package.flier_image %}
+<div id="fliersModal" class="modal">
+  <div class="modal-content" style="max-width:560px;padding:0;overflow-y:auto;">
+    <div
+      style="background:linear-gradient(135deg,var(--teal) 0%,#0d3d4a 100%);padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div
+          style="font-size:.7rem;letter-spacing:.1em;color:rgba(255,255,255,.6);text-transform:uppercase;margin-bottom:.2rem;">
+          Package Flier</div>
+        <div style="font-family:'Pogonia',serif;font-size:1rem;color:white;font-weight:600;">{{ package.title }}</div>
+      </div>
+      <button type="button" class="modal-close" onclick="closeFliersModal()" style="color:rgba(255,255,255,.8);"><i
+          class="fas fa-times"></i></button>
+    </div>
+    <div style="padding:1.5rem;text-align:center;">
+      <img
+        src="{{ (package.flier_image | cloudinary_enhance) if package.flier_image.startswith('http') else '/uploads/' + package.flier_image }}"
+        alt="{{ package.title }} flier"
+        style="width:100%;border-radius:var(--radius);margin-bottom:1.25rem;display:block;" />
+      <a href="{{ package.flier_image if package.flier_image.startswith('http') else '/uploads/' + package.flier_image }}" download
+        target="_blank" class="btn btn-amber"
+        style="display:inline-flex;align-items:center;gap:.5rem;padding:.72rem 1.75rem;font-size:.88rem;text-decoration:none;margin-bottom:.75rem;">
+        <i class="fas fa-download"></i> Download Flier
+      </a>
+      <div style="font-size:.72rem;color:var(--mist);">
+        <i class="fas fa-info-circle" style="color:var(--teal);"></i>
+        Right-click the image to save, or tap Download
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+<!-- FULL-SCREEN PHOTO VIEWER -->
+<div id="photo-viewer"
+  style="display:none;position:fixed;z-index:2000;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.95);flex-direction:column;align-items:center;justify-content:center;">
+  <button onclick="closePhotoViewer()"
+    style="position:absolute;top:1rem;right:1.5rem;background:none;border:none;color:white;font-size:2rem;cursor:pointer;z-index:10;"><i
+      class="fas fa-times"></i></button>
+  <button onclick="prevPhoto()"
+    style="position:absolute;left:1rem;background:rgba(255,255,255,.15);border:none;color:white;width:44px;height:44px;border-radius:50%;font-size:1.2rem;cursor:pointer;"><i
+      class="fas fa-chevron-left"></i></button>
+  <button onclick="nextPhoto()"
+    style="position:absolute;right:1rem;background:rgba(255,255,255,.15);border:none;color:white;width:44px;height:44px;border-radius:50%;font-size:1.2rem;cursor:pointer;"><i
+      class="fas fa-chevron-right"></i></button>
+  <img id="viewer-img" src="" style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:8px;" />
+  <div id="viewer-counter" style="color:rgba(255,255,255,.7);font-size:.9rem;margin-top:1rem;"></div>
 </div>
 
 <!-- INQUIRY MODAL -->
 <div id="inquireModal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
-      <h2><i class="fas fa-paper-plane" style="color:var(--amber);margin-right:.5rem"></i>Inquire About This Package</h2>
-      <button type="button" class="modal-close" onclick="closeInquireModal()">
-        <i class="fas fa-times"></i>
-      </button>
+      <h2><i class="fas fa-paper-plane" style="color:var(--amber);margin-right:.5rem"></i>Inquire About This Package
+      </h2>
+      <button type="button" class="modal-close" onclick="closeInquireModal()"><i class="fas fa-times"></i></button>
     </div>
-
-    <form method="POST" action="{{ url_for('bookings.plan_my_trip') }}" autocomplete="off">
+    <form method="POST" action="{{ url_for('bookings.inquire_package', package_id=package.id) }}" autocomplete="off">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-      
       <div class="form-row">
         <div class="form-group">
           <label>Full Name <span style="color:var(--danger)">*</span></label>
@@ -432,7 +1328,6 @@
           <input type="email" name="email" class="form-control" required placeholder="your@email.com" />
         </div>
       </div>
-
       <div class="form-row">
         <div class="form-group">
           <label>Contact Number <span style="color:var(--danger)">*</span></label>
@@ -440,85 +1335,233 @@
         </div>
         <div class="form-group">
           <label>Number of Pax <span style="color:var(--danger)">*</span></label>
-          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-top:.5rem; align-items:end;">
-            <div class="form-group" style="margin-bottom:0;">
-              <label style="font-size:.82rem; color:var(--mist); display:block; margin-bottom:.35rem;">Adults</label>
-              <input type="number" name="num_adults" class="form-control" value="1" min="1" max="20" required style="text-align:center;" />
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-top:.5rem">
+            <div class="form-group" style="margin-bottom:0">
+              <label style="font-size:.78rem;color:var(--mist);display:block;margin-bottom:.3rem">Adults</label>
+              <input type="number" name="num_adults" class="form-control" value="1" min="1" max="20" required
+                style="text-align:center" />
             </div>
-            <div class="form-group" style="margin-bottom:0;">
-              <label style="font-size:.82rem; color:var(--mist); display:block; margin-bottom:.35rem;">Children <span style="font-size:.75rem;">(2–11 yrs)</span></label>
-              <input type="number" name="num_children" class="form-control" value="0" min="0" max="20" style="text-align:center;" />
+            <div class="form-group" style="margin-bottom:0">
+              <label style="font-size:.78rem;color:var(--mist);display:block;margin-bottom:.3rem">Children</label>
+              <input type="number" name="num_children" class="form-control" value="0" min="0" max="20"
+                style="text-align:center" />
             </div>
-            <div class="form-group" style="margin-bottom:0;">
-              <label style="font-size:.82rem; color:var(--mist); display:block; margin-bottom:.35rem;">Infants <span style="font-size:.75rem;">(0–23 mos)</span></label>
-              <input type="number" name="num_infants" class="form-control" value="0" min="0" max="10" style="text-align:center;" />
+            <div class="form-group" style="margin-bottom:0">
+              <label style="font-size:.78rem;color:var(--mist);display:block;margin-bottom:.3rem">Infants</label>
+              <input type="number" name="num_infants" class="form-control" value="0" min="0" max="10"
+                style="text-align:center" />
             </div>
           </div>
         </div>
       </div>
-
       <div class="form-group">
         <label>Travel Destination <span style="color:var(--danger)">*</span></label>
-        <input type="text" name="destination" class="form-control" required placeholder="Where do you want to go?" value="{{ package.destination }}" />
+        <input type="text" name="destination" class="form-control" required value="{{ package.destination }}" />
       </div>
-
       <div class="form-group">
         <label>Preferred Travel Dates <span style="color:var(--danger)">*</span></label>
         <div class="form-row">
           <div class="form-group">
-            <label style="font-size:.82rem;color:var(--mist);">From</label>
-            <input type="date" name="travel_date_from" class="form-control" required style="color-scheme:light;" />
+            <label style="font-size:.78rem;color:var(--mist)">From</label>
+            <input type="date" name="travel_date_from" class="form-control" required style="color-scheme:light" />
           </div>
           <div class="form-group">
-            <label style="font-size:.82rem;color:var(--mist);">To</label>
-            <input type="date" name="travel_date_to" class="form-control" required style="color-scheme:light;" />
+            <label style="font-size:.78rem;color:var(--mist)">To</label>
+            <input type="date" name="travel_date_to" class="form-control" required style="color-scheme:light" />
           </div>
         </div>
       </div>
-
       <div class="form-group">
         <label>Special Requests <span style="font-size:.8rem;color:var(--mist)">(optional)</span></label>
-        <textarea name="special_requests" class="form-control" rows="3" placeholder="Any special requests or preferences?"></textarea>
+        <textarea name="special_requests" class="form-control" rows="3"
+          placeholder="Any special requests or preferences?"></textarea>
       </div>
-
-      <div style="background:var(--sand);border-radius:var(--radius);padding:1rem;margin-bottom:1.5rem;font-size:.85rem;color:var(--mist)">
+      <div
+        style="background:var(--sand);border-radius:var(--radius);padding:1rem;margin-bottom:1.5rem;font-size:.85rem;color:var(--mist)">
         <i class="fas fa-comments" style="color:var(--teal);margin-right:.4rem"></i>
-        Our team will contact you within <strong style="color:var(--bark)">24 hours</strong> to finalize your inquiry.
+        Our team will contact you within <strong style="color:var(--bark)">24 hours</strong> to finalize your
+        inquiry.
       </div>
-
-      <button type="submit" class="btn btn-amber" style="width:100%;justify-content:center;padding:.9rem;font-size:.95rem">
+      <button type="submit" class="btn btn-amber"
+        style="width:100%;justify-content:center;padding:.9rem;font-size:.95rem">
         <i class="fas fa-paper-plane"></i> Send Inquiry
       </button>
     </form>
   </div>
 </div>
 
-<script>
-function openInquireModal() {
-  document.getElementById('inquireModal').classList.add('active');
-  document.body.style.overflow = 'hidden';
-}
+<script nonce="{{ csp_nonce() }}">
+  function goTo(id, btn) {
+    document.getElementById(id).scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
+    document.querySelectorAll('.sec-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+  }
 
-function closeInquireModal() {
-  document.getElementById('inquireModal').classList.remove('active');
-  document.body.style.overflow = 'auto';
-}
+  let descOpen = false;
 
-// Close modal when clicking outside
-document.addEventListener('DOMContentLoaded', function() {
-  const modal = document.getElementById('inquireModal');
-  modal.addEventListener('click', function(event) {
-    if (event.target === modal) {
-      closeInquireModal();
-    }
+  function toggleDesc() {
+    descOpen = !descOpen;
+    const d = document.getElementById('desc-text');
+    const b = document.getElementById('read-more-btn');
+    d.classList.toggle('desc-collapsed', !descOpen);
+    b.innerHTML = descOpen ?
+      'Show less <i class="fas fa-chevron-up" style="font-size:.7rem"></i>' :
+      'Show more <i class="fas fa-chevron-down" style="font-size:.7rem"></i>';
+  }
+
+  let amenitiesOpen = false;
+
+  function toggleAmenities() {
+    amenitiesOpen = !amenitiesOpen;
+    const extra = document.getElementById('extra-amenities');
+    const btn = document.getElementById('amenities-btn');
+    if (extra) extra.style.display = amenitiesOpen ? 'block' : 'none';
+    if (btn) btn.textContent = amenitiesOpen ? 'Show less' : btn.dataset.label;
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    const btn = document.getElementById('amenities-btn');
+    if (btn) btn.dataset.label = btn.textContent;
   });
 
-  // Close on Escape key
-  document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-      closeInquireModal();
+  function openInquireModal() {
+    document.getElementById('inquireModal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeInquireModal() {
+    document.getElementById('inquireModal').classList.remove('active');
+    document.body.style.overflow = 'auto';
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('inquireModal');
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) closeInquireModal();
+    });
+  });
+
+  const allPhotos = [{% for img in all_images %}"{{ (img | cloudinary_enhance) if img.startswith('http') else img }}"{% if not loop.last %},{% endif %}{% endfor %}];
+  let currentPhoto = 0;
+
+  function openPhotoViewer(index) {
+    currentPhoto = index;
+    document.getElementById('photo-viewer').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    showPhoto(currentPhoto);
+  }
+
+  function closePhotoViewer() {
+    document.getElementById('photo-viewer').style.display = 'none';
+    document.body.style.overflow = 'auto';
+  }
+
+  function showPhoto(index) {
+    document.getElementById('viewer-img').src = allPhotos[index];
+    document.getElementById('viewer-counter').textContent = `${index + 1} / ${allPhotos.length}`;
+  }
+
+  function prevPhoto() {
+    currentPhoto = (currentPhoto - 1 + allPhotos.length) % allPhotos.length;
+    showPhoto(currentPhoto);
+  }
+
+  function nextPhoto() {
+    currentPhoto = (currentPhoto + 1) % allPhotos.length;
+    showPhoto(currentPhoto);
+  }
+  document.addEventListener('keydown', (e) => {
+    if (document.getElementById('photo-viewer').style.display === 'flex') {
+      if (e.key === 'ArrowRight') nextPhoto();
+      if (e.key === 'ArrowLeft') prevPhoto();
+      if (e.key === 'Escape') closePhotoViewer();
     }
   });
-});
+  document.getElementById('photo-viewer').addEventListener('click', function (e) {
+    if (e.target === this) closePhotoViewer();
+  });
+  const starOpts = document.querySelectorAll('.star-opt');
+  const ratingInput = document.getElementById('rating-input');
+  const ratingLabel = document.getElementById('rating-label');
+  const starLabels = ['', '1 star — Poor', '2 stars — Fair', '3 stars — Good', '4 stars — Great',
+    '5 stars — Excellent'
+  ];
+  let selectedRating = 5;
+
+  function paintStars(val, hover) {
+    starOpts.forEach((s, i) => {
+      s.style.color = i < val ? 'var(--amber)' : 'var(--linen)';
+      s.style.transform = (hover && i < val) ? 'scale(1.15)' : 'scale(1)';
+    });
+    if (ratingLabel) ratingLabel.textContent = starLabels[val];
+  }
+  if (starOpts.length) {
+    starOpts.forEach(s => {
+      s.addEventListener('mouseenter', () => paintStars(+s.dataset.val, true));
+      s.addEventListener('mouseleave', () => paintStars(selectedRating, false));
+      s.addEventListener('click', () => {
+        selectedRating = +s.dataset.val;
+        if (ratingInput) ratingInput.value = selectedRating;
+        paintStars(selectedRating, false);
+      });
+    });
+    paintStars(5, false);
+  }
+
+  function openFliersModal() {
+    var m = document.getElementById('fliersModal');
+    if (m) {
+      m.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+  }
+
+  function closeFliersModal() {
+    var m = document.getElementById('fliersModal');
+    if (m) {
+      m.classList.remove('active');
+      document.body.style.overflow = 'auto';
+    }
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    var fm = document.getElementById('fliersModal');
+    if (fm) fm.addEventListener('click', function (e) {
+      if (e.target === fm) closeFliersModal();
+    });
+  });
+
+  function updateReviewChar() {
+    const msg = document.getElementById('review-msg');
+    const count = document.getElementById('review-char-count');
+    const hint = document.getElementById('review-char-hint');
+    if (!msg) return;
+    const n = msg.value.length;
+    if (count) count.textContent = `${n} / 500`;
+    if (hint) hint.textContent = n < 50 ? 'Be specific — longer reviews are more helpful' : n < 150 ?
+      'Good start! Add more detail...' : 'Great detail! 👍';
+  }
+
+</script>
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TouristTrip",
+    "name": "{{ package.title }}",
+    "description": "{{ package.description[:160] | replace('"
+    ', '\\
+    "') }}",
+    "touristType": "Any"{% if package.image %},
+    "image": "{% if package.image.startswith('http') %}{{ package.image }}{% else %}{{ config['SITE_URL'] }}/uploads/{{ package.image }}{% endif %}"{% endif %},
+    "offers": {
+      "@type": "Offer",
+      "price": "{{ package.price }}",
+      "priceCurrency": "{{ package.currency if package.currency else 'PHP' }}",
+      "availability": "https://schema.org/InStock",
+      "url": "{{ request.url }}"
+    }
+  }
+
 </script>
 {% endblock %}

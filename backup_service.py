@@ -287,7 +287,15 @@ class BackupService:
                     
                     # Find corresponding backup file
                     backup_name = metadata['backup_name']
-                    backup_files = list(self.backup_dir.glob(f"{backup_name}.*"))
+                    # Exclude the metadata file itself — f"{backup_name}.*" also
+                    # matches "{backup_name}.json", so without this filter,
+                    # backup_files[0] can non-deterministically pick the tiny
+                    # metadata file instead of the actual backup archive,
+                    # making actual_size_mb silently round down to 0.
+                    backup_files = [
+                        f for f in self.backup_dir.glob(f"{backup_name}.*")
+                        if f.suffix != '.json'
+                    ]
                     
                     if backup_files:
                         backup_file = backup_files[0]
@@ -345,7 +353,15 @@ class BackupService:
                     continue
                 
                 try:
-                    with open(f"{backup_file.with_suffix('')}.json", 'r') as f:
+                    # backup_file.with_suffix('') only strips the LAST suffix
+                    # (.gz), leaving a stray ".sql" — e.g. "backup_X.sql.gz"
+                    # becomes "backup_X.sql.json" instead of the metadata
+                    # file's real name, "backup_X.json". Strip everything
+                    # after the first dot instead, since backup names
+                    # themselves never contain a dot.
+                    metadata_name = backup_file.name.split('.')[0]
+                    metadata_file_path = self.backup_dir / f"{metadata_name}.json"
+                    with open(metadata_file_path, 'r') as f:
                         metadata = json.load(f)
                     
                     backup_datetime = datetime.fromisoformat(metadata['timestamp'].replace('Z', '+00:00'))
@@ -357,9 +373,8 @@ class BackupService:
                         backup_file.unlink()
                         
                         # Delete metadata file
-                        metadata_file = f"{backup_file.with_suffix('')}.json"
-                        if Path(metadata_file).exists():
-                            Path(metadata_file).unlink()
+                        if metadata_file_path.exists():
+                            metadata_file_path.unlink()
                         
                         deleted_count += 1
                 

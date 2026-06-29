@@ -35,6 +35,10 @@
     background: #faf6f0;
   }
 
+  .admin-table tr.row-selected td {
+    background: rgba(45, 122, 111, .06);
+  }
+
   .table-card {
     background: var(--white);
     border-radius: var(--radius-lg);
@@ -89,7 +93,12 @@
     padding: .2rem .65rem;
     border-radius: 999px;
     font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: opacity .15s;
   }
+
+  .toggle-active:hover { opacity: .8; }
 
   .toggle-active.on {
     background: #d4edda;
@@ -99,6 +108,88 @@
   .toggle-active.off {
     background: #f8d7da;
     color: #721c24;
+  }
+
+  .toggle-featured {
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--linen);
+    transition: color .15s, transform .15s;
+    background: none;
+    border: none;
+  }
+
+  .toggle-featured.on {
+    color: var(--amber);
+  }
+
+  .toggle-featured:hover {
+    transform: scale(1.15);
+  }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--linen);
+    background: var(--sand);
+    flex-wrap: wrap;
+  }
+
+  .filter-search {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    background: var(--white);
+    border: 1px solid var(--linen);
+    border-radius: 999px;
+    padding: .45rem .9rem;
+    flex: 1;
+    min-width: 220px;
+    max-width: 320px;
+  }
+
+  .filter-search input {
+    border: none;
+    background: none;
+    outline: none;
+    font-size: .85rem;
+    color: var(--bark);
+    width: 100%;
+    font-family: inherit;
+  }
+
+  .filter-select {
+    border: 1px solid var(--linen);
+    border-radius: var(--radius);
+    padding: .45rem .75rem;
+    font-size: .82rem;
+    color: var(--bark);
+    background: var(--white);
+    font-family: inherit;
+  }
+
+  /* ── BULK ACTION BAR ── */
+  .bulk-bar {
+    display: none;
+    align-items: center;
+    gap: .75rem;
+    padding: .75rem 1.5rem;
+    background: rgba(45, 122, 111, .08);
+    border-bottom: 1px solid rgba(45, 122, 111, .25);
+    font-size: .85rem;
+    color: #134d46;
+  }
+
+  .bulk-bar.visible {
+    display: flex;
+  }
+
+  .inquiries-cell {
+    font-weight: 600;
+    color: #134d46;
   }
 </style>
 {% endblock %}
@@ -120,23 +211,66 @@
   <div class="table-toolbar">
     <h3>All Packages ({{ pagination.total }})</h3>
   </div>
+
+  <!-- SEARCH / FILTER -->
+  <form method="GET" action="{{ url_for('admin.packages') }}" class="filter-bar">
+    <div class="filter-search">
+      <i class="fas fa-search" style="color:var(--mist);font-size:.8rem"></i>
+      <input type="text" name="search" placeholder="Search packages, destinations…" value="{{ search }}" />
+    </div>
+    <select name="continent_id" class="filter-select" onchange="this.form.submit()">
+      <option value="">All Continents</option>
+      {% for c in continents %}
+      <option value="{{ c.id }}" {% if continent_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+    <select name="status" class="filter-select" onchange="this.form.submit()">
+      <option value="">All Status</option>
+      <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+      <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+      <option value="featured" {% if status_filter == 'featured' %}selected{% endif %}>Featured</option>
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Apply</button>
+    {% if search or continent_id or status_filter %}
+    <a href="{{ url_for('admin.packages') }}" class="btn btn-ghost btn-sm">Clear</a>
+    {% endif %}
+  </form>
+
+  <!-- BULK ACTION BAR -->
+  <div class="bulk-bar" id="bulk-bar">
+    <input type="checkbox" disabled checked style="width:14px;height:14px" />
+    <span id="bulk-count">0 selected</span>
+    <button type="button" class="btn btn-outline btn-sm" onclick="bulkAction('activate')">
+      <i class="fas fa-eye"></i> Set Active
+    </button>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="bulkAction('deactivate')">
+      <i class="fas fa-eye-slash"></i> Deactivate
+    </button>
+    <button type="button" class="btn btn-danger btn-sm" onclick="bulkAction('delete')">
+      <i class="fas fa-trash"></i> Delete
+    </button>
+  </div>
+
   <div style="overflow-x:auto">
     <table class="admin-table">
       <thead>
         <tr>
+          <th><input type="checkbox" id="select-all" onchange="toggleSelectAll(this)" style="width:14px;height:14px" /></th>
           <th>Image</th>
           <th>Title</th>
           <th>Destination</th>
-          <th>Duration</th>
           <th>Price</th>
-          <th>Slots</th>
+          <th>Inquiries</th>
           <th>Status</th>
+          <th>Featured</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
         {% for pkg in packages %}
-        <tr>
+        {% set inquiry_count = package_inquiry_counts.get(pkg.id, 0) %}
+        <tr data-pkg-row="{{ pkg.id }}">
+          <td><input type="checkbox" class="pkg-checkbox" value="{{ pkg.id }}" onchange="updateBulkBar()" style="width:14px;height:14px" /></td>
           <td>
             {% if pkg.image and pkg.image != 'default_tour.jpg' %}
             <img class="pkg-thumb" src="{{ pkg.image if pkg.image.startswith('http') else '/uploads/' + pkg.image }}" alt="" />
@@ -144,19 +278,30 @@
             <div class="pkg-thumb-placeholder"><i class="fas fa-mountain"></i></div>
             {% endif %}
           </td>
-          <td><strong>{{ pkg.title }}</strong></td>
+          <td>
+            <strong>{{ pkg.title }}</strong>
+            <div style="font-size:.72rem;color:var(--mist);margin-top:.15rem">
+              #{{ pkg.id }} · {{ pkg.duration_days }}d
+            </div>
+          </td>
           <td><i class="fas fa-location-dot" style="color:var(--teal);margin-right:.3rem"></i>{{ pkg.destination }}</td>
-          <td>{{ pkg.duration_days }}d</td>
           <td>
             {% if pkg.currency == 'USD' %}${% elif pkg.currency == 'EUR' %}€{% else %}₱{% endif %}{{
             "{:,.0f}".format(pkg.price) }}
           </td>
-          <td>{{ pkg.available_slots }} / {{ pkg.max_slots }}</td>
+          <td class="inquiries-cell">{{ inquiry_count }}</td>
           <td>
-            <span class="toggle-active {% if pkg.is_active %}on{% else %}off{% endif %}">
+            <button type="button" class="toggle-active {% if pkg.is_active %}on{% else %}off{% endif %}"
+              id="active-toggle-{{ pkg.id }}" onclick="toggleActive({{ pkg.id }})">
               <i class="fas fa-circle" style="font-size:.45rem"></i>
-              {{ 'Active' if pkg.is_active else 'Inactive' }}
-            </span>
+              <span id="active-label-{{ pkg.id }}">{{ 'Active' if pkg.is_active else 'Inactive' }}</span>
+            </button>
+          </td>
+          <td>
+            <button type="button" class="toggle-featured {% if pkg.is_featured %}on{% endif %}"
+              id="featured-toggle-{{ pkg.id }}" onclick="toggleFeatured({{ pkg.id }})" title="Toggle featured">
+              <i class="fas fa-star"></i>
+            </button>
           </td>
           <td>
             <div class="action-btns">
@@ -174,8 +319,13 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="8" style="text-align:center;color:var(--mist);padding:3rem">No packages yet. <a
-              href="{{ url_for('admin.add_package') }}" style="color:var(--teal)">Add one →</a></td>
+          <td colspan="9" style="text-align:center;color:var(--mist);padding:3rem">
+            {% if search or continent_id or status_filter %}
+            No packages match your search/filter. <a href="{{ url_for('admin.packages') }}" style="color:var(--teal)">Clear filters →</a>
+            {% else %}
+            No packages yet. <a href="{{ url_for('admin.add_package') }}" style="color:var(--teal)">Add one →</a>
+            {% endif %}
+          </td>
         </tr>
         {% endfor %}
       </tbody>
@@ -187,7 +337,8 @@
 <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;">
   {% for p in pagination.iter_pages() %}
     {% if p %}
-      <a href="?page={{ p }}" class="btn btn-sm {% if p == pagination.page %}btn-amber{% else %}btn-outline{% endif %}">{{ p }}</a>
+      <a href="?page={{ p }}&search={{ search }}&continent_id={{ continent_id or '' }}&status={{ status_filter }}"
+        class="btn btn-sm {% if p == pagination.page %}btn-amber{% else %}btn-outline{% endif %}">{{ p }}</a>
     {% else %}
       <span style="padding:.3rem .5rem;color:var(--mist)">…</span>
     {% endif %}
@@ -195,4 +346,88 @@
 </div>
 {% endif %}
 
+<!-- Hidden bulk-action form -->
+<form id="bulk-form" method="POST" action="{{ url_for('admin.bulk_package_action') }}" style="display:none">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+  <input type="hidden" name="action" id="bulk-action-input" />
+  <div id="bulk-ids-container"></div>
+</form>
+
+<script nonce="{{ csp_nonce() }}">
+  function toggleSelectAll(checkbox) {
+    document.querySelectorAll('.pkg-checkbox').forEach(function (cb) {
+      cb.checked = checkbox.checked;
+      cb.closest('tr').classList.toggle('row-selected', checkbox.checked);
+    });
+    updateBulkBar();
+  }
+
+  function updateBulkBar() {
+    const checked = document.querySelectorAll('.pkg-checkbox:checked');
+    const bar = document.getElementById('bulk-bar');
+    document.querySelectorAll('.pkg-checkbox').forEach(function (cb) {
+      cb.closest('tr').classList.toggle('row-selected', cb.checked);
+    });
+    if (checked.length > 0) {
+      bar.classList.add('visible');
+      document.getElementById('bulk-count').textContent = `${checked.length} selected`;
+    } else {
+      bar.classList.remove('visible');
+    }
+  }
+
+  function bulkAction(action) {
+    const checked = Array.from(document.querySelectorAll('.pkg-checkbox:checked')).map(cb => cb.value);
+    if (checked.length === 0) return;
+
+    if (action === 'delete' && !confirm(`Delete ${checked.length} package(s)? Packages with open inquiries will be skipped.`)) {
+      return;
+    }
+    if (action === 'deactivate' && !confirm(`Deactivate ${checked.length} package(s)? They will no longer show on the public site.`)) {
+      return;
+    }
+
+    document.getElementById('bulk-action-input').value = action;
+    const container = document.getElementById('bulk-ids-container');
+    container.innerHTML = '';
+    checked.forEach(function (id) {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'package_ids';
+      input.value = id;
+      container.appendChild(input);
+    });
+    document.getElementById('bulk-form').submit();
+  }
+
+  function toggleActive(pkgId) {
+    fetch(`/admin/packages/toggle-active/${pkgId}`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) return;
+      const btn = document.getElementById(`active-toggle-${pkgId}`);
+      const label = document.getElementById(`active-label-${pkgId}`);
+      btn.classList.toggle('on', data.is_active);
+      btn.classList.toggle('off', !data.is_active);
+      label.textContent = data.is_active ? 'Active' : 'Inactive';
+    })
+    .catch(() => alert('Failed to update status. Please try again.'));
+  }
+
+  function toggleFeatured(pkgId) {
+    fetch(`/admin/packages/toggle-featured/${pkgId}`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) return;
+      document.getElementById(`featured-toggle-${pkgId}`).classList.toggle('on', data.is_featured);
+    })
+    .catch(() => alert('Failed to update featured status. Please try again.'));
+  }
+</script>
 {% endblock %}

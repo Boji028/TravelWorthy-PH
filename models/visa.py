@@ -8,11 +8,13 @@ class VisaCountry(db.Model):
     country_name = db.Column(db.String(100), nullable=False)
     flag_emoji = db.Column(db.String(10), nullable=True)
     requirements_pdf = db.Column(db.String(300), nullable=True)
-    country_image = db.Column(db.String(300), nullable=True)
-    country_image_size_kb = db.Column(db.Float, nullable=True)  # Track image size
-    country_image_uploaded_at = db.Column(db.DateTime, nullable=True)  # Track upload time
     price = db.Column(db.Float, nullable=True)
     is_active = db.Column(db.Boolean, default=True)
+    region           = db.Column(db.String(100), nullable=True)
+    visa_type        = db.Column(db.String(50),  nullable=True)
+    processing_time  = db.Column(db.String(50),  nullable=True)
+    stay_validity    = db.Column(db.String(50),  nullable=True)
+    documents_count  = db.Column(db.Integer,     nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     def __repr__(self):

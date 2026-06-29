@@ -77,12 +77,10 @@ markers = [
     "email: Email verification tests",
     "backup: Backup system tests",
 ]
-testpaths = ["tests"]
 filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning",
 ]
-
 # Coverage configuration
 [tool.coverage.run]
 source = ["app.py", "models", "routes", "decorators", "utils"]

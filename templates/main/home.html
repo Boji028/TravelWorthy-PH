@@ -1,659 +1,700 @@
 {% extends "base.html" %}
-{% block title %}Travel Worthy PH — Discover the World{% endblock %}
+{% block title %}Travel Worthy PH — Your Travel made Worth It{% endblock %}
 
 {% block extra_styles %}
 <style>
+  /* ============ CINEMATIC HOMEPAGE ============ */
+  /* All classes prefixed tw- to avoid clashing with main.css */
+
+  .tw-serif { font-family: 'Pogonia', 'Cormorant Garamond', serif; }
+
   /* ── HERO ── */
-  .hero {
-    background: url('/static/images/PrimaryBG.jpg') center center / cover no-repeat;
-    color: #fff;
+  .tw-hero {
+    position: relative;
     min-height: 88vh;
-    position: relative;
-    overflow: hidden;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    border-radius: 0 0 2rem 2rem;
-  }
-
-  .hero::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, .35);
-  }
-
-  .hero-inner {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 2rem 2rem 4rem;
-    position: relative;
-    z-index: 1;
-    width: 100%;
-  }
-
-  .hero-eyebrow {
-    display: inline-flex;
     align-items: center;
-    gap: .5rem;
-    background: rgba(255, 255, 255, .15);
-    border: 1px solid rgba(255, 255, 255, .3);
-    border-radius: 999px;
-    padding: .3rem .9rem;
-    font-size: .8rem;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    margin-bottom: 1.2rem;
-    backdrop-filter: blur(6px);
-    color: #fff;
-  }
-
-  .hero h1 {
-    font-family: 'Pogonia', serif;
-    font-size: clamp(3rem, 7vw, 5.5rem);
-    font-weight: 700;
-    line-height: 1.05;
-    margin-bottom: 1rem;
-    color: #fff;
-  }
-
-  .hero h1 em {
-    font-style: italic;
-    color: var(--teal);
-  }
-
-  .hero-sub {
-    font-size: .95rem;
-    opacity: .9;
-    line-height: 1.7;
-    margin-bottom: 2rem;
-    max-width: 480px;
-    color: #fff;
-  }
-
-  .hero-actions {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-    margin-bottom: 2rem;
-  }
-
-  .btn-hero-primary {
-    background: var(--amber);
-    color: var(--white);
-    padding: .85rem 2rem;
-    border-radius: 999px;
-    font-size: 1rem;
-    font-weight: 500;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: .6rem;
-    transition: 0.5s;
-  }
-
-  .btn-hero-ghost {
-    background: rgba(255, 255, 255, .15);
-    color: #fff;
-    border: 1.5px solid rgba(255, 255, 255, .5);
-    padding: .85rem 2rem;
-    border-radius: 999px;
-    font-size: 1rem;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: .6rem;
-    transition: 0.5s;
-    backdrop-filter: blur(6px);
-  }
-
-  .btn-hero-primary:hover {
-    background: var(--white) !important;
-    color: #c8874a !important;
-    box-shadow: 0 0 25px #c8874a;
-    border: 1px solid #c8874a;
-  }
-
-  .btn-hero-ghost:hover {
-    background: var(--white) !important;
-    color: #c8874a !important;
-    box-shadow: 0 0 25px #c8874a;
-    border: 1px solid #c8874a;
-  }
-
-  .btn {
-    --clr: #c8874a;
-    position: relative;
-    overflow: hidden;
-    transition: 0.5s;
-  }
-
-  .btn:hover {
-    background: var(--white);
-    color: var(--clr);
-    box-shadow: 0 0 25px var(--clr);
-    border: 1px solid var(--clr);
-  }
-
-  /* ── SEARCH BAR ── */
-  .search-section {
-    position: absolute;
-    bottom: 3rem;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90%;
-    max-width: 900px;
-    z-index: 10;
-    pointer-events: none;
-  }
-
-  .search-heading {
-    color: rgba(255, 255, 255, .85);
-    font-size: .85rem;
-    margin-bottom: .5rem;
-    padding-left: .5rem;
-  }
-
-  .search-card {
-    pointer-events: auto;
-    background: rgba(255, 255, 255, .95);
-    border-radius: 999px;
-    box-shadow: 0 8px 48px rgba(0, 0, 0, .25);
-    padding: .6rem .6rem .6rem 1.5rem;
-    display: flex;
-    gap: 0;
-    align-items: center;
-    backdrop-filter: blur(10px);
-  }
-
-  .search-field {
-    display: flex;
-    align-items: center;
-    gap: .5rem;
-    flex: 1;
-    min-width: 0;
-  }
-
-  .search-icon {
-    color: var(--amber);
-    font-size: .9rem;
-    flex-shrink: 0;
-  }
-
-  .search-input {
-    border: none;
-    background: transparent;
-    font-size: .9rem;
-    color: var(--ink);
-    outline: none;
-    width: 100%;
-    font-family: 'Pogonia', sans-serif;
-  }
-
-  .search-input::placeholder {
-    color: var(--mist);
-  }
-
-  .search-divider {
-    width: 1px;
-    height: 30px;
-    background: var(--linen);
-    flex-shrink: 0;
-    margin: 0 .5rem;
-  }
-
-  .btn-explore {
-    background: var(--teal);
-    color: white;
-    border: none;
-    border-radius: 999px;
-    padding: .75rem 1.75rem;
-    font-size: .9rem;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: 0.5s;
-    font-family: 'Pogonia', sans-serif;
-  }
-
-  .btn-explore:hover {
-    background: var(--white);
-    color: var(--teal);
-    box-shadow: 0 0 25px var(--teal);
-    border: 1px solid var(--teal);
-  }
-
-  /* ── PACKAGES SECTION ── */
-  .packages-section {
-    max-width: 1280px;
-    margin: 5rem auto;
-    padding: 0 2rem;
-  }
-
-  .section-header {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    margin-bottom: 2.5rem;
-  }
-
-  .packages-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 1.5rem;
-  }
-
-  .pkg-card {
-    background: var(--white);
-    border-radius: var(--radius-lg);
-    transition: transform .5s, box-shadow .25s;
-    box-shadow: 0 2px 12px rgba(58, 46, 34, .07);
-    perspective: 2500px;
-    transform-style: preserve-3d;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .pkg-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 16px 48px rgba(58, 46, 34, .16);
-  }
-
-  .pkg-img {
-    width: 100%;
-    height: 350px;
-    object-fit: contain;
-    transition: transform 0.4s ease;
-  }
-
-  .pkg-card:hover .pkg-img {
-    transform: scale(1.04);
-  }
-
-  .pkg-img-placeholder {
-    width: 100%;
-    height: 210px;
-    background: linear-gradient(135deg, var(--linen), #d4c9b6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 3rem;
-    color: var(--mist);
-  }
-
-  .pkg-body {
-    padding: 1.4rem;
-  }
-
-  .pkg-destination {
-    display: flex;
-    align-items: center;
-    gap: .35rem;
-    font-size: .78rem;
-    color: var(--teal);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .07em;
-    margin-bottom: .5rem;
-    flex: 1;
-  }
-
-  .pkg-title {
-    font-family: 'Pogonia', serif;
-    font-size: 1.35rem;
-    font-weight: 600;
-    color: var(--bark);
-    margin-bottom: .5rem;
-    line-height: 1.3;
-    min-height: 3.9rem;
-  }
-
-  .pkg-desc {
-    font-size: .85rem;
-    color: var(--mist);
-    line-height: 1.6;
-    margin-bottom: 1rem;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .pkg-meta {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-top: 1rem;
-    border-top: 1px solid var(--linen);
-  }
-
-  .pkg-price {
-    font-family: 'Pogonia', serif;
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--amber);
-  }
-
-  .pkg-price span {
-    font-size: .78rem;
-    color: var(--mist);
-    font-family: 'DM Sans', sans-serif;
-    font-weight: 400;
-  }
-
-  .pkg-info {
-    display: flex;
-    gap: .75rem;
-    font-size: .8rem;
-    color: var(--mist);
-  }
-
-  .pkg-info i {
-    color: var(--teal);
-    margin-right: .2rem;
-  }
-
-  .pkg-footer {
-    padding: 1rem 1.4rem;
-    background: var(--white);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  /* ── WHY US ── */
-  .why-section {
-    background: var(--bark);
-    color: var(--linen);
-    padding: 5rem 2rem;
-  }
-
-  .why-inner {
-    max-width: 1280px;
-    margin: 0 auto;
-  }
-
-  .why-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 2rem;
-    margin-top: 3rem;
-  }
-
-  .why-item {
     text-align: center;
+    overflow: hidden;
+    padding: 15px 24px 70px;
   }
-
-  .why-icon {
-    width: 60px;
-    height: 60px;
-    background: rgba(200, 135, 74, .15);
-    border: 1px solid rgba(200, 135, 74, .3);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 1rem;
-    font-size: 1.4rem;
-    color: var(--amber);
-  }
-
-  .why-item h3 {
-    font-family: 'Pogonia', serif;
-    font-size: 1.25rem;
-    color: var(--sand);
-    margin-bottom: .5rem;
-  }
-
-  .why-item p {
-    font-size: .85rem;
-    color: var(--mist);
-    line-height: 1.7;
-  }
-
-  /* ── EMPTY STATE ── */
-  .empty-state {
-    text-align: center;
-    padding: 4rem 2rem;
-    color: var(--mist);
-  }
-
-  .empty-state i {
-    font-size: 3rem;
-    opacity: .3;
-    margin-bottom: 1rem;
-  }
-
-  /* ── LIGHTBOX ── */
-  .lightbox {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, .85);
-    z-index: 9999;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .lightbox.active {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .lightbox img {
-    max-width: 90%;
-    max-height: 90vh;
-    border-radius: var(--radius-lg);
-    box-shadow: 0 8px 48px rgba(0, 0, 0, .5);
-  }
-
-  .lightbox-close {
+  .tw-hero-img {
     position: absolute;
-    top: -15px;
-    right: -15px;
-    color: white;
-    font-size: 1.5rem;
-    cursor: pointer;
-    z-index: 10000;
-    background: var(--amber);
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-    transition: background .2s;
+    inset: -1%;
+    background: url("{{ (site_settings.hero_image | cloudinary_enhance) if site_settings.hero_image and site_settings.hero_image.startswith('http') else ('/uploads/' ~ site_settings.hero_image) if site_settings.hero_image else url_for('static', filename='images/beach.jpg') }}") center / cover no-repeat;
+    will-change: transform;
+    animation: twKen 20s ease-in-out infinite alternate;
+  }
+  .tw-hero-veil {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at center, transparent 35%, rgba(8,28,32,.32) 100%),
+      linear-gradient(180deg, rgba(10,40,46,.42) 0%, rgba(10,40,46,.30) 40%, rgba(10,40,46,.74) 100%);
+  }
+  .tw-hero-inner { position: relative; z-index: 5; max-width: 880px; }
+  .tw-eyebrow {
+    display: inline-flex; align-items: center; gap: 9px;
+    font-size: 12px; letter-spacing: .26em; text-transform: uppercase;
+    color: #eafffc; margin-bottom: 22px; opacity: 0; animation: twFade 1s ease .2s forwards;
+  }
+  .tw-eyebrow .ln { width: 34px; height: 1px; background: rgba(255,255,255,.5); }
+  .tw-hero h1 {
+    font-family: 'Pogonia', 'Cormorant Garamond', serif;
+    font-size: clamp(2.8rem, 7.5vw, 5.6rem); line-height: 1; font-weight: 700;
+    color: #fff; margin-bottom: 20px; text-shadow: 0 8px 40px rgba(0,30,36,.4);
+  }
+  .tw-hero h1 .w { display: inline-block; opacity: 0; transform: translateY(28px);
+    animation: twRise 1s cubic-bezier(.2,.7,.3,1) forwards; }
+  .tw-hero h1 em { font-style: italic; color: var(--teal-d); }
+  .tw-hero-sub {
+    font-size: clamp(.92rem, 1.4vw, 1.1rem); color: #eafffc; max-width: 520px;
+    margin: 0 auto 34px; line-height: 1.7; opacity: 0; animation: twFade 1s ease .9s forwards;
+    text-shadow: 0 2px 14px rgba(0,30,36,.4);
   }
 
-  input[type="date"].search-input {
-    color: var(--mist);
-    font-family: 'Pogonia', sans-serif;
-    font-weight: 400;
+  /* ── GLASS SEARCH ── */
+  .tw-search {
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.34);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-radius: 999px; padding: 7px 7px 7px 8px; max-width: 620px; margin: 0 auto;
+    opacity: 0; animation: twRise 1s ease 1.1s forwards; box-shadow: 0 20px 60px rgba(0,20,24,.3);
   }
+  .tw-sf { display: flex; align-items: center; gap: 8px; flex: 1; padding: 8px 14px;
+    border-right: 1px solid rgba(255,255,255,.28); min-width: 0; }
+  .tw-sf:nth-of-type(1) { flex: 2.3; }
+  .tw-sf:nth-of-type(2) { flex: 1.2; }
+  .tw-sf:nth-of-type(3) { flex: 0 1 110px; }
+  .tw-sf:last-of-type { border: 0; }
+  .tw-sf i { color: #fff; font-size: 14px; opacity: .9; flex-shrink: 0; }
+  .tw-sf input { border: 0; background: none; font-family: inherit; font-size: 14px;
+    color: #fff; width: 100%; outline: 0; overflow: hidden; text-overflow: ellipsis; }
+  .tw-sf input::placeholder { color: #dbf3f0; }
+  .tw-input-stack { position: relative; flex: 1; min-width: 0; }
+  .tw-input-stack input { border: 0; background: none; font-family: inherit; font-size: 14px;
+    color: #fff; width: 100%; outline: 0; }
+  .tw-input-stack input::placeholder { color: #dbf3f0; }
+  .tw-input-stack input[type="date"] { color: transparent; caret-color: transparent; cursor: pointer; }
+  .tw-input-stack input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0; }
+  .tw-marquee-overlay {
+    position: absolute; inset: 0; display: flex; align-items: center;
+    overflow: hidden; white-space: nowrap; pointer-events: none; }
+  .tw-marquee-inner { display: inline-block; color: #dbf3f0; font-size: 14px; }
+  .tw-marquee-inner.is-marquee { animation: twMarquee 9s linear infinite; }
+  .tw-sbtn { background: var(--amber); color: #fff; border: 0; border-radius: 999px;
+    padding: 13px 26px; font-family: inherit; font-size: 14px; cursor: pointer;
+    white-space: nowrap; transition: background .2s, transform .2s; flex-shrink: 0; }
+  .tw-sbtn:hover { background: var(--amber-d); transform: translateY(-1px); }
 
-  input[type="date"].search-input::-webkit-datetime-edit {
-    font-weight: 400;
-    font-family: 'Pogonia', sans-serif;
-    color: var(--mist);
+  .tw-cue { position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 5;
+    color: #fff; font-size: 11px; letter-spacing: .2em; text-transform: uppercase;
+    opacity: 0; animation: twFade 1s ease 1.8s forwards; }
+  .tw-cue i { display: block; font-size: 18px; margin-top: 6px; animation: twBob 1.8s ease-in-out infinite; }
+
+  /* ── WAVES ── */
+  .tw-waves { position: absolute; left: 0; right: 0; bottom: -1px; height: 80px; z-index: 4; pointer-events: none; }
+  .tw-wave { position: absolute; left: 0; bottom: 0; width: 200%; height: 100%; background-repeat: repeat-x; background-size: 1200px 80px; }
+  .tw-w1 { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 80' preserveAspectRatio='none'%3E%3Cpath d='M0,34 C180,70 360,6 600,32 C840,58 1020,10 1200,36 L1200,80 L0,80 Z' fill='%23f5efe6' fill-opacity='0.35'/%3E%3C/svg%3E"); animation: twFlow 12s linear infinite; }
+  .tw-w2 { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 80' preserveAspectRatio='none'%3E%3Cpath d='M0,46 C200,14 380,68 600,40 C820,12 1020,66 1200,38 L1200,80 L0,80 Z' fill='%23f5efe6'/%3E%3C/svg%3E"); animation: twFlow 8s linear infinite reverse; }
+
+  /* ── SECTIONS ── */
+  .tw-section { max-width: 1180px; margin: 0 auto; padding: 82px 32px; }
+  .tw-eyebrow2 { font-size: 12px; letter-spacing: .24em; text-transform: uppercase; color: var(--amber); margin-bottom: 12px; }
+  .tw-title { font-family: 'Pogonia', 'Cormorant Garamond', serif; font-size: clamp(1.9rem, 4.2vw, 2.9rem); font-weight: 600; color: var(--bark); line-height: 1.08; }
+  .tw-subtle { font-size: 14px; color: var(--mist); margin-top: 8px; }
+  .tw-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 32px; gap: 20px; flex-wrap: wrap; }
+  .tw-viewall { display: inline-flex; align-items: center; gap: 7px; background: transparent; color: var(--teal);
+    border: 1.5px solid var(--teal); border-radius: 999px; padding: 10px 18px; font-size: 13px; font-weight: 600;
+    white-space: nowrap; text-decoration: none; transition: background .25s, color .25s, gap .25s; }
+  .tw-viewall i { transition: transform .25s; }
+  .tw-viewall:hover { background: var(--teal); color: #fff; gap: 11px; }
+  .tw-viewall:hover i { transform: translateX(2px); }
+
+  /* ── REVEAL ── */
+  .tw-reveal { opacity: 0; transform: translateY(32px); transition: opacity .9s ease, transform .9s cubic-bezier(.2,.7,.3,1); }
+  .tw-reveal.tw-in { opacity: 1; transform: none; }
+  .tw-d1 { transition-delay: .1s; } .tw-d2 { transition-delay: .22s; }
+  .tw-d3 { transition-delay: .34s; } .tw-d4 { transition-delay: .46s; }
+
+  /* ── DESTINATION TILES ── */
+  .tw-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); grid-auto-rows: 210px; gap: 14px; }
+  .tw-tile { position: relative; border-radius: 14px; overflow: hidden; cursor: pointer; color: #fff; }
+  .tw-tile .ph { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 1s ease; }
+  .tw-tile:hover .ph { transform: scale(1.07); }
+  .tw-tile::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,.6)); }
+  .tw-tile .lbl { position: absolute; left: 18px; bottom: 16px; z-index: 2; }
+  .tw-tile .lbl b { font-family: 'Pogonia', 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; display: block; }
+  .tw-tile .lbl small { font-size: 12px; opacity: .85; }
+
+  /* ── PACKAGE CARDS (GRID) ── */
+  .tw-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+  .tw-card { background: var(--white); border: 1px solid var(--linen); border-radius: 16px;
+    overflow: hidden; box-shadow: 0 8px 24px rgba(23,89,104,.06); cursor: pointer;
+    transition: transform .3s ease, box-shadow .3s ease; }
+  .tw-card:hover { transform: translateY(-4px); box-shadow: 0 18px 44px rgba(23,89,104,.14); }
+  .tw-card-img { position: relative; height: 200px; overflow: hidden; background: var(--linen); }
+  .tw-card-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 1.1s ease; }
+  .tw-card:hover .tw-card-photo { transform: scale(1.06); }
+  .tw-card-slide { opacity: 0; transition: opacity .5s ease, transform 1.1s ease; }
+  .tw-card-slide.active { opacity: 1; }
+  .tw-card-arrow {
+    position: absolute; top: 50%; transform: translateY(-50%); z-index: 3;
+    width: 28px; height: 28px; border-radius: 50%; background: rgba(10,40,46,.5);
+    border: 0; color: #fff; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; opacity: 0; transition: opacity .2s, background .2s; font-size: 12px; }
+  .tw-card-img:hover .tw-card-arrow { opacity: 1; }
+  .tw-card-arrow:hover { background: rgba(10,40,46,.75); }
+  .tw-card-arrow-prev { left: 10px; }
+  .tw-card-arrow-next { right: 10px; }
+  .tw-card-dots { position: absolute; bottom: 10px; left: 0; right: 0; z-index: 3; display: flex; justify-content: center; gap: 5px; }
+  .tw-card-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,.45); cursor: pointer; transition: background .2s, transform .2s; }
+  .tw-card-dot.active { background: rgba(255,255,255,.95); transform: scale(1.3); }
+  .tw-g-fallback { position: absolute; inset: 0; background: linear-gradient(155deg, #1f8f86, #0a3640); }
+  .tw-card-tag { position: absolute; top: 12px; left: 12px; z-index: 2; display: flex; align-items: center; gap: 5px;
+    background: rgba(255,255,255,.94); color: var(--teal); font-size: 10px; font-weight: 600; padding: 5px 10px; border-radius: 999px; }
+  .tw-card-tag i { color: var(--amber); }
+  .tw-card-body { padding: 20px; }
+  .tw-card-dest { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--teal); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .tw-card-name { font-family: 'Pogonia', 'Cormorant Garamond', serif; font-size: 1.15rem; font-weight: 600; color: var(--bark); line-height: 1.25; margin-bottom: 10px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .tw-card-meta { display: flex; gap: 14px; margin-bottom: 14px; font-size: 12px; color: var(--bark); }
+  .tw-card-mi { display: flex; align-items: center; gap: 5px; }
+  .tw-card-mi i { color: var(--amber); font-size: 14px; }
+  .tw-card-cta { display: inline-flex; align-items: center; gap: 6px; color: var(--teal); font-size: 12px; font-weight: 600; transition: gap .25s, color .2s; }
+  .tw-card:hover .tw-card-cta { gap: 10px; color: var(--amber); }
+
+  /* ── WHY BAND ── */
+  .tw-why { background: #2a2728; padding: 80px 32px; }
+  .tw-why-inner { max-width: 1180px; margin: 0 auto; }
+  .tw-why-head { text-align: center; margin-bottom: 46px; }
+  .tw-why-head .tw-eyebrow2 { color: var(--teal-d); }
+  .tw-why-head .tw-title { color: #fff; }
+  .tw-why-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px; }
+  .tw-why-item { text-align: center; }
+  .tw-why-icon { width: 72px; height: 72px; margin: 0 auto 18px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--amber);
+    background: rgba(255,255,255,.05); border: 1.5px solid rgba(239,130,51,.35); transition: transform .3s, background .3s; }
+  .tw-why-item:hover .tw-why-icon { transform: scale(1.1); background: rgba(239,130,51,.14); border-color: var(--amber); }
+  .tw-why-item h3 { font-family: 'Pogonia', 'Cormorant Garamond', serif; font-size: 1.2rem; color: #f3ede3; margin-bottom: 8px; font-weight: 600; }
+  .tw-why-item p { font-size: 13px; color: #8fa8a3; line-height: 1.7; }
+
+  /* ── TESTIMONIAL ── */
+  .tw-tmo { position: relative; padding: 100px 32px; text-align: center; color: #fff; overflow: hidden; }
+  .tw-tmo-bg { position: absolute; inset: 0; background: url("{{ (site_settings.testimonial_image | cloudinary_enhance) if site_settings.testimonial_image and site_settings.testimonial_image.startswith('http') else ('/uploads/' ~ site_settings.testimonial_image) if site_settings.testimonial_image else url_for('static', filename='images/beach.jpg') }}") center / cover;
+    filter: blur(3px) brightness(.5) saturate(1.1); transform: scale(1.08); }
+  .tw-tmo-veil { position: absolute; inset: 0; background: rgba(10,40,46,.55); }
+  .tw-tmo-inner { position: relative; z-index: 3; max-width: 760px; margin: 0 auto; }
+  .tw-tmo-stars { color: var(--amber); font-size: 16px; letter-spacing: 4px; margin-bottom: 22px; }
+  .tw-tmo-q { font-family: 'Pogonia', 'Cormorant Garamond', serif; font-style: italic;
+    font-size: clamp(1.4rem, 3.2vw, 2.2rem); line-height: 1.4; min-height: 2.6em; transition: opacity .5s;
+    overflow-wrap: break-word; word-break: break-word;
+    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .tw-tmo-by { margin-top: 22px; font-size: 13px; letter-spacing: .06em; color: #cfe2e3; }
+  .tw-tmo-dots { display: flex; gap: 8px; justify-content: center; margin-top: 28px; }
+  .tw-tmo-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.35);
+    cursor: pointer; transition: background .25s, transform .25s; }
+  .tw-tmo-dot.on { background: var(--amber); transform: scale(1.25); }
+
+  /* ── STORIES ── */
+  .tw-stories { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .tw-story-img { height: 210px; border-radius: 13px; overflow: hidden; position: relative; margin-bottom: 16px; background: var(--linen); }
+  .tw-story-img img, .tw-story-img .ph { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .8s ease; }
+  .tw-story { display: block; text-decoration: none; color: inherit; }
+  .tw-story:hover .tw-story-img img, .tw-story:hover .tw-story-img .ph { transform: scale(1.06); }
+  .tw-story-cat { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--teal); margin-bottom: 7px; }
+  .tw-story-title { font-family: 'Pogonia', 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 600; color: var(--bark); line-height: 1.2; margin-bottom: 8px; }
+  .tw-story-meta { font-size: 12px; color: var(--mist); }
+
+  /* ── CLOSING CTA ── */
+  .tw-cta { position: relative; padding: 110px 32px; text-align: center; color: #fff; overflow: hidden; }
+  .tw-cta-bg { position: absolute; inset: -1%; background: url("{{ (site_settings.cta_image | cloudinary_enhance) if site_settings.cta_image and site_settings.cta_image.startswith('http') else ('/uploads/' ~ site_settings.cta_image) if site_settings.cta_image else url_for('static', filename='images/beach.jpg') }}") center / cover; will-change: transform; }
+  .tw-cta-veil { position: absolute; inset: 0; background:
+    radial-gradient(ellipse 80% 70% at center, transparent 30%, rgba(8,28,32,.4) 100%),
+    linear-gradient(180deg, rgba(10,40,46,.55), rgba(10,40,46,.72)); }
+  .tw-cta-inner { position: relative; z-index: 3; max-width: 640px; margin: 0 auto; }
+  .tw-cta h2 { font-family: 'Pogonia', 'Cormorant Garamond', serif; font-size: clamp(2.1rem, 5vw, 3.2rem); font-weight: 700; margin-bottom: 18px; line-height: 1.06; }
+  .tw-cta p { font-size: 15px; color: #e6f6f6; margin-bottom: 30px; line-height: 1.7; }
+  .tw-cta-btn { display: inline-flex; align-items: center; gap: 10px; background: var(--amber); color: #fff;
+    border: 0; border-radius: 999px; padding: 15px 32px; font-family: inherit; font-size: 15px; cursor: pointer;
+    text-decoration: none; transition: gap .25s, transform .2s, background .2s; }
+  .tw-cta-btn:hover { gap: 15px; transform: translateY(-2px); background: var(--amber-d); }
+
+  /* gradient slots for curated destination tiles (swap for <img> when you have photos) */
+  .tw-g-region0 { background: linear-gradient(155deg, #1f8f86, #0a3640); }
+  .tw-g-region1 { background: linear-gradient(155deg, #b5532a, #7a3320); }
+  .tw-g-region2 { background: linear-gradient(155deg, #1d6a7e, #0c3d47); }
+  .tw-g-region3 { background: linear-gradient(155deg, #2a5a4a, #0e3a34); }
+  .tw-g-region4 { background: linear-gradient(155deg, #c4763a, #7a3a1f); }
+  .tw-g-s1 { background: linear-gradient(155deg, #3a6e63, #143a32); }
+
+  /* ── KEYFRAMES ── */
+  @keyframes twKen { from { transform: scale(1) translate(0,0); } to { transform: scale(1.025) translate(-1%,-.5%); } }
+  @keyframes twRise { to { opacity: 1; transform: translateY(0); } }
+  @keyframes twFade { to { opacity: 1; } }
+  @keyframes twBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(6px); } }
+  @keyframes twFlow { to { transform: translateX(-1200px); } }
+  @keyframes twMarquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .tw-tiles { grid-template-columns: 1fr 1fr; grid-auto-rows: 165px; }
+    .tw-why-grid { grid-template-columns: 1fr 1fr; gap: 30px 24px; }
+    .tw-stories { grid-template-columns: 1fr; }
   }
-
-  input[type="date"].search-input::-webkit-datetime-edit-fields-wrapper {
-    font-weight: 400;
+  @media (max-width: 560px) {
+    .tw-search { flex-direction: column; border-radius: 22px; padding: 10px; }
+    .tw-sf, .tw-sf:nth-of-type(1), .tw-sf:nth-of-type(2), .tw-sf:nth-of-type(3) { flex: none; width: 100%; }
+    .tw-sf { border-right: 0; border-bottom: 1px solid rgba(255,255,255,.28); }
+    .tw-sf:last-of-type { border-bottom: 0; }
+    .tw-sbtn { width: 100%; margin-top: 4px; }
   }
-
+  @media (prefers-reduced-motion: reduce) {
+    .tw-hero-img, .tw-wave { animation: none !important; }
+    .tw-reveal { transition: none; }
+    .tw-marquee-inner.is-marquee { animation: none; }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 
 <!-- HERO -->
-<section class="hero">
-  <div class="hero-inner">
-    <div class="hero-eyebrow"><i class="fas fa-star"></i> Award-winning travel agency in the Philippines</div>
-    <h1>Your Travels made<h1><em>Worth it</em></h1>
-    <p class="hero-sub">Handcrafted tour packages to the world's most breathtaking destinations. Let us do the planning
-      — you do the living.</p>
-    <div class="hero-actions">
-      <a href="{{ url_for('packages.list_packages') }}" class="btn-hero-primary">
-        <i class="fas fa-map-marked-alt"></i> Explore Packages
-      </a>
-      <a href="{{ url_for('main.contact') }}" class="btn-hero-ghost">
-        <i class="fas fa-phone"></i> Talk to an Expert
-      </a>
-    </div>
-  </div>
-
-  <!-- SEARCH BAR -->
-  <div class="search-section">
-    <p class="search-heading">Where would you like to go?</p>
-    <form class="search-card" action="{{ url_for('packages.list_packages') }}" method="GET">
-      <div class="search-field">
-        <i class="fas fa-map-pin search-icon"></i>
-        <input class="search-input" type="text" name="destination" placeholder="Destination"
-          value="{{ request.args.get('destination','') }}" />
-      </div>
-      <div class="search-divider"></div>
-      <div class="search-field">
-        <i class="fas fa-calendar search-icon"></i>
-        <input class="search-input" type="text" name="departure_date" placeholder="Departure Date"
-          value="{{ request.args.get('departure_date','') }}" onfocus="this.type='date'"
-          onblur="if(!this.value)this.type='text'" />
-      </div>
-      <div class="search-divider"></div>
-      <div class="search-field">
-        <i class="fas fa-clock search-icon"></i>
-        <input class="search-input" type="number" name="duration" placeholder="Duration (days)"
-          value="{{ request.args.get('duration','') }}" style="width:130px" />
-      </div>
-      <div class="search-divider"></div>
-      <div class="search-field">
-        <i class="fas fa-users search-icon"></i>
-        <input class="search-input" type="number" name="guests" placeholder="Guests"
-          value="{{ request.args.get('guests','') }}" style="width:90px" />
-      </div>
-      <button type="submit" class="btn-explore">Explore Now</button>
-    </form>
-  </div>
-</section>
-
-<!-- FEATURED PACKAGES -->
-<section class="packages-section">
-  <div class="section-header">
-    <div>
-      <div class="section-title">Featured Packages</div>
-      <div class="section-sub">Curated experiences for every kind of traveler</div>
-    </div>
-    <a href="{{ url_for('packages.list_packages') }}" class="btn btn-outline">
-      View All <i class="fas fa-arrow-right"></i>
-    </a>
-  </div>
-
-  {% if packages %}
-  <div class="packages-grid">
-    {% for pkg in packages %}
-    <div class="pkg-card">
-      {% if pkg.image and pkg.image != 'default_tour.jpg' %}
-      <img class="pkg-img" src="{{ pkg.image if pkg.image.startswith('http') else '/uploads/' + pkg.image }}" alt="{{ pkg.title }}"
-        onclick="openLightbox(this.src)" style="cursor:pointer" />
-      {% else %}
-      <div class="pkg-img-placeholder">
-        <i class="fas fa-mountain"></i>
-      </div>
-      {% endif %}
-      <div class="pkg-body">
-        <div class="pkg-destination"><i class="fas fa-location-dot"></i> {{ pkg.destination }}</div>
-        <div class="pkg-title">{{ pkg.title }}</div>
-        <div class="pkg-desc">{{ pkg.description }}</div>
-        <div class="pkg-meta">
-          <div class="pkg-price">{% if pkg.currency == 'USD' %}${% elif pkg.currency == 'EUR' %}€{% else %}₱{% endif
-            %}{{ "{:,.0f}".format(pkg.price) }} <span>/ person</span></div>
-          <div class="pkg-info">
-            <span><i class="fas fa-clock"></i>{{ pkg.duration_days }}d</span>
-            <span><i class="fas fa-users"></i>{{ pkg.available_slots }} left</span>
+<header class="tw-hero">
+  <div class="tw-hero-img" id="twHeroImg"></div>
+  <div class="tw-hero-veil"></div>
+  <div class="tw-hero-inner">
+    <div class="tw-eyebrow"><span class="ln"></span> Crafting journeys since 2019 <span class="ln"></span></div>
+    <h1>
+      <span class="w" style="animation-delay:.25s">Your</span>
+      <span class="w" style="animation-delay:.4s">Travel made</span><br>
+      <em><span class="w" style="animation-delay:.55s">worth&nbsp;it.</span></em>
+    </h1>
+    <p class="tw-hero-sub">Handcrafted tour packages to the world's most breathtaking destinations. We plan every detail — you keep the memories.</p>
+    <form class="tw-search" action="{{ url_for('packages.list_packages') }}" method="GET">
+      <div class="tw-sf">
+        <i class="fas fa-map-pin"></i>
+        <div class="tw-input-stack">
+          <input type="text" name="destination" autocomplete="off" id="twDestInput" aria-label="Where would you like to go?"
+            value="{{ request.args.get('destination','') }}">
+          <div class="tw-marquee-overlay" id="twDestOverlay" aria-hidden="true">
+            <span class="tw-marquee-inner" id="twDestInner">Where would you like to go?</span>
           </div>
         </div>
       </div>
-      <div class="pkg-footer">
-        <a href="{{ url_for('packages.package_detail', package_id=pkg.id) }}" class="btn btn-outline btn-sm">Details</a>
-        <a href="{{ url_for('bookings.inquire_package', package_id=pkg.id) }}" class="btn btn-amber btn-sm">Inquire Now</a>
+      <div class="tw-sf">
+        <i class="fas fa-calendar"></i>
+        <div class="tw-input-stack">
+          <input type="date" id="twDepReal" name="departure_date" aria-label="Departure date"
+            value="{{ request.args.get('departure_date','') }}">
+          <div class="tw-marquee-overlay" id="twDepOverlay" aria-hidden="true">
+            <span class="tw-marquee-inner" id="twDepInner">Departure</span>
+          </div>
+        </div>
+      </div>
+      <div class="tw-sf">
+        <i class="fas fa-users"></i>
+        <div class="tw-input-stack">
+          <input type="number" name="guests" min="1" id="twGuestsInput" aria-label="Guests"
+            value="{{ request.args.get('guests','') }}">
+          <div class="tw-marquee-overlay" id="twGuestsOverlay" aria-hidden="true">
+            <span class="tw-marquee-inner" id="twGuestsInner">Guests</span>
+          </div>
+        </div>
+      </div>
+      <button type="submit" class="tw-sbtn">Explore now</button>
+    </form>
+  </div>
+  <div class="tw-cue">Scroll<i class="fas fa-chevron-down"></i></div>
+  <div class="tw-waves"><span class="tw-wave tw-w1"></span><span class="tw-wave tw-w2"></span></div>
+</header>
+
+<!-- BROWSE BY REGION (dynamic — from your active continents) -->
+{% if continents %}
+<section class="tw-section" id="destinations">
+  <div class="tw-head tw-reveal">
+    <div>
+      <div class="tw-eyebrow2">Browse by region</div>
+      <h2 class="tw-title tw-serif">Where in the world?</h2>
+      <div class="tw-subtle">Tap a region to explore its packages</div>
+    </div>
+    <a class="tw-viewall" href="{{ url_for('packages.list_packages') }}">View all packages <i class="fas fa-arrow-right"></i></a>
+  </div>
+  <div class="tw-tiles">
+    {% for c in continents %}
+    <a class="tw-tile tw-reveal" style="transition-delay: {{ loop.index0 * 0.1 }}s"
+       href="{{ url_for('packages.list_packages', continent_id=c.id) }}">
+      {% if c.image %}
+      <img class="ph" src="{{ (c.image | cloudinary_card) if c.image.startswith('http') else '/uploads/' ~ c.image }}" alt="{{ c.name }}" loading="lazy">
+      {% else %}
+      <div class="ph tw-g-region{{ loop.index0 % 5 }}"></div>
+      {% endif %}
+      <div class="lbl">
+        <b>{% if c.flag_emoji %}{{ c.flag_emoji }} {% endif %}{{ c.name }}</b>
+        {% if c.description %}<small>{{ c.description }}</small>{% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- FEATURED PACKAGES (real data) -->
+<section class="tw-section" id="packages" style="padding-top:20px">
+  <div class="tw-head tw-reveal">
+    <div>
+      <div class="tw-eyebrow2">Featured journeys</div>
+      <h2 class="tw-title tw-serif">Stories worth telling</h2>
+      <div class="tw-subtle">Each one handcrafted, slot-limited, and ready when you are</div>
+    </div>
+    <a class="tw-viewall" href="{{ url_for('packages.list_packages') }}">View all packages <i class="fas fa-arrow-right"></i></a>
+  </div>
+
+  {% if packages %}
+  <div class="tw-cards">
+    {% for pkg in packages[:6] %}
+    <div class="tw-card tw-reveal" style="transition-delay: {{ loop.index0 * 0.08 }}s"
+         onclick="window.location='{{ url_for('packages.package_detail', package_id=pkg.id) }}'">
+      <div class="tw-card-img">
+        {% set all_images = [] %}
+        {% if pkg.image and pkg.image != 'default_tour.jpg' %}
+        {% set _ = all_images.append(pkg.image) %}
+        {% endif %}
+        {% for gimg in pkg.images %}
+        {% set _ = all_images.append(gimg.path) %}
+        {% endfor %}
+
+        {% if all_images %}
+        {% for img_path in all_images %}
+        <img class="tw-card-photo tw-card-slide {% if loop.first %}active{% endif %}"
+             src="{{ (img_path | cloudinary_card) if img_path.startswith('http') else '/uploads/' ~ img_path }}"
+             alt="{{ pkg.title }}" loading="lazy">
+        {% endfor %}
+        {% else %}
+        <div class="tw-card-photo tw-g-fallback"></div>
+        {% endif %}
+
+        {% if pkg.is_featured %}<span class="tw-card-tag"><i class="fas fa-star"></i> Featured</span>{% endif %}
+
+        {% if all_images|length > 1 %}
+        <button type="button" class="tw-card-arrow tw-card-arrow-prev" aria-label="Previous photo"><i class="fas fa-chevron-left"></i></button>
+        <button type="button" class="tw-card-arrow tw-card-arrow-next" aria-label="Next photo"><i class="fas fa-chevron-right"></i></button>
+        <div class="tw-card-dots">
+          {% for img_path in all_images %}
+          <span class="tw-card-dot {% if loop.first %}active{% endif %}"></span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      <div class="tw-card-body">
+        <div class="tw-card-dest">
+          <i class="fas fa-location-dot"></i>
+          {{ pkg.destination }}{% if pkg.country %} · {{ pkg.country.flag_emoji or '' }} {{ pkg.country.name }}{% endif %}
+        </div>
+        <div class="tw-card-name">{{ pkg.title }}</div>
+        <div class="tw-card-meta">
+          <span class="tw-card-mi"><i class="fas fa-clock"></i> {{ pkg.duration_days }} days</span>
+        </div>
+        <span class="tw-card-cta">View journey <i class="fas fa-arrow-right"></i></span>
       </div>
     </div>
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty-state">
-    <div><i class="fas fa-suitcase-rolling"></i></div>
+  <div style="text-align:center;padding:4rem 2rem;color:var(--mist)">
+    <i class="fas fa-suitcase-rolling" style="font-size:3rem;opacity:.3;display:block;margin-bottom:1rem"></i>
     <p>No packages available yet. Check back soon!</p>
   </div>
   {% endif %}
 </section>
 
-<!-- LIGHTBOX -->
-<div class="lightbox" id="lightbox">
-  <div style="position:relative;display:inline-block;margin:0 auto;">
-    <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
-    <img id="lightbox-img" src="" alt="" />
+<!-- WHY TRAVEL WORTHY -->
+<section class="tw-why" id="why">
+  <div class="tw-why-inner">
+    <div class="tw-why-head tw-reveal">
+      <div class="tw-eyebrow2">Why Travel Worthy</div>
+      <h2 class="tw-title tw-serif">Travel, the way it should feel</h2>
+    </div>
+    <div class="tw-why-grid">
+      <div class="tw-why-item tw-reveal tw-d1"><div class="tw-why-icon"><i class="fas fa-pen-ruler"></i></div><h3>Handcrafted</h3><p>Every itinerary is built by hand around how you actually want to travel.</p></div>
+      <div class="tw-why-item tw-reveal tw-d2"><div class="tw-why-icon"><i class="fas fa-award"></i></div><h3>Since 2019</h3><p>Years of happy travelers and trips that ran exactly as promised.</p></div>
+      <div class="tw-why-item tw-reveal tw-d3"><div class="tw-why-icon"><i class="fas fa-comments"></i></div><h3>No pressure</h3><p>Inquiry-based, never pushy. Ask questions, take your time, then decide.</p></div>
+      <div class="tw-why-item tw-reveal tw-d4"><div class="tw-why-icon"><i class="fas fa-map-location-dot"></i></div><h3>Local know-how</h3><p>Real on-the-ground knowledge so the details are handled before you ask.</p></div>
+    </div>
   </div>
-</div>
+</section>
 
-<script>
-  // ── LIGHTBOX ──
-  let isZoomed = false;
+<!-- TESTIMONIALS (only shows if testimonials are passed from the route) -->
+{% if testimonials %}
+<section class="tw-tmo" id="testimonials">
+  <div class="tw-tmo-bg"></div>
+  <div class="tw-tmo-veil"></div>
+  <div class="tw-tmo-inner">
+    <div class="tw-tmo-stars" id="twTmoStars">★★★★★</div>
+    <p class="tw-tmo-q tw-serif" id="twTmoQ"></p>
+    <div class="tw-tmo-by" id="twTmoBy"></div>
+    <div class="tw-tmo-dots" id="twTmoDots"></div>
+  </div>
+</section>
+{% endif %}
 
-  function openLightbox(src) {
-    document.getElementById('lightbox-img').src = src;
-    document.getElementById('lightbox').classList.add('active');
-    isZoomed = false;
-    document.getElementById('lightbox-img').style.transform = 'scale(1)';
-    document.getElementById('lightbox-img').style.cursor = 'zoom-in';
-  }
+<!-- STORIES (only shows if posts are passed from the route) -->
+{% if posts %}
+<section class="tw-section" id="stories">
+  <div class="tw-head tw-reveal">
+    <div>
+      <div class="tw-eyebrow2">From the journal</div>
+      <h2 class="tw-title tw-serif">Stories &amp; travel notes</h2>
+      <div class="tw-subtle">Guides, tips, and tales from the road</div>
+    </div>
+    <a class="tw-viewall" href="{{ url_for('blog.blog_list') }}">Read all stories <i class="fas fa-arrow-right"></i></a>
+  </div>
+  <div class="tw-stories">
+    {% for post in posts[:3] %}
+    <a class="tw-story tw-reveal tw-d{{ loop.index }}" href="{{ url_for('blog.blog_detail', post_id=post.id) }}">
+      <div class="tw-story-img">
+        {% if post.featured_image %}
+        <img src="{{ (post.featured_image | cloudinary_card) if post.featured_image.startswith('http') else '/uploads/' ~ post.featured_image }}" alt="{{ post.title }}" loading="lazy">
+        {% else %}
+        <div class="ph tw-g-s1"></div>
+        {% endif %}
+      </div>
+      {% if post.category %}<div class="tw-story-cat">{{ post.category }}</div>{% endif %}
+      <div class="tw-story-title">{{ post.title }}</div>
+      <div class="tw-story-meta">{{ post.author }} · {{ post.created_at.strftime('%b %Y') }}</div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
 
-  function closeLightbox() {
-    document.getElementById('lightbox').classList.remove('active');
-    isZoomed = false;
-  }
+<!-- CLOSING CTA -->
+<section class="tw-cta" id="cta">
+  <div class="tw-cta-bg" id="twCtaBg"></div>
+  <div class="tw-cta-veil"></div>
+  <div class="tw-cta-inner">
+    <h2 class="tw-reveal tw-serif">Ready to plan your trip?</h2>
+    <p class="tw-reveal tw-d1">Tell us where you dream of going. We'll handle the details — no pressure, just possibilities.</p>
+    <a href="{{ url_for('bookings.plan_my_trip') }}" class="tw-cta-btn tw-reveal tw-d2">Plan my trip <i class="fas fa-paper-plane"></i></a>
+  </div>
+</section>
 
-  document.getElementById('lightbox-img').addEventListener('click', function (e) {
-    e.stopPropagation();
-    isZoomed = !isZoomed;
-    this.style.transform = isZoomed ? 'scale(2)' : 'scale(1)';
-    this.style.cursor = isZoomed ? 'zoom-out' : 'zoom-in';
-    this.style.transition = 'transform 0.3s ease';
-  });
+<script nonce="{{ csp_nonce() }}">
+  (function () {
+    var reduce = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
 
-  // ── SEARCH AUTOCOMPLETE ──
-  const destInput = document.querySelector('input[name="destination"]');
-  const dropdown = document.createElement('div');
-  dropdown.style.cssText = 'position:absolute;top:100%;left:0;right:0;background:white;border-radius:1rem;box-shadow:0 8px 32px rgba(0,0,0,.15);z-index:99;overflow:hidden;display:none;margin-top:.5rem;';
-  document.querySelector('.search-section').style.position = 'relative';
-  document.querySelector('.search-section').appendChild(dropdown);
+    // Flowing placeholder / date text
+    function twMarqueeRefresh(overlay, inner, text) {
+      inner.classList.remove('is-marquee');
+      inner.textContent = text;
+      void inner.offsetWidth;
+      if (inner.scrollWidth > overlay.clientWidth) {
+        inner.textContent = text + '\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0' + text;
+        if (!reduce) inner.classList.add('is-marquee');
+      }
+    }
 
-  destInput.addEventListener('input', function () {
-    const q = this.value.trim();
-    if (q.length < 2) { dropdown.style.display = 'none'; return; }
-    fetch(`/packages/autocomplete?q=${encodeURIComponent(q)}`)
-      .then(r => r.json())
-      .then(results => {
-        if (!results.length) { dropdown.style.display = 'none'; return; }
-        dropdown.innerHTML = results.map(r => `
-          <div style="padding:.75rem 1.5rem;cursor:pointer;font-size:.9rem;color:#3a2e22;transition:background .15s;"
-              onmouseover="this.style.background='#f7f2ec'"
-              onmouseout="this.style.background='white'"
-              onclick="document.querySelector('input[name=destination]').value='${r.name}';this.parentElement.style.display='none';">
-            <i class="fas fa-map-pin" style="color:#3BB9B6;margin-right:.5rem;"></i> ${r.name}
-          </div>
-        `).join('');
-        dropdown.style.display = 'block';
+    // Destination
+    var destInputEl = document.getElementById('twDestInput'),
+        destOverlay = document.getElementById('twDestOverlay'),
+        destInner = document.getElementById('twDestInner');
+    function twUpdateDest() {
+      if (!destInputEl.value) {
+        destOverlay.style.display = 'flex';
+        twMarqueeRefresh(destOverlay, destInner, 'Where would you like to go?');
+      } else {
+        destOverlay.style.display = 'none';
+      }
+    }
+    if (destInputEl) {
+      twUpdateDest();
+      destInputEl.addEventListener('focus', function () { destOverlay.style.display = 'none'; });
+      destInputEl.addEventListener('blur', twUpdateDest);
+      destInputEl.addEventListener('input', twUpdateDest);
+    }
+
+    // Guests
+    var guestsInputEl = document.getElementById('twGuestsInput'),
+        guestsOverlay = document.getElementById('twGuestsOverlay'),
+        guestsInner = document.getElementById('twGuestsInner');
+    function twUpdateGuests() {
+      if (!guestsInputEl.value) {
+        guestsOverlay.style.display = 'flex';
+        twMarqueeRefresh(guestsOverlay, guestsInner, 'Guests');
+      } else {
+        guestsOverlay.style.display = 'none';
+      }
+    }
+    if (guestsInputEl) {
+      twUpdateGuests();
+      guestsInputEl.addEventListener('focus', function () { guestsOverlay.style.display = 'none'; });
+      guestsInputEl.addEventListener('blur', twUpdateGuests);
+      guestsInputEl.addEventListener('input', twUpdateGuests);
+    }
+
+    // Departure date
+    var depReal = document.getElementById('twDepReal'),
+        depOverlay = document.getElementById('twDepOverlay'),
+        depInner = document.getElementById('twDepInner');
+    function twFmtDate(iso) {
+      if (!iso) return '';
+      var d = new Date(iso + 'T00:00:00');
+      if (isNaN(d)) return '';
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    function twUpdateDep() {
+      twMarqueeRefresh(depOverlay, depInner, twFmtDate(depReal.value) || 'Departure');
+    }
+    if (depReal) {
+      twUpdateDep();
+      depReal.addEventListener('change', twUpdateDep);
+      depReal.addEventListener('click', function () {
+        if (typeof depReal.showPicker === 'function') {
+          try { depReal.showPicker(); } catch (err) {}
+        }
       });
-  });
+    }
 
-  document.addEventListener('click', e => {
-    if (!e.target.closest('.search-section')) dropdown.style.display = 'none';
-  });
-  
+    // Re-check flowing text on resize (debounced)
+    var twMarqueeResizeT;
+    window.addEventListener('resize', function () {
+      clearTimeout(twMarqueeResizeT);
+      twMarqueeResizeT = setTimeout(function () {
+        if (destInputEl && !destInputEl.value) twMarqueeRefresh(destOverlay, destInner, 'Where would you like to go?');
+        if (guestsInputEl && !guestsInputEl.value) twMarqueeRefresh(guestsOverlay, guestsInner, 'Guests');
+        if (depReal) twUpdateDep();
+      }, 200);
+    });
 
+    // Reveal on scroll
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('tw-in'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.16 });
+    document.querySelectorAll('.tw-reveal').forEach(function (el) { io.observe(el); });
+
+    // Hero cursor parallax
+    if (!reduce) {
+      var heroImg = document.getElementById('twHeroImg');
+      var hero = document.querySelector('.tw-hero');
+      if (hero && heroImg) {
+        hero.addEventListener('mousemove', function (ev) {
+          var r = hero.getBoundingClientRect();
+          var x = (ev.clientX / r.width - .5), y = (ev.clientY / r.height - .5);
+          heroImg.style.transform = 'translate(' + (x * -8) + 'px,' + (y * -6) + 'px) scale(1.015)';
+        });
+      }
+      // CTA parallax
+      var ctaBg = document.getElementById('twCtaBg'), ctaSec = document.getElementById('cta');
+      if (ctaBg && ctaSec) {
+        document.addEventListener('scroll', function () {
+          var s = ctaSec.getBoundingClientRect();
+          if (s.top < window.innerHeight && s.bottom > 0) {
+            ctaBg.style.transform = 'translateY(' + ((s.top - window.innerHeight / 2) * -0.06) + 'px) scale(1.015)';
+          }
+        }, { passive: true });
+      }
+    }
+
+    // Testimonial rotator (data injected from the route)
+    var quotes = [
+      {% if testimonials %}{% for t in testimonials %}
+      { message: {{ t.message | tojson }}, by: {{ ('— ' ~ t.user.name) | tojson }}, rating: {{ t.rating }} }{{ "," if not loop.last }}
+      {% endfor %}{% endif %}
+    ];
+    var tmoQ = document.getElementById('twTmoQ'), tmoBy = document.getElementById('twTmoBy'),
+        tmoStars = document.getElementById('twTmoStars'), tmoDots = document.getElementById('twTmoDots');
+    if (tmoQ && quotes.length) {
+      var qi = 0;
+      quotes.forEach(function (_, i) {
+        var d = document.createElement('span');
+        d.className = 'tw-tmo-dot' + (i === 0 ? ' on' : '');
+        d.addEventListener('click', function () { setQuote(i); });
+        tmoDots.appendChild(d);
+      });
+      function setQuote(i) {
+        qi = i; tmoQ.style.opacity = 0; tmoBy.style.opacity = 0;
+        setTimeout(function () {
+          tmoQ.textContent = '“' + quotes[i].message + '”';
+          tmoBy.textContent = quotes[i].by;
+          tmoStars.textContent = '★★★★★'.slice(0, quotes[i].rating);
+          tmoQ.style.opacity = 1; tmoBy.style.opacity = 1;
+          tmoDots.querySelectorAll('.tw-tmo-dot').forEach(function (d, j) { d.classList.toggle('on', j === i); });
+        }, 240);
+      }
+      setQuote(0);
+      if (quotes.length > 1) setInterval(function () { setQuote((qi + 1) % quotes.length); }, 5500);
+    }
+
+    // Destination autocomplete (kept from your original homepage)
+    var destInput = document.querySelector('.tw-search input[name="destination"]');
+    if (destInput) {
+      var wrap = destInput.closest('.tw-sf');
+      wrap.style.position = 'relative';
+      var dropdown = document.createElement('div');
+      dropdown.style.cssText = 'position:absolute;top:100%;left:0;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);z-index:99;overflow:hidden;display:none;margin-top:.75rem;min-width:240px;';
+      wrap.appendChild(dropdown);
+      destInput.addEventListener('input', function () {
+        var q = this.value.trim();
+        if (q.length < 2) { dropdown.style.display = 'none'; return; }
+        fetch('/packages/autocomplete?q=' + encodeURIComponent(q))
+          .then(function (r) { return r.json(); })
+          .then(function (results) {
+            if (!results.length) { dropdown.style.display = 'none'; return; }
+            dropdown.innerHTML = results.map(function (r) {
+              return '<div style="padding:.7rem 1.1rem;cursor:pointer;font-size:.9rem;color:var(--bark);"'
+                + ' onmouseover="this.style.background=\'#f7f2ec\'" onmouseout="this.style.background=\'#fff\'"'
+                + ' onclick="document.querySelector(\'.tw-search input[name=destination]\').value=\'' + r.name + '\';this.parentElement.style.display=\'none\';">'
+                + '<i class="fas fa-map-pin" style="color:var(--teal-d);margin-right:.5rem;"></i>' + r.name + '</div>';
+            }).join('');
+            dropdown.style.display = 'block';
+          });
+      });
+      document.addEventListener('click', function (e) {
+        if (!e.target.closest('.tw-sf')) dropdown.style.display = 'none';
+      });
+    }
+
+    // Featured package mini-gallery
+    document.querySelectorAll('.tw-card-img').forEach(function (imgWrap) {
+      var slides = imgWrap.querySelectorAll('.tw-card-slide');
+      if (slides.length < 2) return;
+      var dots = imgWrap.querySelectorAll('.tw-card-dot');
+      var prevBtn = imgWrap.querySelector('.tw-card-arrow-prev');
+      var nextBtn = imgWrap.querySelector('.tw-card-arrow-next');
+      var idx = 0;
+
+      function goTo(i) {
+        idx = (i + slides.length) % slides.length;
+        slides.forEach(function (s, j) { s.classList.toggle('active', j === idx); });
+        dots.forEach(function (d, j) { d.classList.toggle('active', j === idx); });
+      }
+
+      if (prevBtn) prevBtn.addEventListener('click', function (e) { e.stopPropagation(); goTo(idx - 1); });
+      if (nextBtn) nextBtn.addEventListener('click', function (e) { e.stopPropagation(); goTo(idx + 1); });
+      dots.forEach(function (d, i) {
+        d.addEventListener('click', function (e) { e.stopPropagation(); goTo(i); });
+      });
+    });
+  })();
 </script>
 
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TravelAgency",
+  "name": "Travel Worthy PH",
+  "url": "{{ config['SITE_URL'] }}",
+  "logo": "{{ config['SITE_URL'] }}/static/images/LOGO.jpg",
+  "description": "Crafting unforgettable journeys since 2019. Handcrafted tour packages to the world's most breathtaking destinations.",
+  "address": { "@type": "PostalAddress", "addressCountry": "PH" },
+  "sameAs": [
+    "https://www.facebook.com/travelworthyph",
+    "https://www.instagram.com/travelworthyph/",
+    "https://tiktok.com/@travelworthyph"
+  ]
+}
+</script>
 {% endblock %}

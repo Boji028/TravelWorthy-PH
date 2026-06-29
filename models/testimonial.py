@@ -13,3 +13,12 @@ class Testimonial(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = db.relationship('User', backref='testimonials')
+
+    # BUG-14 fix: one TestimonialImage row per uploaded image instead of comma-separated string
+    images = db.relationship(
+        'TestimonialImage',
+        backref='testimonial',
+        lazy=True,
+        order_by='TestimonialImage.order',
+        cascade='all, delete-orphan'
+    )

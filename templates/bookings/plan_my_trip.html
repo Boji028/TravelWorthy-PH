@@ -3,50 +3,128 @@
 
 {% block extra_styles %}
 <style>
-  .pmt-wrap {
-    max-width: 720px;
+  .pmt-outer {
+    max-width: 1140px;
     margin: 3rem auto;
     padding: 0 2rem;
   }
 
-  .pmt-hero {
-    text-align: center;
-    margin-bottom: 2.5rem;
-  }
-
-  .pmt-hero h1 {
-    font-family: 'Pogonia', serif;
-    font-size: 2.6rem;
-    color: var(--bark);
-    margin-bottom: .5rem;
-  }
-
-  .pmt-hero p {
-    color: var(--mist);
-    font-size: .95rem;
-    max-width: 480px;
-    margin: 0 auto;
-  }
-
-  .pmt-card {
-    background: var(--white);
+  .pmt-split {
+    display: flex;
     border-radius: var(--radius-lg);
-    padding: 2.5rem;
-    box-shadow: 0 4px 24px rgba(58, 46, 34, .09);
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(58, 46, 34, .12);
   }
 
-  .pmt-card h2 {
+  /* ── LEFT PANEL ── */
+  .pmt-left {
+    flex: 0 0 38%;
+    background: linear-gradient(160deg, var(--teal), #0a3640);
+    color: #fff;
+    padding: 3rem 2.25rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .pmt-eyebrow {
+    font-size: .7rem;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--teal-d);
+    margin-bottom: .75rem;
+    opacity: 0;
+    animation: pmtFade .7s ease .05s forwards;
+  }
+
+  .pmt-left h1 {
     font-family: 'Pogonia', serif;
-    font-size: 1.5rem;
+    font-size: 2.1rem;
+    font-weight: 300;
+    line-height: 1.25;
+    margin-bottom: .9rem;
+    opacity: 0;
+    animation: pmtRise .8s cubic-bezier(.2,.7,.3,1) .15s forwards;
+  }
+
+  .pmt-left-sub {
+    font-size: .88rem;
+    opacity: .75;
+    line-height: 1.65;
+    margin-bottom: 1.75rem;
+    opacity: 0;
+    animation: pmtFade .7s ease .3s forwards;
+  }
+
+  .pmt-process {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+  }
+
+  .pmt-process-item {
+    display: flex;
+    gap: .85rem;
+    align-items: flex-start;
+    opacity: 0;
+    animation: pmtFade .7s ease forwards;
+  }
+
+  .pmt-process-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: .85rem;
+  }
+
+  .pmt-process-item strong {
+    font-size: .88rem;
+    display: block;
+  }
+
+  .pmt-process-item span {
+    font-size: .76rem;
+    opacity: .6;
+    display: block;
+    margin-top: .1rem;
+  }
+
+  @keyframes pmtFade { to { opacity: 1; } }
+  @keyframes pmtRise { to { opacity: 1; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pmt-eyebrow, .pmt-left h1, .pmt-left-sub, .pmt-process-item {
+      animation: none; opacity: 1;
+    }
+  }
+
+  /* ── RIGHT PANEL (form) ── */
+  .pmt-right {
+    flex: 1;
+    background: var(--white);
+    padding: 3rem 2.5rem;
+    min-width: 0;
+  }
+
+  .pmt-right h2 {
+    font-family: 'Pogonia', serif;
+    font-size: 1.4rem;
     color: var(--bark);
     margin-bottom: .25rem;
   }
 
-  .pmt-card .sub {
-    font-size: .87rem;
+  .pmt-right .sub {
+    font-size: .85rem;
     color: var(--mist);
-    margin-bottom: 2rem;
-    padding-bottom: 1.5rem;
+    margin-bottom: 1.75rem;
+    padding-bottom: 1.25rem;
     border-bottom: 1px solid var(--linen);
   }
 
@@ -56,68 +134,55 @@
     gap: 1rem;
   }
 
-  .how-it-works {
-    margin-top: 2.5rem;
-    background: var(--sand);
-    border-radius: var(--radius-lg);
-    padding: 2rem;
-    text-align: center;
-  }
-
-  .how-it-works h3 {
-    font-family: 'Pogonia', serif;
-    font-size: 1.3rem;
-    color: var(--bark);
-    margin-bottom: 1.5rem;
-  }
-
-  .steps {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-  }
-
-  .step-item {
+  .airfare-toggle {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: .5rem;
+    gap: .6rem;
   }
 
-  .step-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: var(--teal);
-    color: white;
+  .airfare-opt {
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.1rem;
-  }
-
-  .step-item p {
-    font-size: .82rem;
+    gap: .5rem;
+    padding: .7rem;
+    border: 1.5px solid var(--linen);
+    border-radius: var(--radius);
+    background: var(--white);
     color: var(--mist);
-    text-align: center;
+    font-size: .88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .18s;
+    font-family: inherit;
   }
 
-  .step-item strong {
-    font-size: .88rem;
-    color: var(--bark);
+  .airfare-opt:hover {
+    border-color: var(--teal);
+    color: var(--teal);
+  }
+
+  .airfare-opt.active {
+    background: var(--teal);
+    color: #fff;
+    border-color: var(--teal);
+  }
+
+  @media (max-width: 860px) {
+    .pmt-split {
+      flex-direction: column;
+    }
+    .pmt-left {
+      flex: none;
+    }
   }
 
   @media (max-width: 600px) {
     .form-row {
       grid-template-columns: 1fr;
     }
-
-    .steps {
-      grid-template-columns: 1fr;
-    }
-
-    .pmt-hero h1 {
-      font-size: 2rem;
+    .pmt-left h1 {
+      font-size: 1.7rem;
     }
   }
 
@@ -137,129 +202,168 @@
 {% endblock %}
 
 {% block content %}
-<div class="pmt-wrap">
-  <div class="pmt-hero">
-    <h1>✈ Plan My Trip</h1>
-    <p>Tell us where you want to go and we'll craft the perfect custom itinerary just for you.</p>
-  </div>
+<div class="pmt-outer">
+  <div class="pmt-split">
 
-  <div class="pmt-card">
-    <h2>Custom Tour Inquiry</h2>
-    <p class="sub">Fill in your details and we'll contact you to finalize everything — no commitment required.</p>
+    <!-- LEFT: PITCH + PROCESS -->
+    <div class="pmt-left">
+      <div>
+        <div class="pmt-eyebrow">✈ Custom Itinerary</div>
+        <h1>Let's plan your perfect trip</h1>
+        <p class="pmt-left-sub">Tell us where you dream of going — we'll handle every detail, no commitment required.</p>
 
-    <form method="POST" action="{{ url_for('bookings.plan_my_trip') }}" autocomplete="off">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-      <div class="form-row">
-        <div class="form-group">
-          <label>Full Name <span style="color:var(--danger)">*</span></label>
-          <input type="text" name="name" class="form-control" required placeholder="Juan dela Cruz" />
-        </div>
-        <div class="form-group">
-          <label>Email Address <span style="color:var(--danger)">*</span></label>
-          <input type="email" name="email" class="form-control" required placeholder="juan@email.com" />
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Contact Number <span style="color:var(--danger)">*</span></label>
-          <input type="tel" name="contact_number" class="form-control" required placeholder="09171234567" />
-        </div>
-        <div class="form-group">
-          <label>Number of Pax <span style="color:var(--danger)">*</span></label>
-          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-top:.5rem; align-items:end;">
-            <div class="form-group" style="margin-bottom:0;">
-              <label style="font-size:.82rem; color:var(--mist); display:block; margin-bottom:.35rem;">
-                Adults
-              </label>
-              <input type="number" name="num_adults" class="form-control" value="1" min="1" max="20" required
-                style="text-align:center;" />
+        <div class="pmt-process">
+          <div class="pmt-process-item" style="animation-delay:.4s">
+            <div class="pmt-process-icon"><i class="fas fa-paper-plane"></i></div>
+            <div>
+              <strong>Submit your inquiry</strong>
+              <span>Tell us your destination and travel dates</span>
             </div>
-            <div class="form-group" style="margin-bottom:0;">
-              <label style="font-size:.82rem; color:var(--mist); display:block; margin-bottom:.35rem;">
-                Children <span style="font-size:.75rem;">(2–11 yrs)</span>
-              </label>
-              <input type="number" name="num_children" class="form-control" value="0" min="0" max="20"
-                style="text-align:center;" />
+          </div>
+          <div class="pmt-process-item" style="animation-delay:.5s">
+            <div class="pmt-process-icon"><i class="fas fa-phone"></i></div>
+            <div>
+              <strong>We reach out within 24h</strong>
+              <span>Our team calls to finalize the details</span>
             </div>
-            <div class="form-group" style="margin-bottom:0;">
-              <label style="font-size:.82rem; color:var(--mist); display:block; margin-bottom:.35rem;">
-                Infants <span style="font-size:.75rem;">(0–23 mos)</span>
-              </label>
-              <input type="number" name="num_infants" class="form-control" value="0" min="0" max="10"
-                style="text-align:center;" />
+          </div>
+          <div class="pmt-process-item" style="animation-delay:.6s">
+            <div class="pmt-process-icon"><i class="fas fa-suitcase"></i></div>
+            <div>
+              <strong>Travel, worry-free</strong>
+              <span>Enjoy your fully customized trip</span>
             </div>
           </div>
         </div>
-      </div>
-
-      <div class="form-group">
-        <label>Travel Destination <span style="color:var(--danger)">*</span></label>
-        <input type="text" name="destination" class="form-control" required
-          placeholder="Where do you want to go? e.g. Palawan, Siargao, Batanes…" />
-      </div>
-      <div class="form-group">
-        <label>With or Without Airfare? <span style="color:var(--danger)">*</span></label>
-        <input type="text" name="with_airfare" class="form-control" required placeholder="Yes or No" />
-      </div>
-
-      <div class="form-group">
-        <label>Preferred Travel Dates <span style="color:var(--danger)">*</span></label>
-        <div class="form-row">
-          <div class="form-group">
-            <label style="font-size:.82rem;color:var(--mist);">From</label>
-            <input type="date" name="travel_date_from" class="form-control" required style="color-scheme:light;" />
-          </div>
-          <div class="form-group">
-            <label style="font-size:.82rem;color:var(--mist);">To</label>
-            <input type="date" name="travel_date_to" class="form-control" required style="color-scheme:light;" />
-          </div>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>Special Requests <span style="font-size:.8rem;color:var(--mist)">(optional)</span></label>
-        <textarea name="special_requests" class="form-control" rows="4"
-          placeholder="Honeymoon setup, dietary restrictions, preferred hotel type, activities you want to include…"></textarea>
-      </div>
-
-      <div
-        style="background:var(--sand);border-radius:var(--radius);padding:1.2rem;margin-bottom:1.5rem;font-size:.85rem;color:var(--mist)">
-        <i class="fas fa-comments" style="color:var(--teal);margin-right:.4rem"></i>
-        After submitting, our team will reach out within <strong style="color:var(--bark)">24 hours</strong> to discuss
-        your trip and finalize all the details.
-      </div>
-
-      <button type="submit" class="btn btn-amber"
-        style="width:100%;justify-content:center;padding:.9rem;font-size:.95rem">
-        <i class="fas fa-paper-plane"></i> Send My Inquiry
-      </button>
-      <a href="{{ url_for('packages.list_packages') }}" class="btn btn-ghost"
-        style="width:100%;justify-content:center;margin-top:.75rem">
-        Browse Fixed Packages Instead
-      </a>
-    </form>
-  </div>
-
-  <div class="how-it-works">
-    <h3>How It Works</h3>
-    <div class="steps">
-      <div class="step-item">
-        <div class="step-icon"><i class="fas fa-paper-plane"></i></div>
-        <strong>1. Submit Inquiry</strong>
-        <p>Fill out the form with your destination and travel dates.</p>
-      </div>
-      <div class="step-item">
-        <div class="step-icon"><i class="fas fa-phone"></i></div>
-        <strong>2. We Contact You</strong>
-        <p>Our team reaches out within 24 hours to discuss and plan.</p>
-      </div>
-      <div class="step-item">
-        <div class="step-icon"><i class="fas fa-suitcase"></i></div>
-        <strong>3. Travel!</strong>
-        <p>Enjoy your perfectly customized trip with full support.</p>
       </div>
     </div>
+
+    <!-- RIGHT: FORM -->
+    <div class="pmt-right">
+      <h2>Custom Tour Inquiry</h2>
+      <p class="sub">Fill in your details and we'll contact you to finalize everything.</p>
+
+      <form method="POST" action="{{ url_for('bookings.plan_my_trip') }}" autocomplete="off">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <div class="form-row">
+          <div class="form-group">
+            <label>Full Name <span style="color:var(--danger)">*</span></label>
+            <input type="text" name="name" class="form-control" required placeholder="Juan dela Cruz" />
+          </div>
+          <div class="form-group">
+            <label>Email Address <span style="color:var(--danger)">*</span></label>
+            <input type="email" name="email" class="form-control" required placeholder="juan@email.com" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Contact Number <span style="color:var(--danger)">*</span></label>
+            <input type="tel" name="contact_number" class="form-control" required placeholder="09171234567" />
+          </div>
+          <div class="form-group">
+            <label>Number of Pax <span style="color:var(--danger)">*</span></label>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:.6rem; margin-top:.5rem; align-items:end;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label style="font-size:.78rem; color:var(--mist); display:block; margin-bottom:.35rem;">
+                  Adults
+                </label>
+                <input type="number" name="num_adults" class="form-control" value="1" min="1" max="20" required
+                  style="text-align:center;" />
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label style="font-size:.78rem; color:var(--mist); display:block; margin-bottom:.35rem;">
+                  Children
+                </label>
+                <input type="number" name="num_children" class="form-control" value="0" min="0" max="20"
+                  style="text-align:center;" />
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label style="font-size:.78rem; color:var(--mist); display:block; margin-bottom:.35rem;">
+                  Infants
+                </label>
+                <input type="number" name="num_infants" class="form-control" value="0" min="0" max="10"
+                  style="text-align:center;" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Travel Destination <span style="color:var(--danger)">*</span></label>
+          <input type="text" name="destination" class="form-control" required
+            placeholder="Where do you want to go? e.g. Palawan, Siargao, Batanes…" />
+        </div>
+        <div class="form-group">
+          <label>With or Without Airfare? <span style="color:var(--danger)">*</span></label>
+          <div class="airfare-toggle" id="airfare-toggle">
+            <button type="button" class="airfare-opt" data-val="With Airfare">
+              <i class="fas fa-plane"></i> With Airfare
+            </button>
+            <button type="button" class="airfare-opt" data-val="Without Airfare">
+              <i class="fas fa-ban"></i> Without Airfare
+            </button>
+          </div>
+          <div id="airfare-error" style="display:none;color:var(--danger);font-size:.8rem;margin-top:.4rem;">
+            Please select an option.
+          </div>
+          <input type="hidden" name="with_airfare" id="with_airfare_val" />
+        </div>
+
+        <div class="form-group">
+          <label>Preferred Travel Dates <span style="color:var(--danger)">*</span></label>
+          <div class="form-row">
+            <div class="form-group">
+              <label style="font-size:.82rem;color:var(--mist);">From</label>
+              <input type="date" name="travel_date_from" class="form-control" required style="color-scheme:light;" />
+            </div>
+            <div class="form-group">
+              <label style="font-size:.82rem;color:var(--mist);">To</label>
+              <input type="date" name="travel_date_to" class="form-control" required style="color-scheme:light;" />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Special Requests <span style="font-size:.8rem;color:var(--mist)">(optional)</span></label>
+          <textarea name="special_requests" class="form-control" rows="3"
+            placeholder="Honeymoon setup, dietary restrictions, preferred hotel type, activities you want to include…"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-amber"
+          style="width:100%;justify-content:center;padding:.9rem;font-size:.95rem">
+          <i class="fas fa-paper-plane"></i> Send My Inquiry
+        </button>
+        <a href="{{ url_for('packages.list_packages') }}" class="btn btn-ghost"
+          style="width:100%;justify-content:center;margin-top:.75rem">
+          Browse Fixed Packages Instead
+        </a>
+      </form>
+    </div>
+
   </div>
 </div>
+
+<script nonce="{{ csp_nonce() }}">
+  var airfareOpts = document.querySelectorAll('.airfare-opt');
+  var airfareVal = document.getElementById('with_airfare_val');
+  var airfareError = document.getElementById('airfare-error');
+
+  airfareOpts.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      airfareOpts.forEach(function (b) { b.classList.remove('active'); });
+      this.classList.add('active');
+      airfareVal.value = this.dataset.val;
+      airfareError.style.display = 'none';
+    });
+  });
+
+  document.querySelector('form').addEventListener('submit', function (e) {
+    if (!airfareVal.value) {
+      e.preventDefault();
+      airfareError.style.display = 'block';
+      document.getElementById('airfare-toggle').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
+</script>
 {% endblock %}

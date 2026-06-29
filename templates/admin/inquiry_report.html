@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inquiries Report — {{ period_label }} — Travel Worthy PH</title>
+  <style>
+    :root {
+      --teal: #175968;
+      --amber: #EF8233;
+      --bark: #424142;
+      --mist: #8fa8a3;
+      --sand: #f5efe6;
+      --linen: #ede5d8;
+      --white: #fdfaf6;
+      --success: #27ae60;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'DM Sans', Arial, sans-serif;
+      background: var(--linen);
+      color: var(--bark);
+      margin: 0;
+      padding: 2rem 1rem;
+    }
+    .toolbar {
+      max-width: 760px;
+      margin: 0 auto 1rem;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: .6rem;
+      flex-wrap: wrap;
+    }
+    .toolbar form {
+      display: flex;
+      gap: .5rem;
+      align-items: center;
+    }
+    .toolbar select,
+    .toolbar input,
+    .toolbar button,
+    .toolbar a {
+      font-size: .85rem;
+      padding: .5rem .8rem;
+      border-radius: 8px;
+      border: 1px solid var(--bark);
+      background: var(--white);
+      color: var(--bark);
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .toolbar button.primary {
+      background: var(--teal);
+      color: var(--white);
+      border: none;
+    }
+    .sheet {
+      max-width: 760px;
+      margin: 0 auto;
+      background: var(--white);
+      border-radius: 6px;
+      padding: 2.5rem;
+      border: 1px solid var(--linen);
+    }
+    .letterhead {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid var(--teal);
+      padding-bottom: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .brand {
+      font-family: 'Pogonia', Georgia, serif;
+      font-size: 1.4rem;
+      color: var(--teal);
+      font-weight: 600;
+    }
+    .subtitle { font-size: .8rem; color: var(--mist); margin-top: .2rem; }
+    .meta { text-align: right; font-size: .85rem; color: var(--bark); }
+    .meta .muted { color: var(--mist); }
+    .stats {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .stat-card {
+      flex: 1;
+      min-width: 140px;
+      background: var(--sand);
+      border-radius: 8px;
+      padding: .8rem 1rem;
+    }
+    .stat-card .label { font-size: .7rem; color: var(--mist); text-transform: uppercase; letter-spacing: .04em; }
+    .stat-card .value { font-size: 1.3rem; font-weight: 600; color: var(--teal); margin-top: .2rem; }
+    .stat-card .breakdown { font-size: .78rem; color: var(--bark); margin-top: .3rem; line-height: 1.5; }
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    th {
+      text-align: left;
+      padding: .5rem .4rem;
+      color: var(--mist);
+      font-weight: 600;
+      border-bottom: 1px solid var(--linen);
+      font-size: .72rem;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+    }
+    td { padding: .5rem .4rem; border-bottom: 1px solid var(--linen); vertical-align: top; }
+    .row-email { color: var(--mist); font-size: .78rem; }
+    .badge { font-size: .7rem; padding: .2rem .55rem; border-radius: 10px; font-weight: 600; white-space: nowrap; }
+    .badge.package { background: rgba(0, 108, 115, .12); color: var(--teal); }
+    .badge.visa { background: rgba(41, 128, 185, .12); color: #2980b9; }
+    .badge.trip { background: rgba(200, 135, 74, .12); color: var(--amber); }
+    .footer-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 1.5rem;
+      padding-top: .8rem;
+      border-top: 1px solid var(--linen);
+      font-size: .75rem;
+      color: var(--mist);
+    }
+    .empty { text-align: center; padding: 2rem; color: var(--mist); font-size: .9rem; }
+    @media print {
+      body { background: var(--white); padding: 0; }
+      .no-print { display: none !important; }
+      .sheet { border: none; padding: 0; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="toolbar no-print">
+    <form method="GET">
+      <select name="period_type" onchange="this.form.submit()">
+        <option value="month" {% if period_type == 'month' %}selected{% endif %}>Month</option>
+        <option value="year" {% if period_type == 'year' %}selected{% endif %}>Year</option>
+      </select>
+      {% if period_type == 'year' %}
+      <input type="number" name="period_value" value="{{ period_value }}" min="2020" max="2100">
+      {% else %}
+      <input type="month" name="period_value" value="{{ period_value }}">
+      {% endif %}
+      <button type="submit">Update</button>
+    </form>
+    <button type="button" class="primary" onclick="window.print()">Print</button>
+    <a href="{{ url_for('admin.inquiries') }}">Back to Inquiries</a>
+  </div>
+
+  <div class="sheet">
+    <div class="letterhead">
+      <div>
+        <div class="brand">Travel Worthy PH</div>
+        <div class="subtitle">Inquiries report</div>
+      </div>
+      <div class="meta">
+        <div>{{ period_label }}</div>
+        <div class="muted">Generated {{ generated_at.strftime('%b %d, %Y') }}</div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="label">Total</div>
+        <div class="value">{{ total }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">By type</div>
+        <div class="breakdown">
+          Package: {{ type_counts.package }}<br>
+          Visa: {{ type_counts.visa }}<br>
+          Plan a trip: {{ type_counts.trip }}
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="label">By status</div>
+        <div class="breakdown">
+          {% for s in ['new', 'contacted', 'confirmed', 'closed'] %}
+          {{ s.title() }}: {{ status_counts.get(s, 0) }}{% if not loop.last %}<br>{% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    {% if inquiries %}
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Customer</th>
+          <th>Type</th>
+          <th>Destination</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inq in inquiries %}
+        {% set t = classify(inq) %}
+        <tr>
+          <td>{{ inq.created_at.strftime('%b %d, %Y') }}</td>
+          <td>{{ inq.name }}<br><span class="row-email">{{ inq.email }}</span></td>
+          <td><span class="badge {{ t }}">{{ {'package': 'Package', 'visa': 'Visa', 'trip': 'Plan a trip'}[t] }}</span></td>
+          <td>{{ inq.destination }}</td>
+          <td>{{ inq.status.title() }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">No inquiries in this period.</div>
+    {% endif %}
+
+    <div class="footer-row">
+      <span>{{ total }} record{{ 's' if total != 1 else '' }}</span>
+      <span>Travel Worthy PH — internal use only</span>
+    </div>
+  </div>
+
+</body>
+</html>

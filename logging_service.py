@@ -3,32 +3,52 @@ import json
 import logging
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
-from flask import current_app, request, g
+from flask import current_app, request, g, has_request_context, has_app_context
 from flask_login import current_user
+
+# Fallback logger for when there's no Flask app context at all (e.g. the
+# background backup scheduler thread, or a bare CLI script) — current_app
+# itself requires an app context, so logging through it would crash exactly
+# when something has already gone wrong and most needs to be logged.
+_fallback_logger = logging.getLogger('travel_worthy.background')
 
 
 class StructuredLogger:
     """Helper class for structured logging with audit trail support."""
 
     @staticmethod
+    def _get_logger() -> logging.Logger:
+        """Return the Flask app logger when available, else a plain fallback."""
+        if has_app_context():
+            return current_app.logger
+        return _fallback_logger
+
+    @staticmethod
     def _get_request_context() -> Dict[str, Any]:
         """Extract relevant request context for logging.
-        
+
         Returns:
-            Dictionary with request details
+            Dictionary with request details. Falls back to request-less
+            context when called from outside an HTTP request (CLI commands,
+            the background backup scheduler, etc.) instead of raising
+            RuntimeError: Working outside of request context.
         """
-        context = {
+        context: Dict[str, Any] = {
             'timestamp': datetime.now(timezone.utc).isoformat(),
-            'remote_addr': request.remote_addr,
-            'method': request.method,
-            'endpoint': request.endpoint,
-            'user_agent': request.headers.get('User-Agent', ''),
         }
-        
-        if current_user.is_authenticated:
+
+        if has_request_context():
+            context.update({
+                'remote_addr': request.remote_addr,
+                'method': request.method,
+                'endpoint': request.endpoint,
+                'user_agent': request.headers.get('User-Agent', ''),
+            })
+
+        if has_app_context() and current_user and current_user.is_authenticated:
             context['user_id'] = current_user.id
             context['user_email'] = current_user.email
-        
+
         return context
 
     @staticmethod
@@ -51,33 +71,7 @@ class StructuredLogger:
         })
         
         level = logging.INFO if success else logging.WARNING
-        current_app.logger.log(level, json.dumps(context))
-
-    @staticmethod
-    def log_booking_event(event_type: str, booking_id: int, package_id: int, 
-                         user_id: int, amount: float, reason: Optional[str] = None) -> None:
-        """Log booking-related events.
-        
-        Args:
-            event_type: Type of booking event (create, update, cancel, approve)
-            booking_id: Booking ID
-            package_id: Package ID
-            user_id: User ID
-            amount: Booking amount
-            reason: Optional reason or details
-        """
-        context = StructuredLogger._get_request_context()
-        context.update({
-            'event_type': 'booking',
-            'booking_type': event_type,
-            'booking_id': booking_id,
-            'package_id': package_id,
-            'user_id': user_id,
-            'amount': amount,
-            'reason': reason,
-        })
-        
-        current_app.logger.info(json.dumps(context))
+        StructuredLogger._get_logger().log(level, json.dumps(context))
 
     @staticmethod
     def log_admin_action(action_type: str, resource_type: str, resource_id: int, 
@@ -99,7 +93,7 @@ class StructuredLogger:
             'changes': changes or {},
         })
         
-        current_app.logger.info(json.dumps(context))
+        StructuredLogger._get_logger().info(json.dumps(context))
 
     @staticmethod
     def log_error(error_type: str, message: str, details: Optional[Dict[str, Any]] = None,
@@ -127,7 +121,7 @@ class StructuredLogger:
             'CRITICAL': logging.CRITICAL,
         }
         level = level_map.get(severity, logging.ERROR)
-        current_app.logger.log(level, json.dumps(context))
+        StructuredLogger._get_logger().log(level, json.dumps(context))
 
     @staticmethod
     def log_database_query(query_type: str, table: str, duration_ms: float, 
@@ -151,7 +145,7 @@ class StructuredLogger:
             'success': success,
         })
         
-        current_app.logger.debug(json.dumps(context))
+        StructuredLogger._get_logger().debug(json.dumps(context))
 
 
 def log_function_call(func_name: str, **kwargs) -> None:
@@ -168,7 +162,7 @@ def log_function_call(func_name: str, **kwargs) -> None:
         **kwargs
     }
     
-    if current_user.is_authenticated:
+    if has_app_context() and current_user and current_user.is_authenticated:
         context['user_id'] = current_user.id
-    
-    current_app.logger.debug(json.dumps(context))
+
+    StructuredLogger._get_logger().debug(json.dumps(context))

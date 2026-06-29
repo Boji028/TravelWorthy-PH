@@ -13,11 +13,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from app import create_app, db
 from models.user import User
 from models.package import TourPackage
-from models.booking import Booking
 from models.inquiry import Inquiry
 from models.contact import ContactMessage
-from forms import RegisterForm, LoginForm, ContactForm, BookingForm, InquiryForm
-from constants import BookingStatus, InquiryStatus
+from forms import RegisterForm, LoginForm, ContactForm, InquiryForm
+from constants import InquiryStatus
 from werkzeug.security import check_password_hash
 
 
@@ -317,8 +316,6 @@ class TestRunner:
                 duration_days=7,
                 price=5000.00,
                 currency='PHP',
-                max_slots=20,
-                available_slots=20,
                 is_active=True
             )
             db.session.add(test_package)
@@ -361,100 +358,6 @@ class TestRunner:
         except Exception as e:
             self.test(
                 "Package tests",
-                False,
-                str(e)
-            )
-
-    def run_booking_tests(self):
-        """Test booking functionality."""
-        print("\n" + "="*60)
-        print("BOOKING TESTS")
-        print("="*60)
-
-        try:
-            # Create test user for booking
-            booking_user = User.query.filter_by(email='register_test@example.com').first()
-
-            if not booking_user:
-                booking_user = User(
-                    name='Booking Test User',
-                    email='booking_test@example.com',
-                    password='hashedpassword',
-                    phone='+1234567890'
-                )
-                db.session.add(booking_user)
-                db.session.commit()
-
-            # Create test package
-            booking_package = TourPackage.query.filter_by(
-                title='Test Package'
-            ).first()
-
-            if not booking_package:
-                booking_package = TourPackage(
-                    title='Test Package for Booking',
-                    description='Test package for booking tests',
-                    destination='Test Destination',
-                    duration_days=7,
-                    price=5000.00,
-                    currency='PHP',
-                    max_slots=20,
-                    available_slots=20,
-                    is_active=True
-                )
-                db.session.add(booking_package)
-                db.session.commit()
-
-            # Test booking creation
-            tomorrow = date.today() + timedelta(days=1)
-            booking = Booking(
-                user_id=booking_user.id,
-                package_id=booking_package.id,
-                contact_number='+1234567890',
-                num_travelers=2,
-                travel_date=tomorrow,
-                total_price=10000.00,
-                status=BookingStatus.PENDING.value
-            )
-            db.session.add(booking)
-            db.session.commit()
-
-            self.test(
-                "Booking creation",
-                booking.id is not None,
-                "Booking not saved to database"
-            )
-
-            # Test available slots updated
-            updated_package = TourPackage.query.get(booking_package.id)
-            expected_slots = 20 - 2  # 20 - 2 travelers
-            self.test(
-                "Available slots decremented after booking",
-                updated_package.available_slots <= 20,
-                f"Expected slots <= 20, got {updated_package.available_slots}"
-            )
-
-            # Test booking retrieval
-            retrieved_booking = Booking.query.filter_by(
-                id=booking.id
-            ).first()
-
-            self.test(
-                "Booking retrieval",
-                retrieved_booking is not None,
-                "Booking not found in database"
-            )
-
-            if retrieved_booking:
-                self.test(
-                    "Booking status is correct",
-                    retrieved_booking.status == BookingStatus.PENDING.value,
-                    f"Expected status '{BookingStatus.PENDING.value}', got '{retrieved_booking.status}'"
-                )
-
-        except Exception as e:
-            self.test(
-                "Booking tests",
                 False,
                 str(e)
             )
@@ -619,14 +522,6 @@ class TestRunner:
             f"Found {len(user_annotations)} type hints in User model"
         )
 
-        # Check Booking model has type hints
-        booking_annotations = Booking.__annotations__ if hasattr(Booking, '__annotations__') else {}
-        self.test(
-            "Booking model has type hints",
-            len(booking_annotations) > 0,
-            f"Found {len(booking_annotations)} type hints in Booking model"
-        )
-
         # Check Package model has type hints
         package_annotations = TourPackage.__annotations__ if hasattr(TourPackage, '__annotations__') else {}
         self.test(
@@ -639,7 +534,6 @@ class TestRunner:
         """Clean up test data."""
         try:
             # Clear test database
-            db.session.query(Booking).delete()
             db.session.query(Inquiry).delete()
             db.session.query(ContactMessage).delete()
             db.session.query(TourPackage).delete()
@@ -672,7 +566,6 @@ class TestRunner:
             self.run_form_validation_tests()
             self.run_authentication_tests()
             self.run_package_tests()
-            self.run_booking_tests()
             self.run_inquiry_tests()
             self.run_contact_tests()
             self.run_error_handling_tests()

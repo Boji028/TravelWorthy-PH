@@ -1,5 +1,6 @@
 """Image upload service using Cloudinary for cloud storage."""
 import os
+import re
 from typing import Optional
 import cloudinary
 import cloudinary.uploader
@@ -73,7 +74,7 @@ class ImageUploadService:
                 file,
                 folder=f'travelworthyph/{prefix}',
                 transformation=[
-                    {'quality': 'auto:good'},
+                    {'quality': 'auto:best'},
                     {'fetch_format': 'auto'}
                 ]
             )
@@ -114,18 +115,21 @@ class ImageUploadService:
             if len(parts) != 2:
                 return False
 
-            public_id_with_ext = parts[1]
-            # Remove version prefix if present (v1234567/)
-            if public_id_with_ext.startswith('v') and '/' in public_id_with_ext:
-                public_id_with_ext = public_id_with_ext.split('/', 1)[1]
+            # Strip optional transformation segments and version prefix
+            # e.g. "q_auto,f_auto/v1234567/folder/file.jpg" → "folder/file.jpg"
+            public_id_with_ext = re.sub(r'^([^/]+/)*v\d+/', '', parts[1])
 
-            # Remove file extension
+            #Remove file extension
             public_id = public_id_with_ext.rsplit('.', 1)[0]
 
             cloudinary.uploader.destroy(public_id)
             return True
 
         except Exception as e:
-            if current_app:
+            try:
                 current_app.logger.error(f'Cloudinary delete error: {e}', exc_info=True)
+            except RuntimeError:
+                # Called outside app context (e.g., from a management script)
+                import logging
+                logging.getLogger(__name__).error(f'Cloudinary delete error: {e}')
             return False
