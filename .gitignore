@@ -36,6 +36,9 @@ server.log
 # === Backups ===
 backups/
 
+# === Claude Code ===
+.claude/
+
 # === OS / Editor ===
 .DS_Store
 Thumbs.db
