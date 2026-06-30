@@ -395,7 +395,92 @@ def send_inquiry_receipt(inquiry, base_url: str = None) -> None:
         f"Travel Worthy PH Team\n"
         f"✈️ Making Your Travel Dreams Real"
     )
-    _send(subject, [inquiry.email], body)
+
+    # --- HTML version (original wording, styled layout) ---
+    logo_url = "https://res.cloudinary.com/dbcjxuxhl/image/upload/brand_logo_ip0yv0.png"
+    safe_name = html_escape(inquiry.name)
+    safe_destination = html_escape(inquiry.destination)
+    safe_ref = html_escape(inquiry.reference_number)
+    dates_str = (
+        f"{inquiry.travel_date_from.strftime('%B %d')} - "
+        f"{inquiry.travel_date_to.strftime('%B %d, %Y')}"
+    )
+    pax_str = (
+        f"{inquiry.num_adults} adult(s), {inquiry.num_children} child(ren), "
+        f"{inquiry.num_infants} infant(s)"
+    )
+
+    html = f"""
+    <html><body style="margin:0;padding:0;background:#ffffff;font-family:Arial,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="height:4px;background:#175968;line-height:4px;font-size:0;">&nbsp;</td></tr>
+      <tr><td style="padding:22px 26px;background:#fdfaf6;">
+
+        <img src="{logo_url}" width="110" style="display:block;margin-bottom:18px;" alt="Travel Worthy PH" />
+
+        <p style="font-size:15px;color:#222222;margin:0 0 4px;">Hi {safe_name},</p>
+        <p style="font-size:14px;color:#444444;line-height:1.6;margin:0 0 4px;">Thank you for your interest in our {safe_destination} trip!</p>
+        <p style="font-size:14px;color:#444444;line-height:1.6;margin:0 0 20px;">We've received your inquiry and our team is already reviewing it.</p>
+
+        <div style="background:#175968;border-radius:6px;padding:14px 18px;margin-bottom:20px;">
+          <p style="font-size:11px;color:#9fe1cb;margin:0 0 2px;letter-spacing:0.5px;">YOUR INQUIRY REFERENCE</p>
+          <p style="font-size:18px;color:#ffffff;font-weight:bold;margin:0;">{safe_ref}</p>
+        </div>
+
+        <table style="width:100%;font-size:13px;color:#424142;border-collapse:collapse;margin-bottom:20px;">
+          <tr><td style="padding:4px 0;color:#8fa8a3;width:110px;">Destination</td><td>{safe_destination}</td></tr>
+          <tr><td style="padding:4px 0;color:#8fa8a3;">Travel Dates</td><td>{dates_str}</td></tr>
+          <tr><td style="padding:4px 0;color:#8fa8a3;">Travelers</td><td>{pax_str}</td></tr>
+        </table>
+
+        <p style="font-size:12px;color:#8fa8a3;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px;">Track your status</p>
+        <p style="font-size:13px;color:#444444;line-height:1.6;margin:0 0 10px;">You can check your inquiry status anytime using your reference number:</p>
+        <a href="{tracking_url}" style="display:inline-block;background:#EF8233;color:#ffffff;font-size:13px;font-weight:bold;padding:9px 18px;border-radius:6px;text-decoration:none;margin-bottom:22px;">View inquiry status &rarr;</a>
+
+        <p style="font-size:12px;color:#8fa8a3;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px;">Expected response time</p>
+        <p style="font-size:13px;color:#444444;line-height:1.6;margin:0 0 10px;">We typically respond to all inquiries within 24-48 business hours. Our team will send personalized recommendations with:</p>
+        <table style="width:100%;font-size:13px;color:#424142;border-collapse:collapse;margin-bottom:20px;">
+          <tr><td style="padding:3px 0;width:18px;color:#175968;">&#10003;</td><td style="padding:3px 0;">Tailored package suggestions</td></tr>
+          <tr><td style="padding:3px 0;color:#175968;">&#10003;</td><td style="padding:3px 0;">Pricing &amp; availability</td></tr>
+          <tr><td style="padding:3px 0;color:#175968;">&#10003;</td><td style="padding:3px 0;">Visa requirements</td></tr>
+          <tr><td style="padding:3px 0;color:#175968;">&#10003;</td><td style="padding:3px 0;">Next steps to finalize your booking</td></tr>
+        </table>
+
+        <p style="font-size:12px;color:#8fa8a3;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px;">In the meantime</p>
+        <p style="font-size:13px;color:#444444;line-height:1.6;margin:0 0 10px;">Feel free to explore:</p>
+        <table style="width:100%;font-size:13px;color:#424142;border-collapse:collapse;margin-bottom:20px;">
+          <tr><td style="padding:3px 0;width:14px;color:#8fa8a3;">&bull;</td><td style="padding:3px 0;">Our travel blog for destination tips</td></tr>
+          <tr><td style="padding:3px 0;color:#8fa8a3;">&bull;</td><td style="padding:3px 0;">Visa requirements for {safe_destination}</td></tr>
+          <tr><td style="padding:3px 0;color:#8fa8a3;">&bull;</td><td style="padding:3px 0;">Similar package recommendations</td></tr>
+        </table>
+
+        <p style="font-size:12px;color:#8fa8a3;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px;">Want to start the conversation now?</p>
+        <p style="font-size:13px;color:#444444;line-height:1.6;margin:0 0 10px;">You don't have to wait — reach out directly anytime:</p>
+        <table style="width:100%;font-size:13px;color:#424142;border-collapse:collapse;margin-bottom:22px;">
+          <tr><td style="padding:3px 0;color:#8fa8a3;width:110px;">Phone / SMS</td><td>+63 917 824 7128</td></tr>
+          <tr><td style="padding:3px 0;color:#8fa8a3;">Email</td><td><a href="mailto:travelworthyph@gmail.com" style="color:#175968;text-decoration:none;">travelworthyph@gmail.com</a></td></tr>
+          <tr><td style="padding:3px 0;color:#8fa8a3;">Facebook</td><td><a href="https://facebook.com/travelworthyph" style="color:#175968;text-decoration:none;">facebook.com/travelworthyph</a></td></tr>
+          <tr><td style="padding:3px 0;color:#8fa8a3;">Instagram</td><td><a href="https://instagram.com/travelworthyph" style="color:#175968;text-decoration:none;">instagram.com/travelworthyph</a></td></tr>
+          <tr><td style="padding:3px 0;color:#8fa8a3;">TikTok</td><td><a href="https://tiktok.com/@travelworthyph" style="color:#175968;text-decoration:none;">tiktok.com/@travelworthyph</a></td></tr>
+          <tr><td style="padding:3px 0;color:#8fa8a3;">Office Hours</td><td>Monday – Sunday | 9:00 AM – 6:00 PM</td></tr>
+        </table>
+
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-top:2px solid #f5a623;padding-top:14px;">
+          <tr>
+            <td>
+              <p style="font-size:13px;color:#444444;margin:0 0 2px;">Best regards,</p>
+              <p style="font-size:13px;font-weight:bold;color:#222222;margin:0;">Travel Worthy PH Team</p>
+              <p style="font-size:12px;color:#8fa8a3;margin:4px 0 0;">Making Your Travel Dreams Real</p>
+            </td>
+          </tr>
+        </table>
+
+      </td></tr>
+    </table>
+    </body></html>
+    """
+
+    _send(subject, [inquiry.email], body, html=html)
 
 
 def send_inquiry_emails_async(inquiry_id: int, base_url: str) -> None:
