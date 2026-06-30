@@ -201,11 +201,10 @@
         <div id="file-name" style="font-size:.75rem;color:var(--mist);margin-top:.4rem;text-align:center"></div>
         {% if post.featured_image %}
         <form method="POST" action="{{ url_for('admin.remove_blog_photo', post_id=post.id) }}"
-          id="remove-photo-form" style="margin-top:.5rem">
+          id="remove-photo-form" style="margin-top:.5rem" data-confirm="Remove this photo?">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
           <button type="submit" class="btn btn-ghost"
-            style="width:100%;color:var(--danger);border-color:var(--danger);font-size:.8rem"
-            onclick="return confirm('Remove this photo?')">
+            style="width:100%;color:var(--danger);border-color:var(--danger);font-size:.8rem">
             <i class="fas fa-trash"></i> Remove Photo
           </button>
         </form>

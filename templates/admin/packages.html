@@ -207,7 +207,6 @@
   </div>
 </div>
 
-<div id="pkgsApp">
 <div class="table-card">
   <div class="table-toolbar">
     <h3>All Packages ({{ pagination.total }})</h3>
@@ -231,6 +230,7 @@
       <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
       <option value="featured" {% if status_filter == 'featured' %}selected{% endif %}>Featured</option>
     </select>
+    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Apply</button>
     {% if search or continent_id or status_filter %}
     <a href="{{ url_for('admin.packages') }}" class="btn btn-ghost btn-sm">Clear</a>
     {% endif %}
@@ -310,7 +310,7 @@
               <a href="{{ url_for('admin.edit_package', package_id=pkg.id) }}" class="btn-sm-edit"
                 title="Edit"><i class="fas fa-edit"></i> Edit</a>
               <form method="POST" action="{{ url_for('admin.delete_package', package_id=pkg.id) }}"
-                onsubmit="return confirm('Delete this package?')">
+                data-confirm="Delete this package?">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <button type="submit" class="btn btn-danger btn-sm" title="Delete"><i class="fas fa-trash"></i></button>
               </form>
@@ -352,7 +352,6 @@
   <input type="hidden" name="action" id="bulk-action-input" />
   <div id="bulk-ids-container"></div>
 </form>
-</div>
 
 <script nonce="{{ csp_nonce() }}">
   function toggleSelectAll(checkbox) {
@@ -377,14 +376,14 @@
     }
   }
 
-  function bulkAction(action) {
+  async function bulkAction(action) {
     const checked = Array.from(document.querySelectorAll('.pkg-checkbox:checked')).map(cb => cb.value);
     if (checked.length === 0) return;
 
-    if (action === 'delete' && !confirm(`Delete ${checked.length} package(s)? Packages with open inquiries will be skipped.`)) {
+    if (action === 'delete' && !(await adminConfirm(`Delete ${checked.length} package(s)? Packages with open inquiries will be skipped.`))) {
       return;
     }
-    if (action === 'deactivate' && !confirm(`Deactivate ${checked.length} package(s)? They will no longer show on the public site.`)) {
+    if (action === 'deactivate' && !(await adminConfirm(`Deactivate ${checked.length} package(s)? They will no longer show on the public site.`, { danger: false, confirmLabel: 'Deactivate' }))) {
       return;
     }
 
@@ -430,58 +429,5 @@
     })
     .catch(() => alert('Failed to update featured status. Please try again.'));
   }
-
-  (function () {
-    var pkgsApp = document.getElementById('pkgsApp');
-    if (!pkgsApp) return;
-
-    function buildUrl(form) {
-      var params = new URLSearchParams();
-      for (var i = 0; i < form.elements.length; i++) {
-        var el = form.elements[i];
-        if (!el.name || el.disabled) continue;
-        params.set(el.name, el.value || '');
-      }
-      return (form.getAttribute('action') || window.location.pathname).split('?')[0] + '?' + params.toString();
-    }
-
-    async function loadPkgs(url, push) {
-      if (push === undefined) push = true;
-      pkgsApp.style.opacity = '0.5';
-      pkgsApp.style.pointerEvents = 'none';
-      try {
-        var res = await fetch(url, { headers: { 'X-Requested-With': 'fetch' } });
-        if (!res.ok) throw new Error(res.status);
-        var doc = new DOMParser().parseFromString(await res.text(), 'text/html');
-        var fresh = doc.getElementById('pkgsApp');
-        if (!fresh) { window.location.href = url; return; }
-        pkgsApp.innerHTML = fresh.innerHTML;
-        if (doc.title) document.title = doc.title;
-        if (push) history.pushState({}, '', url);
-      } catch (e) {
-        window.location.href = url;
-      } finally {
-        pkgsApp.style.opacity = '';
-        pkgsApp.style.pointerEvents = '';
-      }
-    }
-
-    pkgsApp.addEventListener('submit', function (e) {
-      var form = e.target.closest('form');
-      if (!form || form.method.toLowerCase() !== 'get') return;
-      e.preventDefault();
-      loadPkgs(buildUrl(form));
-    });
-
-    pkgsApp.addEventListener('click', function (e) {
-      var link = e.target.closest('a');
-      if (!link || link.classList.contains('no-ajax') || link.hasAttribute('target')) return;
-      if (link.origin !== window.location.origin) return;
-      e.preventDefault();
-      loadPkgs(link.href);
-    });
-
-    window.addEventListener('popstate', function () { loadPkgs(window.location.href, false); });
-  })();
 </script>
 {% endblock %}

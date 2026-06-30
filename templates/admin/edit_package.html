@@ -232,7 +232,7 @@
         </div>
         {% if package.image and package.image != 'default_tour.jpg' %}
         <button type="button" class="btn btn-danger btn-sm" style="padding:0.5rem 0.75rem;"
-          onclick="document.getElementById('remove-photo-form').submit();" title="Remove Photo">
+          onclick="document.getElementById('remove-photo-form').requestSubmit();" title="Remove Photo">
           <i class="fas fa-trash"></i>
         </button>
         {% endif %}
@@ -275,7 +275,7 @@
 
         {% if package.flier_image %}
         <button type="button" class="btn btn-danger btn-sm" style="padding:0.5rem 0.75rem;"
-          onclick="document.getElementById('remove-flier-form').submit();" title="Remove Flier">
+          onclick="document.getElementById('remove-flier-form').requestSubmit();" title="Remove Flier">
           <i class="fas fa-trash"></i>
         </button>
         {% endif %}
@@ -344,17 +344,9 @@
 <!-- Remove Photo Form (hidden, triggered by button click) -->
 {% if package.image and package.image != 'default_tour.jpg' %}
 <form method="POST" action="{{ url_for('admin.remove_package_photo', package_id=package.id) }}" id="remove-photo-form"
-  style="display:none;">
+  style="display:none;" data-confirm="Remove this photo? You can upload a new one after.">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 </form>
-<script nonce="{{ csp_nonce() }}">
-  document.getElementById('remove-photo-form').addEventListener('submit', function (e) {
-    if (!confirm('Remove this photo? You can upload a new one after.')) {
-      e.preventDefault();
-    }
-  });
-
-</script>
 {% endif %}
 
 <!-- Remove Flier Form (hidden, triggered by button click) — kept OUTSIDE the
@@ -366,7 +358,7 @@
      package that has a flier image. -->
 {% if package.flier_image %}
 <form method="POST" action="{{ url_for('admin.remove_flier', package_id=package.id) }}" id="remove-flier-form"
-  style="display:none;">
+  style="display:none;" data-confirm="Remove this flier? You can upload a new one after.">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 </form>
 {% endif %}
@@ -517,7 +509,7 @@
   });
   // Delete gallery image via AJAX (avoids nested form issue)
   async function deleteGalleryImage(imageId, btn) {
-    if (!confirm('Remove this photo?')) return;
+    if (!(await adminConfirm('Remove this photo?'))) return;
     try {
       const res = await fetch(`/admin/packages/delete-gallery-image/${imageId}`, {
         method: 'POST',

@@ -210,7 +210,7 @@
       <h3>All Messages</h3>
       <button type="button" id="bulk-delete-btn"
         style="display:none;padding:.4rem .9rem;font-size:.82rem;border-radius:6px;background:rgba(192,57,43,.1);color:var(--danger);border:1px solid rgba(192,57,43,.2);cursor:pointer;"
-        onclick="document.getElementById('bulk-form').submit()">
+        onclick="confirmBulkDeleteMessages()">
         <i class="fas fa-trash"></i> Delete Selected (<span id="selected-count">0</span>)
       </button>
     </div>
@@ -232,8 +232,7 @@
     </div>
 
     {% if messages %}
-    <form method="POST" action="{{ url_for('admin.delete_contact_messages_bulk') }}" id="bulk-form"
-      onsubmit="return confirm('Delete ' + document.querySelectorAll('.msg-check:checked').length + ' message(s)?')">
+    <form method="POST" action="{{ url_for('admin.delete_contact_messages_bulk') }}" id="bulk-form">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
     <table class="messages-table">
       <thead>
@@ -282,7 +281,7 @@
               </button>
               {% endif %}
               <form method="POST" action="{{ url_for('admin.delete_contact_message', message_id=msg.id) }}"
-                onsubmit="return confirm('Delete this message?')">
+                data-confirm="Delete this message?">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <button type="submit" class="btn-sm-danger">
                   <i class="fas fa-trash"></i>
@@ -427,6 +426,16 @@ function fetchAndSwap(url, keepFocus) {
       }
     })
     .catch(err => console.error('Filter fetch failed:', err));
+}
+
+function confirmBulkDeleteMessages() {
+  var count = document.querySelectorAll('.msg-check:checked').length;
+  if (count === 0) return;
+  adminConfirm('Delete ' + count + ' message(s)?').then(function (ok) {
+    if (!ok) return;
+    var form = document.getElementById('bulk-form');
+    if (form.requestSubmit) { form.requestSubmit(); } else { form.submit(); }
+  });
 }
 
 initContactApp();

@@ -84,7 +84,7 @@
         </div>
         {% if visa.requirements_pdf %}
         <button type="button" class="btn btn-danger btn-sm" style="padding:0.5rem 0.75rem;"
-          onclick="document.getElementById('remove-pdf-form').submit();" title="Remove PDF">
+          onclick="document.getElementById('remove-pdf-form').requestSubmit();" title="Remove PDF">
           <i class="fas fa-trash"></i>
         </button>
         {% endif %}
@@ -145,16 +145,8 @@
 <!-- Remove PDF Form (hidden, triggered by button click) -->
 {% if visa.requirements_pdf %}
 <form method="POST" action="{{ url_for('admin.remove_visa_pdf', visa_id=visa.id) }}" id="remove-pdf-form"
-  style="display:none;">
+  style="display:none;" data-confirm="Remove this PDF? You can upload a new one after.">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 </form>
-<script nonce="{{ csp_nonce() }}">
-  document.getElementById('remove-pdf-form').addEventListener('submit', function (e) {
-    if (!confirm('Remove this PDF? You can upload a new one after.')) {
-      e.preventDefault();
-    }
-  });
-
-</script>
 {% endif %}
 {% endblock %}

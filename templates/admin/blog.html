@@ -109,7 +109,7 @@
               <td>
                 <div class="action-group">
                   <a href="{{ url_for('admin.edit_blog', post_id=post.id) }}" class="btn-sm-edit no-ajax"><i class="fas fa-edit"></i> Edit</a>
-                  <form method="POST" action="{{ url_for('admin.delete_blog', post_id=post.id) }}" onsubmit="return confirm('Delete this post?')">
+                  <form method="POST" action="{{ url_for('admin.delete_blog', post_id=post.id) }}" data-confirm="Delete this post?">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <button type="submit" class="btn-sm-danger"><i class="fas fa-trash"></i></button>
                   </form>

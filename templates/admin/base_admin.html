@@ -70,6 +70,80 @@
     color: var(--mist);
   }
 
+  /* ── CUSTOM CONFIRM MODAL (replaces native browser confirm()) ── */
+  .admin-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(36, 40, 38, .55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    animation: adminConfirmFadeIn .15s ease;
+  }
+
+  .admin-confirm-modal {
+    background: var(--white);
+    border-radius: 14px;
+    padding: 1.5rem;
+    width: 300px;
+    max-width: calc(100vw - 2rem);
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, .3);
+    animation: adminConfirmPop .2s cubic-bezier(.34, 1.56, .64, 1);
+  }
+
+  .admin-confirm-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto .9rem;
+    background: rgba(163, 50, 50, .12);
+  }
+
+  .admin-confirm-icon.neutral {
+    background: rgba(23, 89, 104, .12);
+  }
+
+  .admin-confirm-icon i {
+    font-size: 1.3rem;
+    color: #a33232;
+  }
+
+  .admin-confirm-icon.neutral i {
+    color: var(--teal);
+  }
+
+  .admin-confirm-title {
+    font-weight: 600;
+    font-size: .95rem;
+    color: var(--bark);
+    margin-bottom: 1.3rem;
+    line-height: 1.4;
+  }
+
+  .admin-confirm-buttons {
+    display: flex;
+    gap: .65rem;
+  }
+
+  .admin-confirm-buttons .btn {
+    flex: 1;
+  }
+
+  @keyframes adminConfirmFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes adminConfirmPop {
+    from { opacity: 0; transform: scale(.92); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
 </style>
 {% block admin_styles %}{% endblock %}
 {% endblock %}
@@ -144,4 +218,73 @@
     {% block admin_content %}{% endblock %}
   </div>
 </div>
+
+<!-- CUSTOM CONFIRM MODAL (replaces native browser confirm() everywhere in admin) -->
+<div id="admin-confirm-overlay" class="admin-confirm-overlay" hidden>
+  <div class="admin-confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="admin-confirm-title">
+    <div class="admin-confirm-icon" id="admin-confirm-icon">
+      <i class="fas fa-trash" id="admin-confirm-icon-i"></i>
+    </div>
+    <div class="admin-confirm-title" id="admin-confirm-title"></div>
+    <div class="admin-confirm-buttons">
+      <button type="button" class="btn btn-ghost" id="admin-confirm-cancel">Cancel</button>
+      <button type="button" class="btn btn-danger" id="admin-confirm-ok">Delete</button>
+    </div>
+  </div>
+</div>
+<script nonce="{{ csp_nonce() }}">
+  (function () {
+    var overlay = document.getElementById('admin-confirm-overlay');
+    if (!overlay) return;
+    var titleEl = document.getElementById('admin-confirm-title');
+    var iconWrap = document.getElementById('admin-confirm-icon');
+    var iconI = document.getElementById('admin-confirm-icon-i');
+    var okBtn = document.getElementById('admin-confirm-ok');
+    var cancelBtn = document.getElementById('admin-confirm-cancel');
+    var resolvePromise = null;
+
+    function close(result) {
+      overlay.hidden = true;
+      if (resolvePromise) { resolvePromise(result); resolvePromise = null; }
+    }
+
+    okBtn.addEventListener('click', function () { close(true); });
+    cancelBtn.addEventListener('click', function () { close(false); });
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) close(false); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !overlay.hidden) close(false);
+    });
+
+    // window.adminConfirm(message, { danger, confirmLabel }) -> Promise<boolean>
+    // Drop-in async replacement for window.confirm() styled to match the
+    // admin panel instead of the browser's native dialog.
+    window.adminConfirm = function (message, opts) {
+      opts = opts || {};
+      var danger = opts.danger !== false;
+      titleEl.textContent = message;
+      iconWrap.classList.toggle('neutral', !danger);
+      iconI.className = 'fas ' + (danger ? 'fa-trash' : 'fa-circle-question');
+      okBtn.textContent = opts.confirmLabel || (danger ? 'Delete' : 'Confirm');
+      okBtn.className = 'btn ' + (danger ? 'btn-danger' : 'btn-amber');
+      overlay.hidden = false;
+      return new Promise(function (resolve) { resolvePromise = resolve; });
+    };
+
+    // Generic handler: any <form data-confirm="message"> gets intercepted
+    // automatically — no per-page wiring needed. Add data-confirm-danger="false"
+    // for non-destructive confirmations (uses a neutral teal icon instead of red).
+    document.addEventListener('submit', function (e) {
+      var form = e.target;
+      if (!(form instanceof HTMLFormElement) || !form.hasAttribute('data-confirm')) return;
+      if (form.__confirmBypass) { form.__confirmBypass = false; return; }
+      e.preventDefault();
+      var danger = form.dataset.confirmDanger !== 'false';
+      window.adminConfirm(form.dataset.confirm, { danger: danger }).then(function (ok) {
+        if (!ok) return;
+        form.__confirmBypass = true;
+        if (form.requestSubmit) { form.requestSubmit(); } else { form.submit(); }
+      });
+    });
+  })();
+</script>
 {% endblock %}

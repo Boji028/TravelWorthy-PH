@@ -477,7 +477,7 @@
                 </select>
               </form>
               <form method="POST" action="{{ url_for('admin.delete_inquiry', inquiry_id=inq.id) }}"
-                onsubmit="return confirm('Delete this inquiry?')">
+                data-confirm="Delete this inquiry?">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <button type="submit" class="btn-sm-danger" title="Delete inquiry"><i class="fas fa-trash"></i> Delete</button>
               </form>

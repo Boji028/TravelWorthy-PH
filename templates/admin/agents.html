@@ -163,11 +163,11 @@
           <div style="display:flex;gap:.4rem;">
             <a href="{{ url_for('admin.edit_agent', agent_id=agent.id) }}" class="btn-sm-edit"><i
                 class="fas fa-edit"></i></a>
-            <form method="POST" action="{{ url_for('admin.delete_agent', agent_id=agent.id) }}" onsubmit="return confirm({{ (
+            <form method="POST" action="{{ url_for('admin.delete_agent', agent_id=agent.id) }}" data-confirm="{{ (
      'Delete ' ~ agent.name ~ '? They are currently the VISA agent — deleting them will stop visa-inquiry emails from being routed to anyone until you set a new one. Make sure no packages are still assigned to them.'
      if agent.is_visa_agent else
      'Delete ' ~ agent.name ~ '? Make sure no packages are still assigned to them.'
-   ) | tojson }})">
+   ) }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
               <button type="submit" class="btn-sm-danger"><i class="fas fa-trash"></i></button>
             </form>

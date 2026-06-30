@@ -218,9 +218,9 @@
       <div class="testimonial-footer">
         <div class="actions">
           {% if testimonial.images %}
-            <form method="POST" action="{{ url_for('admin.delete_testimonial_photo', testimonial_id=testimonial.id) }}" style="display: inline;">
+            <form method="POST" action="{{ url_for('admin.delete_testimonial_photo', testimonial_id=testimonial.id) }}" style="display: inline;" data-confirm="Remove all photos from this testimonial?">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-              <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Remove all photos from this testimonial?')">
+              <button type="submit" class="btn btn-warning btn-sm">
                 <i class="fas fa-image-slash"></i> Remove Photos
               </button>
             </form>
@@ -321,7 +321,7 @@
     }
   }
 
-  testimonialsApp.addEventListener('click', function (e) {
+  testimonialsApp.addEventListener('click', async function (e) {
     var toggleBtn = e.target.closest('.testimonial-toggle');
     if (toggleBtn) {
       var target = document.getElementById(toggleBtn.getAttribute('data-target'));
@@ -333,7 +333,7 @@
 
     var deleteBtn = e.target.closest('[data-delete-testimonial-url]');
     if (deleteBtn) {
-      if (!confirm('Delete this review permanently?')) return;
+      if (!(await adminConfirm('Delete this review permanently?'))) return;
       var url = deleteBtn.getAttribute('data-delete-testimonial-url');
       var csrfMeta = document.querySelector('meta[name="csrf-token"]');
       fetch(url, {
