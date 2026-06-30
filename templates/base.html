@@ -123,13 +123,35 @@
   {% if messages %}
   <div class="flash-wrap">
     {% for category, message in messages %}
-    <div class="flash {{ category }}">
-      <i
-        class="fas {% if category == 'success' %}fa-check-circle{% elif category == 'danger' %}fa-exclamation-circle{% elif category == 'warning' %}fa-triangle-exclamation{% else %}fa-info-circle{% endif %}"></i>
-      {{ message }}
+    <div class="flash {{ category }}" role="status">
+      <span class="flash-icon">
+        <i
+          class="fas {% if category == 'success' %}fa-check{% elif category == 'danger' %}fa-exclamation{% elif category == 'warning' %}fa-triangle-exclamation{% else %}fa-info{% endif %}"></i>
+      </span>
+      <span class="flash-text">
+        {% if message.startswith('Welcome back, ') %}
+        <span class="flash-accent">Welcome back,</span> <strong>{{ message.replace('Welcome back, ', '') }}</strong>
+        {% else %}
+        {{ message }}
+        {% endif %}
+      </span>
+      <button type="button" class="flash-close" aria-label="Dismiss" data-flash-close>&times;</button>
     </div>
     {% endfor %}
   </div>
+  <script nonce="{{ csp_nonce() }}">
+    (function () {
+      document.querySelectorAll('.flash').forEach(function (el) {
+        function hide() {
+          el.classList.add('flash-hide');
+          el.addEventListener('animationend', function () { el.remove(); }, { once: true });
+        }
+        var closeBtn = el.querySelector('[data-flash-close]');
+        if (closeBtn) closeBtn.addEventListener('click', hide);
+        setTimeout(hide, 6000);
+      });
+    })();
+  </script>
   {% endif %}
   {% endwith %}
 
