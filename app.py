@@ -1,5 +1,4 @@
 import os
-import traceback
 from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
@@ -39,6 +38,9 @@ def create_app():
         database_url = database_url.replace('postgresql://', 'postgresql+psycopg2://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    if 'postgresql' in database_url:
+        # Recycle connections before the server's idle timeout kills them.
+        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_recycle': 280, 'pool_pre_ping': True}
 
     db_type = 'PostgreSQL' if 'postgresql' in database_url else 'SQLite'
     app.logger.info(f'Using {db_type} database')
@@ -84,7 +86,8 @@ def create_app():
     # Session Security
     from datetime import timedelta
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
-    app.config['SESSION_COOKIE_SECURE'] = os.getenv('FLASK_ENV', 'development') == 'production'
+    # Use explicit FLASK_SECURE_COOKIES env var; FLASK_ENV is deprecated in Flask 3.x.
+    app.config['SESSION_COOKIE_SECURE'] = os.getenv('FLASK_SECURE_COOKIES', 'false').lower() == 'true'
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     app.config['SESSION_REFRESH_EACH_REQUEST'] = True
@@ -102,11 +105,11 @@ def create_app():
         'connect-src': ["'self'", "https://api.cloudinary.com"],
         'frame-src':   ["'self'", "https://www.google.com", "https://maps.google.com"],
     }
-    is_production = os.getenv('FLASK_ENV') == 'production'
+    force_https = os.getenv('FLASK_FORCE_HTTPS', 'false').lower() == 'true'
     Talisman(
         app,
         content_security_policy=csp,
-        force_https=is_production
+        force_https=force_https
     )
     # csp_nonce() is still called in templates — return empty string so they don't crash
     app.jinja_env.globals['csp_nonce'] = lambda: ''
@@ -200,8 +203,7 @@ def create_app():
 
     @app.errorhandler(500)
     def server_error(e):
-        traceback.print_exc()
-        print(f"500 ERROR: {e}", flush=True)
+        app.logger.error(f"500 Internal Server Error: {e}", exc_info=True)
         return render_template('500.html'), 500
 
     # ── File-based logging ─────────────────────────────────────
@@ -267,17 +269,26 @@ def create_app():
         from flask_login import current_user
         if current_user.is_authenticated:
             from models.inquiry_notification import InquiryNotification
-            unread_count = InquiryNotification.query.filter_by(
-                user_id=current_user.id, is_read=False
-            ).count()
-            recent = (
+            # Fetch one extra to detect "9+" without a second COUNT query.
+            recent_all = (
                 InquiryNotification.query
                 .filter_by(user_id=current_user.id, is_read=False)
                 .order_by(InquiryNotification.created_at.desc())
-                .limit(8)
+                .limit(9)
                 .all()
             )
+            unread_count = len(recent_all)
+            recent = recent_all[:8]
             return {'unread_notification_count': unread_count, 'recent_notifications': recent}
         return {'unread_notification_count': 0, 'recent_notifications': []}
+
+    @app.template_filter('safe_html')
+    def safe_html_filter(content):
+        """Sanitize HTML with allowed tags — use instead of | safe for user/admin content."""
+        import bleach
+        from markupsafe import Markup
+        ALLOWED = ['b', 'i', 'u', 'em', 'strong', 'p', 'br', 'ul', 'ol', 'li', 'h2', 'h3', 'a', 'blockquote']
+        ATTRS = {'a': ['href', 'title']}
+        return Markup(bleach.clean(content or '', tags=ALLOWED, attributes=ATTRS, strip=True))
     return app   
    

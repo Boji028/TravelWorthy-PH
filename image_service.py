@@ -37,6 +37,18 @@ class ImageUploadService:
         )
 
     @staticmethod
+    def _check_magic_bytes(file) -> bool:
+        """Verify file starts with a known image magic-byte sequence."""
+        header = file.read(12)
+        file.seek(0)
+        return (
+            header[:3] == b'\xff\xd8\xff' or              # JPEG/JPG
+            header[:8] == b'\x89PNG\r\n\x1a\n' or         # PNG
+            header[:6] in (b'GIF87a', b'GIF89a') or       # GIF
+            (header[:4] == b'RIFF' and header[8:12] == b'WEBP')  # WEBP
+        )
+
+    @staticmethod
     def upload_and_compress(file, prefix: str = 'img') -> dict:
         """Upload an image to Cloudinary.
 
@@ -57,6 +69,9 @@ class ImageUploadService:
             raise ImageUploadException(
                 f'Invalid file type. Allowed: {", ".join(ImageUploadService.ALLOWED_EXTENSIONS)}'
             )
+
+        if not ImageUploadService._check_magic_bytes(file):
+            raise ImageUploadException('File content does not match a supported image format.')
 
         # Check file size
         file.seek(0, 2)  # Seek to end
@@ -122,8 +137,8 @@ class ImageUploadService:
             #Remove file extension
             public_id = public_id_with_ext.rsplit('.', 1)[0]
 
-            cloudinary.uploader.destroy(public_id)
-            return True
+            result = cloudinary.uploader.destroy(public_id)
+            return result.get('result') == 'ok'
 
         except Exception as e:
             try:

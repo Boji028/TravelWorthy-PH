@@ -13,6 +13,12 @@ from datetime import date
 import re
 
 
+def _strip(value):
+    """WTForms filter: strip whitespace, safe for None."""
+    return value.strip() if isinstance(value, str) else value
+
+
+
 class StrongPasswordValidator:
     """Custom validator for password requirements (8+ chars, 1 uppercase, 1 digit)."""
 
@@ -33,9 +39,10 @@ class RegisterForm(FlaskForm):
         DataRequired('Name is required'),
         Length(min=2, max=100, message='Name must be 2-100 characters')
     ])
-    email = StringField('Email', validators=[
+    email = StringField('Email', filters=(_strip,), validators=[
         DataRequired('Email is required'),
         Email('Invalid email format'),
+        Length(max=150, message='Email must be 150 characters or fewer'),
     ])
     phone = StringField('Phone', validators=[
         Optional(),
@@ -53,12 +60,14 @@ class RegisterForm(FlaskForm):
 
 class LoginForm(FlaskForm):
     """User login form with validation."""
-    email = StringField('Email', validators=[
+    email = StringField('Email', filters=(_strip,), validators=[
         DataRequired('Email is required'),
-        Email('Invalid email format')
+        Email('Invalid email format'),
+        Length(max=150, message='Email must be 150 characters or fewer'),
     ])
     password = PasswordField('Password', validators=[
-        DataRequired('Password is required')
+        DataRequired('Password is required'),
+        Length(max=128, message='Password must be 128 characters or fewer')
     ])
     remember = BooleanField('Remember Me')
 
@@ -66,7 +75,8 @@ class LoginForm(FlaskForm):
 class ChangePasswordForm(FlaskForm):
     """Change password form with validation."""
     current_password = PasswordField('Current Password', validators=[
-        DataRequired('Current password is required')
+        DataRequired('Current password is required'),
+        Length(max=128, message='Password must be 128 characters or fewer')
     ])
     new_password = PasswordField('New Password', validators=[
         DataRequired('New password is required'),
@@ -84,9 +94,9 @@ class ContactForm(FlaskForm):
         DataRequired('Name is required'),
         Length(min=2, max=100, message='Name must be 2-100 characters')
     ])
-    email = StringField('Email', validators=[
+    email = StringField('Email', filters=(_strip,), validators=[
         DataRequired('Email is required'),
-        Email('Invalid email format')
+        Email('Invalid email format'),
     ])
     subject = StringField('Subject', validators=[
         DataRequired('Subject is required'),
@@ -126,11 +136,11 @@ class InquiryForm(FlaskForm):
         DataRequired('Number of adults is required'),
         NumberRange(min=1, max=100, message='Must be 1-100 adults')
     ])
-    num_children = IntegerField('Number of Children', validators=[
+    num_children = IntegerField('Number of Children', default=0, validators=[
         Optional(),
         NumberRange(min=0, max=100, message='Must be 0-100 children')
     ])
-    num_infants = IntegerField('Number of Infants', validators=[
+    num_infants = IntegerField('Number of Infants', default=0, validators=[
         Optional(),
         NumberRange(min=0, max=100, message='Must be 0-100 infants')
     ])
@@ -140,8 +150,8 @@ class InquiryForm(FlaskForm):
     ])
 
     def validate_travel_date_from(self, field):
-        if field.data and field.data < date.today():
-            raise ValidationError('Departure date must be in the future.')
+        if field.data and field.data <= date.today():
+            raise ValidationError('Departure date must be in the future (not today).')
 
     def validate_travel_date_to(self, field):
         if field.data and self.travel_date_from.data:

@@ -1155,11 +1155,43 @@
           </div>
           {% elif user_reviewed %}
           <div
-            style="background:#EAF3DE;border-radius:var(--radius);padding:1rem;font-size:.88rem;color:#3B6D11;display:flex;align-items:center;gap:.5rem">
-            <i class="fas fa-check-circle"></i> You've already reviewed this package. Thank you!
+            style="background:#EAF3DE;border-radius:var(--radius);padding:.85rem 1rem;font-size:.85rem;color:#3B6D11;display:flex;align-items:center;gap:.5rem;margin-bottom:1rem">
+            <i class="fas fa-check-circle"></i> You've already reviewed this package — update it below anytime.
           </div>
+          <form method="POST" action="{{ url_for('packages.edit_review', package_id=package.id) }}" autocomplete="off">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="rating" id="rating-input" value="{{ user_review.rating }}" />
+            <label
+              style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--mist);display:block;margin-bottom:.4rem">Your
+              rating</label>
+            <div id="star-selector" style="display:flex;gap:5px;margin-bottom:.2rem">
+              <span class="star-opt" data-val="1" style="font-size:1.7rem;cursor:pointer;color:var(--amber)">★</span>
+              <span class="star-opt" data-val="2" style="font-size:1.7rem;cursor:pointer;color:var(--amber)">★</span>
+              <span class="star-opt" data-val="3" style="font-size:1.7rem;cursor:pointer;color:var(--amber)">★</span>
+              <span class="star-opt" data-val="4" style="font-size:1.7rem;cursor:pointer;color:var(--amber)">★</span>
+              <span class="star-opt" data-val="5" style="font-size:1.7rem;cursor:pointer;color:var(--amber)">★</span>
+            </div>
+            <div id="rating-label" style="font-size:.75rem;color:var(--mist);margin-bottom:.85rem"></div>
+            <label
+              style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--mist);display:block;margin-bottom:.4rem">Your
+              review</label>
+            <textarea name="message" class="form-control" rows="3" required id="review-msg"
+              placeholder="What did you love? Any tips for future travelers?"
+              style="resize:vertical;width:100%;margin-bottom:.25rem" oninput="updateReviewChar()">{{ user_review.message }}</textarea>
+            <div
+              style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--mist);margin-bottom:.85rem">
+              <span id="review-char-hint">Be specific — longer reviews are more helpful</span>
+              <span id="review-char-count">0 / 500</span>
+            </div>
+            <button type="submit" class="btn btn-amber" style="width:100%;justify-content:center;padding:.75rem">
+              <i class="fas fa-save"></i> Update Review
+            </button>
+            <div style="text-align:center;margin-top:.5rem;font-size:.72rem;color:var(--mist)">
+              <i class="fas fa-lock" style="color:var(--teal)"></i> Reviews are tied to your account
+            </div>
+          </form>
           {% else %}
-          <form method="POST" action="{{ url_for('bookings.inquire_package', package_id=package.id) }}" autocomplete="off">
+          <form method="POST" action="{{ url_for('packages.submit_review', package_id=package.id) }}" autocomplete="off">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
             <input type="hidden" name="rating" id="rating-input" value="5" />
             <label
@@ -1487,7 +1519,7 @@
   const starLabels = ['', '1 star — Poor', '2 stars — Fair', '3 stars — Good', '4 stars — Great',
     '5 stars — Excellent'
   ];
-  let selectedRating = 5;
+  let selectedRating = ratingInput ? (parseInt(ratingInput.value, 10) || 5) : 5;
 
   function paintStars(val, hover) {
     starOpts.forEach((s, i) => {
@@ -1506,7 +1538,7 @@
         paintStars(selectedRating, false);
       });
     });
-    paintStars(5, false);
+    paintStars(selectedRating, false);
   }
 
   function openFliersModal() {
@@ -1541,6 +1573,7 @@
     if (hint) hint.textContent = n < 50 ? 'Be specific — longer reviews are more helpful' : n < 150 ?
       'Good start! Add more detail...' : 'Great detail! 👍';
   }
+  updateReviewChar();
 
 </script>
 

@@ -272,5 +272,6 @@ class TestTestimonialAdminDelete:
             headers={'X-Requested-With': 'XMLHttpRequest'}
         )
 
-        assert response.status_code == 302
+        assert response.status_code == 403
+        assert response.get_json()['success'] is False
         assert Testimonial.query.get(testimonial_id) is not None

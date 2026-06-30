@@ -7,8 +7,7 @@ cancel_booking) was removed since it was never reachable from the live site —
 every customer-facing path (Plan My Trip, package inquiries, visa requests)
 creates an Inquiry, not a Booking.
 """
-import os
-from flask import Blueprint, render_template, redirect, url_for, flash, current_app
+from flask import Blueprint, render_template, redirect, url_for, flash, current_app, request
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from app import db, limiter
 from models.package import TourPackage
@@ -33,8 +32,8 @@ def plan_my_trip():
                 travel_date_from=form.travel_date_from.data,
                 travel_date_to=form.travel_date_to.data,
                 num_adults=form.num_adults.data,
-                num_children=form.num_children.data,
-                num_infants=form.num_infants.data,
+                num_children=form.num_children.data or 0,
+                num_infants=form.num_infants.data or 0,
                 special_requests=form.special_requests.data,
                 status=InquiryStatus.NEW.value,
                 user_id=current_user.id if current_user.is_authenticated else None
@@ -57,16 +56,9 @@ def plan_my_trip():
                     f"In-app notification failed for inquiry #{inquiry.id}: {notif_err}", exc_info=True
                 )
 
-            try:
-                from email_service import send_admin_new_inquiry, send_inquiry_receipt
-                send_inquiry_receipt(inquiry)
-                admin_email = os.getenv('ADMIN_EMAIL', '')
-                if admin_email:
-                    send_admin_new_inquiry(admin_email, inquiry)
-            except Exception as e:
-                current_app.logger.warning(
-                    f"Email notification failed for inquiry #{inquiry.id}: {e}", exc_info=True
-                )
+            from email_service import send_inquiry_emails_async
+            base_url = current_app.config.get('SITE_URL') or request.host_url
+            send_inquiry_emails_async(inquiry.id, base_url)
 
             return redirect(url_for('main.track_inquiry', reference_number=inquiry.reference_number))
 
@@ -89,12 +81,7 @@ def plan_my_trip():
 @bookings_bp.route('/inquire/<int:package_id>', methods=['GET', 'POST'])
 @limiter.limit("10 per hour", methods=["POST"])
 def inquire_package(package_id):
-    try:
-        package = db.get_or_404(TourPackage, package_id)
-    except Exception as e:
-        current_app.logger.error(f"Error loading package {package_id}: {e}", exc_info=True)
-        flash('Package not found.', 'danger')
-        return redirect(url_for('packages.list_packages'))
+    package = TourPackage.query.filter_by(id=package_id, is_active=True).first_or_404()
 
     form = InquiryForm()
     if form.validate_on_submit():
@@ -107,8 +94,8 @@ def inquire_package(package_id):
                 travel_date_from=form.travel_date_from.data,
                 travel_date_to=form.travel_date_to.data,
                 num_adults=form.num_adults.data,
-                num_children=form.num_children.data,
-                num_infants=form.num_infants.data,
+                num_children=form.num_children.data or 0,
+                num_infants=form.num_infants.data or 0,
                 special_requests=form.special_requests.data,
                 package_id=package_id,
                 status=InquiryStatus.NEW.value,
@@ -131,16 +118,9 @@ def inquire_package(package_id):
                     f"In-app notification failed for inquiry #{inquiry.id}: {notif_err}", exc_info=True
                 )
 
-            try:
-                from email_service import send_admin_new_inquiry, send_inquiry_receipt
-                send_inquiry_receipt(inquiry)
-                admin_email = os.getenv('ADMIN_EMAIL', '')
-                if admin_email:
-                    send_admin_new_inquiry(admin_email, inquiry)
-            except Exception as e:
-                current_app.logger.warning(
-                    f"Email notification failed for inquiry #{inquiry.id}: {e}", exc_info=True
-                )
+            from email_service import send_inquiry_emails_async
+            base_url = current_app.config.get('SITE_URL') or request.host_url
+            send_inquiry_emails_async(inquiry.id, base_url)
 
             return redirect(url_for('main.track_inquiry', reference_number=inquiry.reference_number))
 

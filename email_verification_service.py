@@ -216,9 +216,9 @@ Travel Agency Team"""
                 # Don't reveal if user exists (security)
                 return True, "If an account with this email exists, a verification link has been sent."
             
-            # Check if already verified
+            # Check if already verified — return generic message to avoid account existence leak.
             if user.email_verified:
-                return False, "This email is already verified. Please log in."
+                return True, "If an account with this email exists, a verification link has been sent."
             
             # Create new token
             token = EmailVerificationService.create_verification_token(

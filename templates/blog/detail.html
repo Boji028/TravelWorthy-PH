@@ -288,7 +288,7 @@
     {% endif %}
 
     <div class="article-body">
-      {{ post.content | safe }}
+      {{ post.content | safe_html }}
     </div>
 
     <hr class="article-divider" />

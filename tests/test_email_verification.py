@@ -203,7 +203,7 @@ class TestEmailVerificationService:
         assert success == True
 
     def test_resend_verification_email_already_verified(self, test_user, app):
-        """Test resending to already verified email."""
+        """Already-verified account returns generic message to avoid account-existence leak."""
         test_user.email_verified = True
         test_user.email_verified_at = datetime.now(timezone.utc)
         from app import db
@@ -213,7 +213,9 @@ class TestEmailVerificationService:
             test_user.email
         )
 
-        assert success == False
+        # Returns generic success=True so attackers cannot confirm the account exists.
+        assert success == True
+        assert 'If an account' in message
 
     def test_cleanup_expired_tokens(self, test_user, app):
         """Test cleaning up expired tokens."""

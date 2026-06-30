@@ -68,15 +68,11 @@
 
 {% block admin_content %}
 <div class="admin-header">
-  <div style="display:flex;justify-content:space-between;align-items:flex-end">
-    <div>
-      <h1>{{ continent.flag_emoji or '🌍' }} Add Country</h1>
-      <p>Adding to {{ continent.name }}</p>
-    </div>
-    <a href="{{ url_for('admin.countries', continent_id=continent.id) }}" class="btn btn-ghost">
-      <i class="fas fa-arrow-left"></i> Back
-    </a>
-  </div>
+  <h1>{{ continent.flag_emoji or '🌍' }} Add Country</h1>
+  <p>Adding to {{ continent.name }}</p>
+  <a href="{{ url_for('admin.countries', continent_id=continent.id) }}" class="btn btn-ghost">
+    <i class="fas fa-arrow-left"></i> Back
+  </a>
 </div>
 
 <div style="max-width:600px">

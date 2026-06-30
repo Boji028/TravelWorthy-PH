@@ -10,7 +10,6 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 import bleach
 from sqlalchemy.orm import joinedload
 from sqlalchemy import or_, func
-import csv
 import io
 from app import db, limiter
 from decorators import admin_required
@@ -27,6 +26,7 @@ from models.country import Country
 from models.visa import VisaCountry
 from models.contact import ContactMessage
 from models.testimonial import Testimonial
+from models.inquiry_notification import InquiryNotification
 from models.site_settings import SiteSettings
 from models.email_verification import EmailVerificationToken
 from models.agent import Agent
@@ -264,6 +264,7 @@ def bulk_package_action():
                 skipped += 1
                 continue
             delete_old_image(pkg.image, current_app.config['UPLOAD_FOLDER'])
+            delete_old_image(pkg.flier_image, current_app.config['UPLOAD_FOLDER'])
             db.session.delete(pkg)
             deleted += 1
         db.session.commit()
@@ -344,7 +345,10 @@ def add_package():
             package_type = request.form.get('package_type', 'domestic')
             if package_type not in ('domestic', 'international'):
                 package_type = 'domestic'
-            assigned_agent_id = int(request.form.get('assigned_agent_id')) if request.form.get('assigned_agent_id') else None
+            raw_agent_id = request.form.get('assigned_agent_id')
+            assigned_agent_id = int(raw_agent_id) if raw_agent_id else None
+            if assigned_agent_id and not db.session.get(Agent, assigned_agent_id):
+                assigned_agent_id = None
             package = TourPackage(
                 title=title, description=description, destination=destination,
                 country_id=country_id, duration_days=duration_days, price=price,
@@ -456,7 +460,9 @@ def edit_package(package_id):
             package.longitude    = float(request.form.get('longitude')) if request.form.get('longitude') else None
             package.currency     = request.form.get('currency', 'PHP')
             package.package_type = request.form.get('package_type') if request.form.get('package_type') in ('domestic', 'international') else 'domestic'
-            package.assigned_agent_id = int(request.form.get('assigned_agent_id')) if request.form.get('assigned_agent_id') else None
+            raw_agent_id = request.form.get('assigned_agent_id')
+            agent_id_val = int(raw_agent_id) if raw_agent_id else None
+            package.assigned_agent_id = agent_id_val if (agent_id_val and db.session.get(Agent, agent_id_val)) else None
 
             try:
                 image_file = request.files.get('image')
@@ -613,13 +619,14 @@ def toggle_user_admin(user_id):
         flash('You cannot change your own admin status.', 'danger')
         return redirect(url_for('admin.users'))
 
-    if user.is_admin:
-        other_admins = User.query.filter(User.is_admin == True, User.id != user.id).count()
-        if other_admins == 0:
-            flash('Cannot remove admin — at least one admin account must remain.', 'danger')
-            return redirect(url_for('admin.users'))
-
     user.is_admin = not user.is_admin
+    db.session.flush()
+    # Post-change check is atomic: if two concurrent requests both try to
+    # remove the last admin, one will see 0 remaining after flush and rollback.
+    if not user.is_admin and User.query.filter_by(is_admin=True).count() == 0:
+        db.session.rollback()
+        flash('Cannot remove admin — at least one admin account must remain.', 'danger')
+        return redirect(url_for('admin.users'))
     db.session.commit()
     flash(f'{user.name} is now {"an admin" if user.is_admin else "a customer"}.', 'success')
     return redirect(url_for('admin.users'))
@@ -654,8 +661,9 @@ def delete_user(user_id):
     ContactMessage.query.filter_by(user_id=user.id).update({'user_id': None})
     # Verification tokens are purely functional with no content worth preserving.
     EmailVerificationToken.query.filter_by(user_id=user.id).delete()
-     # PackageReview.user now has cascade='all, delete-orphan' configured, so
+    # PackageReview.user now has cascade='all, delete-orphan' configured, so
     # any reviews by this user are removed automatically when the user is deleted.
+    InquiryNotification.query.filter_by(user_id=user.id).delete()
 
     db.session.delete(user)
     db.session.commit()
@@ -677,76 +685,96 @@ def _inquiry_type(inq) -> str:
     return 'trip'
 
 
+def _get_inquiry_filter_params() -> dict:
+    """Read and normalize the inquiry filter query params.
+
+    Shared by the inquiries list view and the export route so they always
+    agree on what "the current filters" means.
+    """
+    sort = request.args.get('sort', 'desc').strip()
+    return {
+        'status': request.args.get('status', '').strip(),
+        'type': request.args.get('type', '').strip(),
+        'search': request.args.get('search', '').strip(),
+        'month': request.args.get('month', '').strip(),
+        'year': request.args.get('year', '').strip(),
+        'date_from': request.args.get('date_from', '').strip(),
+        'date_to': request.args.get('date_to', '').strip(),
+        'sort': sort if sort in ('asc', 'desc') else 'desc',
+    }
+
+
+def _apply_inquiry_filters(query, params: dict):
+    """Apply type/search/date-range filters. Status is applied separately."""
+    from datetime import timedelta
+
+    if params['type'] == 'package':
+        query = query.filter(Inquiry.package_id.isnot(None))
+    elif params['type'] == 'visa':
+        query = query.filter(Inquiry.package_id.is_(None), Inquiry.special_requests.like('[FOR VISA]%'))
+    elif params['type'] == 'trip':
+        query = query.filter(
+            Inquiry.package_id.is_(None),
+            or_(Inquiry.special_requests.is_(None), ~Inquiry.special_requests.like('[FOR VISA]%'))
+        )
+
+    if params['search']:
+        query = query.filter(or_(Inquiry.name.ilike(f"%{params['search']}%"), Inquiry.email.ilike(f"%{params['search']}%")))
+
+    # Precedence: month quick-pick > year quick-pick > manual from/to range
+    effective_from = None
+    effective_to_exclusive = None
+    if params['month']:
+        try:
+            yr, mo = (int(p) for p in params['month'].split('-'))
+            effective_from = datetime(yr, mo, 1, tzinfo=timezone.utc)
+            effective_to_exclusive = (
+                datetime(yr + 1, 1, 1, tzinfo=timezone.utc) if mo == 12
+                else datetime(yr, mo + 1, 1, tzinfo=timezone.utc)
+            )
+        except (ValueError, AttributeError):
+            pass
+    elif params['year']:
+        try:
+            yr = int(params['year'])
+            effective_from = datetime(yr, 1, 1, tzinfo=timezone.utc)
+            effective_to_exclusive = datetime(yr + 1, 1, 1, tzinfo=timezone.utc)
+        except ValueError:
+            pass
+    else:
+        if params['date_from']:
+            try:
+                effective_from = datetime.strptime(params['date_from'], '%Y-%m-%d').replace(tzinfo=timezone.utc)
+            except ValueError:
+                pass
+        if params['date_to']:
+            try:
+                effective_to_exclusive = datetime.strptime(params['date_to'], '%Y-%m-%d').replace(tzinfo=timezone.utc) + timedelta(days=1)
+            except ValueError:
+                pass
+
+    if effective_from:
+        query = query.filter(Inquiry.created_at >= effective_from)
+    if effective_to_exclusive:
+        query = query.filter(Inquiry.created_at < effective_to_exclusive)
+
+    return query
+
+
 @admin_bp.route('/inquiries')
 @admin_required
 def inquiries():
-    from datetime import timedelta
+    params = _get_inquiry_filter_params()
+    status_filter = params['status']
+    type_filter   = params['type']
+    search        = params['search']
+    month_param   = params['month']
+    year_param    = params['year']
+    date_from     = params['date_from']
+    date_to       = params['date_to']
+    sort          = params['sort']
 
-    status_filter = request.args.get('status', '').strip()
-    type_filter   = request.args.get('type', '').strip()
-    search        = request.args.get('search', '').strip()
-    month_param   = request.args.get('month', '').strip()
-    year_param    = request.args.get('year', '').strip()
-    date_from     = request.args.get('date_from', '').strip()
-    date_to       = request.args.get('date_to', '').strip()
-    sort          = request.args.get('sort', 'desc').strip()
-    if sort not in ('asc', 'desc'):
-        sort = 'desc'
-
-    def apply_filters(q):
-        if type_filter == 'package':
-            q = q.filter(Inquiry.package_id.isnot(None))
-        elif type_filter == 'visa':
-            q = q.filter(Inquiry.package_id.is_(None), Inquiry.special_requests.like('[FOR VISA]%'))
-        elif type_filter == 'trip':
-            q = q.filter(
-                Inquiry.package_id.is_(None),
-                or_(Inquiry.special_requests.is_(None), ~Inquiry.special_requests.like('[FOR VISA]%'))
-            )
-
-        if search:
-            q = q.filter(or_(Inquiry.name.ilike(f'%{search}%'), Inquiry.email.ilike(f'%{search}%')))
-
-        # Precedence: month quick-pick > year quick-pick > manual from/to range
-        effective_from = None
-        effective_to_exclusive = None
-        if month_param:
-            try:
-                yr, mo = (int(p) for p in month_param.split('-'))
-                effective_from = datetime(yr, mo, 1, tzinfo=timezone.utc)
-                effective_to_exclusive = (
-                    datetime(yr + 1, 1, 1, tzinfo=timezone.utc) if mo == 12
-                    else datetime(yr, mo + 1, 1, tzinfo=timezone.utc)
-                )
-            except (ValueError, AttributeError):
-                pass
-        elif year_param:
-            try:
-                yr = int(year_param)
-                effective_from = datetime(yr, 1, 1, tzinfo=timezone.utc)
-                effective_to_exclusive = datetime(yr + 1, 1, 1, tzinfo=timezone.utc)
-            except ValueError:
-                pass
-        else:
-            if date_from:
-                try:
-                    effective_from = datetime.strptime(date_from, '%Y-%m-%d').replace(tzinfo=timezone.utc)
-                except ValueError:
-                    pass
-            if date_to:
-                try:
-                    effective_to_exclusive = datetime.strptime(date_to, '%Y-%m-%d').replace(tzinfo=timezone.utc) + timedelta(days=1)
-                except ValueError:
-                    pass
-
-        if effective_from:
-            q = q.filter(Inquiry.created_at >= effective_from)
-        if effective_to_exclusive:
-            q = q.filter(Inquiry.created_at < effective_to_exclusive)
-
-        return q
-
-    base_query = apply_filters(Inquiry.query)
+    base_query = _apply_inquiry_filters(Inquiry.query, params)
 
     # Pill counts reflect the search/type/date filters but not the status pill itself,
     # so switching status pills doesn't make the other counts disappear.
@@ -856,29 +884,32 @@ def update_inquiry_status(inquiry_id):
     new_status = request.form.get('status')
     valid_inquiry_statuses = [s.value for s in InquiryStatus]
     try:
-        if new_status in valid_inquiry_statuses:
-            old_status = inquiry.status
-            inquiry.status = new_status
+        if new_status not in valid_inquiry_statuses:
+            flash(f'Invalid status. Choose from: {", ".join(valid_inquiry_statuses)}.', 'danger')
+            return redirect(url_for('admin.inquiries'))
 
-            if inquiry.status == InquiryStatus.CONFIRMED.value and old_status != InquiryStatus.CONFIRMED.value:
-                try:
-                    from email_service import send_inquiry_confirmed
-                    send_inquiry_confirmed(inquiry)
-                except Exception as email_err:
-                    current_app.logger.warning(
-                        f'Confirmation email failed for inquiry #{inquiry.id}: {email_err}',
-                        exc_info=True
-                    )
+        old_status = inquiry.status
+        inquiry.status = new_status
 
-            if new_status != old_status:
-                from notification_service import notify_inquiry_status_change
-                notify_inquiry_status_change(
-                    inquiry,
-                    f"Your inquiry to {inquiry.destination} is now {new_status}."
+        if inquiry.status == InquiryStatus.CONFIRMED.value and old_status != InquiryStatus.CONFIRMED.value:
+            try:
+                from email_service import send_inquiry_confirmed
+                send_inquiry_confirmed(inquiry)
+            except Exception as email_err:
+                current_app.logger.warning(
+                    f'Confirmation email failed for inquiry #{inquiry.id}: {email_err}',
+                    exc_info=True
                 )
 
-            db.session.commit()
-            flash(f'Inquiry #{inquiry.id} status updated to {new_status}.', 'success')
+        if new_status != old_status:
+            from notification_service import notify_inquiry_status_change
+            notify_inquiry_status_change(
+                inquiry,
+                f"Your inquiry to {inquiry.destination} is now {new_status}."
+            )
+
+        db.session.commit()
+        flash(f'Inquiry #{inquiry.id} status updated to {new_status}.', 'success')
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f'Error updating inquiry {inquiry_id}: {e}', exc_info=True)
@@ -905,7 +936,9 @@ def reply_to_inquiry(inquiry_id):
         # Step 2: Only update database after email is confirmed sent
         inquiry.admin_response = admin_response
         inquiry.responded_at   = datetime.now(timezone.utc)
-        inquiry.status         = InquiryStatus.CONTACTED.value
+        # Only advance to CONTACTED; never downgrade an already-confirmed/closed inquiry.
+        if inquiry.status in (InquiryStatus.NEW.value, InquiryStatus.CONTACTED.value):
+            inquiry.status = InquiryStatus.CONTACTED.value
 
         from notification_service import notify_inquiry_status_change
         notify_inquiry_status_change(
@@ -1258,6 +1291,14 @@ def remove_continent_image(continent_id):
 @admin_required
 def delete_continent(continent_id):
     continent = db.get_or_404(Continent, continent_id)
+    country_count = Country.query.filter_by(continent_id=continent_id).count()
+    if country_count > 0:
+        flash(
+            f'Cannot delete — {country_count} country/countries are assigned to this region. '
+            'Reassign or delete them first.',
+            'danger'
+        )
+        return redirect(url_for('admin.continents'))
     db.session.delete(continent)
     db.session.commit()
     flash('Continent deleted.', 'info')
@@ -1354,6 +1395,8 @@ def edit_country(country_id):
         country.description = request.form.get('description', '').strip()
         country.is_active   = request.form.get('is_active') == 'on'
 
+        db.session.commit()
+
         try:
             image_file = request.files.get('image')
             if image_file and image_file.filename:
@@ -1363,10 +1406,9 @@ def edit_country(country_id):
                 save_image_metadata(country, upload_result, field_prefix='image')
                 db.session.commit()
         except ImageUploadException as e:
-            flash(f'Image upload failed: {str(e)}', 'danger')
-            return redirect(url_for('admin.edit_country', country_id=country_id))
+            flash(f'Country updated, but image upload failed: {str(e)}', 'warning')
+            return redirect(url_for('admin.countries', continent_id=country.continent_id))
 
-        db.session.commit()
         flash(f'{country.name} updated!', 'success')
         return redirect(url_for('admin.countries', continent_id=country.continent_id))
     return render_template('admin/edit_country.html', country=country)
@@ -1586,6 +1628,9 @@ def visa_add():
             price = float(request.form.get('price')) if request.form.get('price') else None
         except ValueError:
             price = None
+        if price is not None and price < 0:
+            flash('Price cannot be negative.', 'danger')
+            return redirect(url_for('admin.visa_add'))
 
         region          = request.form.get('region', '').strip() or None
         visa_type       = request.form.get('visa_type', '').strip() or None
@@ -1595,6 +1640,9 @@ def visa_add():
             documents_count = int(request.form.get('documents_count')) if request.form.get('documents_count') else None
         except ValueError:
             documents_count = None
+        if documents_count is not None and documents_count < 0:
+            flash('Documents count cannot be negative.', 'danger')
+            return redirect(url_for('admin.visa_add'))
 
         visa = VisaCountry(country_name=country_name, flag_emoji=flag_emoji,
                            requirements_pdf=pdf_filename,
@@ -1615,10 +1663,12 @@ def visa_add():
 def visa_edit(visa_id):
     visa = db.get_or_404(VisaCountry, visa_id)
     if request.method == 'POST':
-        visa.country_name = request.form.get('country_name', '').strip()
-        visa.flag_emoji   = request.form.get('flag_emoji', '').strip()
-        visa.is_active    = request.form.get('is_active') == 'on'
+        country_name = request.form.get('country_name', '').strip()
+        if not country_name:
+            flash('Country name is required.', 'danger')
+            return redirect(url_for('admin.visa_edit', visa_id=visa_id))
 
+        # Validate PDF before mutating any model fields so early returns leave the session clean.
         pdf_file = request.files.get('requirements_pdf')
         if pdf_file and pdf_file.filename:
             if not pdf_file.filename.lower().endswith('.pdf'):
@@ -1642,19 +1692,33 @@ def visa_edit(visa_id):
                 flash(f'PDF upload failed: {str(e)}', 'danger')
                 return redirect(url_for('admin.visa_edit', visa_id=visa_id))
 
+        # Validate numerics before mutating any model fields.
         try:
-            visa.price = float(request.form.get('price')) if request.form.get('price') else None
+            new_price = float(request.form.get('price')) if request.form.get('price') else None
         except ValueError:
-            visa.price = None
-        
+            new_price = None
+        if new_price is not None and new_price < 0:
+            flash('Price cannot be negative.', 'danger')
+            return redirect(url_for('admin.visa_edit', visa_id=visa_id))
+
+        try:
+            new_docs = int(request.form.get('documents_count')) if request.form.get('documents_count') else None
+        except ValueError:
+            new_docs = None
+        if new_docs is not None and new_docs < 0:
+            flash('Documents count cannot be negative.', 'danger')
+            return redirect(url_for('admin.visa_edit', visa_id=visa_id))
+
+        # All validation passed — now mutate the model.
+        visa.country_name    = country_name
+        visa.flag_emoji      = request.form.get('flag_emoji', '').strip()
+        visa.is_active       = request.form.get('is_active') == 'on'
+        visa.price           = new_price
         visa.region          = request.form.get('region', '').strip() or None
         visa.visa_type       = request.form.get('visa_type', '').strip() or None
         visa.processing_time = request.form.get('processing_time', '').strip() or None
         visa.stay_validity   = request.form.get('stay_validity', '').strip() or None
-        try:
-            visa.documents_count = int(request.form.get('documents_count')) if request.form.get('documents_count') else None
-        except ValueError:
-            visa.documents_count = None
+        visa.documents_count = new_docs
 
         db.session.commit()
         flash(f'{visa.country_name} updated!', 'success')
@@ -1803,52 +1867,83 @@ def cloudinary_signature():
         'api_key':    cloudinary.config().api_key,
         'folder':     folder,
     })
-# ── CSV Exports ────────────────────────────────────────────
+# ── Excel Exports ──────────────────────────────────────────
 @admin_bp.route('/inquiries/export')
 @admin_required
 def export_inquiries():
     from flask import Response
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.utils import get_column_letter
 
-    status_filter = request.args.get('status', '')
-    query = Inquiry.query
-    if status_filter:
-        query = query.filter_by(status=status_filter)
+    params = _get_inquiry_filter_params()
+    query = _apply_inquiry_filters(Inquiry.query, params)
+    if params['status']:
+        query = query.filter_by(status=params['status'])
+    query = query.order_by(Inquiry.created_at.asc() if params['sort'] == 'asc' else Inquiry.created_at.desc())
 
-    inquiries = query.order_by(Inquiry.created_at.desc()).all()
+    inquiries = query.all()
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow([
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Inquiries'
+
+    headers = [
         'Reference', 'Name', 'Email', 'Contact', 'Destination',
         'Package', 'Date From', 'Date To', 'Adults', 'Children',
         'Infants', 'Special Requests', 'Status', 'Admin Response',
         'Created At', 'Responded At'
-    ])
+    ]
+    ws.append(headers)
+    header_fill = PatternFill(start_color='175968', end_color='175968', fill_type='solid')
+    header_font = Font(color='FDFAF6', bold=True)
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(vertical='center')
+    ws.freeze_panes = 'A2'
+
     for inq in inquiries:
-        writer.writerow([
+        ws.append([
             inq.reference_number,
             inq.name,
             inq.email,
             inq.contact_number,
             inq.destination,
             inq.package.title if inq.package else '',
-            inq.travel_date_from.strftime('%Y-%m-%d') if inq.travel_date_from else '',
-            inq.travel_date_to.strftime('%Y-%m-%d') if inq.travel_date_to else '',
+            inq.travel_date_from,
+            inq.travel_date_to,
             inq.num_adults,
             inq.num_children,
             inq.num_infants,
             inq.special_requests or '',
             inq.status,
             inq.admin_response or '',
-            inq.created_at.strftime('%Y-%m-%d %H:%M') if inq.created_at else '',
-            inq.responded_at.strftime('%Y-%m-%d %H:%M') if inq.responded_at else '',
+            inq.created_at.replace(tzinfo=None) if inq.created_at else '',
+            inq.responded_at.replace(tzinfo=None) if inq.responded_at else '',
         ])
 
-    output.seek(0)
-    filename = f"inquiries_{status_filter or 'all'}.csv"
+    # Excel date columns: dates as yyyy-mm-dd, timestamps with time included.
+    last_row = ws.max_row
+    for col_idx in (7, 8):
+        for r in range(2, last_row + 1):
+            ws.cell(row=r, column=col_idx).number_format = 'yyyy-mm-dd'
+    for col_idx in (15, 16):
+        for r in range(2, last_row + 1):
+            ws.cell(row=r, column=col_idx).number_format = 'yyyy-mm-dd hh:mm'
+
+    widths = [12, 20, 26, 14, 20, 22, 12, 12, 8, 9, 8, 30, 12, 30, 16, 16]
+    for i, w in enumerate(widths, start=1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    filename = f"inquiries_{params['status'] or 'all'}.xlsx"
     return Response(
-        output.getvalue(),
-        mimetype='text/csv',
+        buffer.getvalue(),
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         headers={'Content-Disposition': f'attachment; filename={filename}'}
     )
 
@@ -1965,8 +2060,13 @@ def add_agent():
 def edit_agent(agent_id):
     agent = db.get_or_404(Agent, agent_id)
     if request.method == 'POST':
-        agent.name = request.form.get('name', '').strip()
-        agent.email = request.form.get('email', '').strip()
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip()
+        if not name or not email:
+            flash('Agent name and email are required.', 'danger')
+            return redirect(url_for('admin.edit_agent', agent_id=agent_id))
+        agent.name = name
+        agent.email = email
         agent.notes = request.form.get('notes', '').strip() or None
         agent.is_active = request.form.get('is_active') == 'on'
         db.session.commit()

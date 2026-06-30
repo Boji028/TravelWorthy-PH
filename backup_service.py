@@ -184,16 +184,20 @@ class BackupService:
 
     def restore_backup(self, backup_file: str) -> Tuple[bool, str]:
         """Restore database from backup file.
-        
+
         Args:
             backup_file: Path to backup file (can be .sql or .sql.gz)
-        
+
         Returns:
             Tuple of (success: bool, message: str)
         """
         try:
-            backup_path = Path(backup_file)
-            
+            backup_path = Path(backup_file).resolve()
+            backup_dir  = self.backup_dir.resolve()
+
+            if not str(backup_path).startswith(str(backup_dir) + os.sep):
+                return False, "Invalid backup path: file must be within the backup directory."
+
             if not backup_path.exists():
                 return False, f"Backup file not found: {backup_file}"
             
@@ -449,8 +453,9 @@ class BackupService:
                 except Exception as e:
                     return False, f"Backup file is corrupted: {str(e)}"
             
-            # Check metadata file
-            metadata_file = f"{backup_path.with_suffix('')}.json"
+            # Check metadata file — strip all suffixes (e.g. .sql.gz → base name).
+            base_name = backup_path.name.split('.')[0]
+            metadata_file = str(backup_path.parent / f"{base_name}.json")
             if not Path(metadata_file).exists():
                 return False, "Backup metadata file missing"
             

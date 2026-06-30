@@ -1,6 +1,6 @@
 """Authentication routes for user registration, login, and profile management."""
 from typing import Union
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, session
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -73,7 +73,8 @@ def register():
                         'Registration successful! Please check your email to verify your account.',
                         'success',
                     )
-                return redirect(url_for('auth.pending_verification', email=new_user.email))
+                session['pending_verification_email'] = new_user.email
+                return redirect(url_for('auth.pending_verification'))
             try:
                 from email_service import send_user_registration_welcome
                 send_user_registration_welcome(new_user)
@@ -128,11 +129,14 @@ def login():
             current_app.logger.info(f"User logged in: {user.email} from IP: {request.remote_addr}")
             
             next_page = request.args.get('next')
-            from urllib.parse import urlparse
-            if next_page:
-                parsed = urlparse(next_page)
-                if parsed.netloc or parsed.scheme:
-                    next_page = None
+            # Reject anything that isn't a plain relative path: must start with /
+            # and must not start with // or contain backslashes (browser open-redirect vectors).
+            if next_page and not (
+                next_page.startswith('/')
+                and not next_page.startswith('//')
+                and '\\' not in next_page
+            ):
+                next_page = None
             
             flash(f'Welcome back, {user.name}!', 'success')
             return redirect(next_page or url_for('main.home'))
@@ -168,6 +172,10 @@ def profile():
                 flash('Current password is incorrect.', 'danger')
                 return redirect(url_for('auth.profile'))
 
+            if check_password_hash(current_user.password, form.new_password.data):
+                flash('New password must be different from your current password.', 'danger')
+                return redirect(url_for('auth.profile'))
+
             current_user.password = generate_password_hash(form.new_password.data)
             db.session.commit()
             current_app.logger.info(f"Password changed for user: {current_user.email}")
@@ -189,7 +197,7 @@ def profile():
 @auth_bp.route('/pending-verification')
 def pending_verification():
     """Show page for user to verify their email."""
-    email = request.args.get('email', '')
+    email = session.pop('pending_verification_email', request.args.get('email', ''))
     return render_template('auth/pending_verification.html', email=email)
 
 
@@ -212,6 +220,7 @@ def verify_email(token):
 
 @auth_bp.route('/resend-verification', methods=['GET', 'POST'])
 @limiter.limit("3 per minute")
+@limiter.limit("5 per hour", key_func=lambda: request.form.get('email', request.remote_addr).lower())
 def resend_verification():
     """Resend verification email to user."""
     if request.method == 'POST':
@@ -219,12 +228,13 @@ def resend_verification():
         if not email:
             flash('Please provide an email address.', 'danger')
             return redirect(url_for('auth.resend_verification'))
-        
+
         success, message = EmailVerificationService.resend_verification_email(email)
         flash(message, 'success' if success else 'danger')
-        
+
         if success:
-            return redirect(url_for('auth.pending_verification', email=email))
-    
+            session['pending_verification_email'] = email
+            return redirect(url_for('auth.pending_verification'))
+
     email = request.args.get('email', '')
     return render_template('auth/resend_verification.html', email=email)

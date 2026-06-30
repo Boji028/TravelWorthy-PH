@@ -119,9 +119,9 @@ class EmailVerificationToken(db.Model):
         if self.is_used:
             return False
         
-        if self.expires_at < datetime.now(timezone.utc):
+        if self._aware(self.expires_at) < datetime.now(timezone.utc):
             return False
-        
+
         return True
 
     def is_expired(self) -> bool:

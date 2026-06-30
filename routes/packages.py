@@ -88,11 +88,11 @@ def package_detail(package_id: int) -> str:
     reviews = PackageReview.query.filter_by(package_id=package_id)\
         .order_by(PackageReview.created_at.desc()).all()
     avg_rating = round(sum(r.rating for r in reviews) / len(reviews), 1) if reviews else None
-    user_reviewed = False
+    user_review = None
     if current_user.is_authenticated:
-        user_reviewed = PackageReview.query.filter_by(
+        user_review = PackageReview.query.filter_by(
             package_id=package_id, user_id=current_user.id
-        ).first() is not None
+        ).first()
     # Build image list for the full-screen photo viewer
     all_images = []
     if package.image and package.image != 'default_tour.jpg':
@@ -102,7 +102,8 @@ def package_detail(package_id: int) -> str:
 
     return render_template('packages/detail.html', package=package,
                            reviews=reviews, avg_rating=avg_rating,
-                           user_reviewed=user_reviewed,
+                           user_reviewed=user_review is not None,
+                           user_review=user_review,
                            all_images=all_images)
                             
                        
@@ -112,8 +113,19 @@ def package_detail(package_id: int) -> str:
 @login_required
 def submit_review(package_id: int):
     from models.package_review import PackageReview
+    from models.inquiry import Inquiry
+    from constants import InquiryStatus
     from app import db
     package = TourPackage.query.filter_by(id=package_id, is_active=True).first_or_404()
+
+    has_booking = Inquiry.query.filter(
+        Inquiry.user_id == current_user.id,
+        Inquiry.package_id == package_id,
+        Inquiry.status.in_([InquiryStatus.CONFIRMED.value, InquiryStatus.CLOSED.value])
+    ).first()
+    if not has_booking:
+        flash('You can only review packages you have a confirmed booking for.', 'warning')
+        return redirect(url_for('packages.package_detail', package_id=package_id) + '#s-reviews')
 
     existing = PackageReview.query.filter_by(
         package_id=package_id, user_id=current_user.id
@@ -123,9 +135,12 @@ def submit_review(package_id: int):
         return redirect(url_for('packages.package_detail', package_id=package_id) + '#s-reviews')
 
     try:
-        rating = max(1, min(5, int(request.form.get('rating', 5))))
+        rating = int(request.form.get('rating', ''))
+        if rating < 1 or rating > 5:
+            raise ValueError('out of range')
     except (ValueError, TypeError):
-        rating = 5
+        flash('Please select a rating between 1 and 5 stars.', 'danger')
+        return redirect(url_for('packages.package_detail', package_id=package_id) + '#s-reviews')
 
     message = request.form.get('message', '').strip()
     if not message:
@@ -141,6 +156,36 @@ def submit_review(package_id: int):
     db.session.add(review)
     db.session.commit()
     flash('Thank you for your review!', 'success')
+    return redirect(url_for('packages.package_detail', package_id=package_id) + '#s-reviews')
+
+
+@packages_bp.route('/<int:package_id>/review/edit', methods=['POST'])
+@login_required
+def edit_review(package_id: int):
+    """Update the current user's existing review for this package."""
+    from models.package_review import PackageReview
+    from app import db
+    review = PackageReview.query.filter_by(
+        package_id=package_id, user_id=current_user.id
+    ).first_or_404()
+
+    try:
+        rating = int(request.form.get('rating', ''))
+        if rating < 1 or rating > 5:
+            raise ValueError('out of range')
+    except (ValueError, TypeError):
+        flash('Please select a rating between 1 and 5 stars.', 'danger')
+        return redirect(url_for('packages.package_detail', package_id=package_id) + '#s-reviews')
+
+    message = request.form.get('message', '').strip()
+    if not message:
+        flash('Please write something in your review.', 'danger')
+        return redirect(url_for('packages.package_detail', package_id=package_id) + '#s-reviews')
+
+    review.rating = rating
+    review.message = message
+    db.session.commit()
+    flash('Your review has been updated.', 'success')
     return redirect(url_for('packages.package_detail', package_id=package_id) + '#s-reviews')
 
 

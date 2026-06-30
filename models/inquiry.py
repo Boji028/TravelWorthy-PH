@@ -61,7 +61,7 @@ class Inquiry(db.Model):
             suffix = secrets.token_hex(4).upper()[:6]
             ref = f"INQ-{suffix}"
             if not db.session.query(
-                Inquiry.query.filter_by(reference_number=ref).exists()
+                db.exists().where(Inquiry.reference_number == ref)
             ).scalar():
                 return ref
         raise RuntimeError("Could not generate a unique inquiry reference number")

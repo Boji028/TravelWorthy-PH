@@ -13,7 +13,7 @@ def blog_list():
     query    = BlogPost.query.filter_by(is_published=True)
     if category:
         query = query.filter_by(category=category)
-    page  = request.args.get('page', 1, type=int)
+    page  = max(1, request.args.get('page', 1, type=int) or 1)
     posts = query.order_by(BlogPost.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
     categories = db.session.query(BlogPost.category).filter(
         BlogPost.category != None,

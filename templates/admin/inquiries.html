@@ -359,8 +359,8 @@
       <span style="font-size:.85rem;color:var(--mist);font-family:'DM Sans',sans-serif">({{ pagination.total }})</span>
     </h3>
     <div class="card-header-actions">
-      <a href="{{ url_for('admin.export_inquiries', status=status_filter) }}" class="btn btn-outline btn-sm no-ajax">
-        <i class="fas fa-download"></i> Export CSV
+      <a href="{{ url_for('admin.export_inquiries', status=status_filter, type=type_filter, search=search, month=month_param, year=year_param, date_from=date_from, date_to=date_to, sort=sort) }}" class="btn btn-outline btn-sm no-ajax">
+        <i class="fas fa-file-excel"></i> Export Excel
       </a>
       <a href="{{ url_for('admin.inquiry_report') }}" target="_blank" rel="noopener" class="btn btn-amber btn-sm">
         <i class="fas fa-print"></i> Print report

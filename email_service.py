@@ -1,6 +1,12 @@
 """Centralised email sending helpers."""
 import os
+import re
 from html import escape as html_escape
+
+
+def _strip_headers(value: str) -> str:
+    """Remove CRLF sequences to prevent SMTP header injection."""
+    return re.sub(r'[\r\n]+', ' ', value).strip()
 
 from flask import current_app, render_template_string, request
 from flask_mail import Message
@@ -19,6 +25,8 @@ def _send(subject: str, recipients: list, body: str, html: str = None, cc: list 
 
 
 def send_contact_autoreply(name: str, to_email: str, subject: str) -> None:
+    name = _strip_headers(name)
+    subject = _strip_headers(subject)
     reply_subject = f"Re: {subject}"
     safe_name = html_escape(name)
     safe_subject = html_escape(subject)
@@ -103,6 +111,8 @@ def send_contact_autoreply(name: str, to_email: str, subject: str) -> None:
 
 
 def send_contact_admin_alert(admin_email: str, name: str, email: str, subject: str, message: str) -> None:
+    name = _strip_headers(name)
+    subject = _strip_headers(subject)
     alert_subject = f"[Admin] New Contact Message: {subject}"
     body = (
         f"New contact form submission.\n\n"
@@ -216,7 +226,7 @@ def send_inquiry_confirmed(inquiry) -> None:
     _send(subject, [inquiry.email], body)
 
 
-def send_inquiry_receipt(inquiry) -> None:
+def send_inquiry_receipt(inquiry, base_url: str = None) -> None:
     """Send immediate receipt confirmation to customer after inquiry submission.
     
     Includes:
@@ -227,9 +237,14 @@ def send_inquiry_receipt(inquiry) -> None:
     
     Args:
         inquiry: The Inquiry object that was just created
+        base_url: Site base URL for the tracking link. Pass this explicitly
+            when calling from outside a request context (e.g. a background
+            thread) — `request.host_url` is only available during a request.
     """
     subject = f"We received your {inquiry.destination} inquiry!"
-    base_url = current_app.config.get('SITE_URL', request.host_url).rstrip('/')
+    if base_url is None:
+        base_url = current_app.config.get('SITE_URL') or request.host_url
+    base_url = base_url.rstrip('/')
     tracking_url = f"{base_url}/inquiry/{inquiry.reference_number}"
     
     body = (
@@ -270,3 +285,37 @@ def send_inquiry_receipt(inquiry) -> None:
         f"✈️ Making Your Travel Dreams Real"
     )
     _send(subject, [inquiry.email], body)
+
+
+def send_inquiry_emails_async(inquiry_id: int, base_url: str) -> None:
+    """Send the customer receipt and admin alert for a new inquiry in a
+    background thread, so the request returns immediately instead of
+    waiting on two sequential SMTP round trips (the actual cause of slow
+    inquiry submissions — each mail.send() opens its own connection to
+    Gmail's SMTP server, which alone can take a couple seconds).
+
+    base_url must be captured from the original request before spawning the
+    thread — Flask's `request` object isn't available outside a request
+    context, which a background thread never has.
+    """
+    from threading import Thread
+    app = current_app._get_current_object()
+
+    def _worker():
+        with app.app_context():
+            from app import db
+            from models.inquiry import Inquiry
+            inquiry = db.session.get(Inquiry, inquiry_id)
+            if not inquiry:
+                return
+            try:
+                send_inquiry_receipt(inquiry, base_url=base_url)
+                admin_email = os.getenv('ADMIN_EMAIL', '')
+                if admin_email:
+                    send_admin_new_inquiry(admin_email, inquiry)
+            except Exception as e:
+                app.logger.warning(
+                    f"Email notification failed for inquiry #{inquiry_id}: {e}", exc_info=True
+                )
+
+    Thread(target=_worker, daemon=True).start()

@@ -56,3 +56,16 @@ def register_commands(app):
             click.echo(
                 f'[{u.id}] {u.email:40s} | admin={u.is_admin} | verified={u.email_verified}'
             )
+
+    @app.cli.command('cleanup-tokens')
+    def cleanup_tokens():
+        """Delete expired email verification tokens.
+
+        Usage:
+            flask cleanup-tokens
+
+        Run this periodically (e.g. daily via cron) to keep the table small.
+        """
+        from email_verification_service import EmailVerificationService
+        deleted = EmailVerificationService.cleanup_expired_tokens()
+        click.echo(f'Deleted {deleted} expired verification token(s).')

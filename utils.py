@@ -1,6 +1,7 @@
 """Image and file utility functions."""
 from typing import Optional, Any, Dict
 import os
+from pathlib import Path
 from PIL import Image
 from flask import current_app
 
@@ -18,9 +19,13 @@ def delete_old_image(image_path: str, upload_folder: str = None) -> None:
             ImageUploadService.delete_image(image_path)
         else:
             if upload_folder:
-                full_path = os.path.join(upload_folder, image_path)
-                if os.path.exists(full_path):
-                    os.remove(full_path)
+                base = Path(upload_folder).resolve()
+                full_path = (base / image_path).resolve()
+                # Reject paths that escape the upload folder.
+                if not str(full_path).startswith(str(base)):
+                    return
+                if full_path.exists():
+                    full_path.unlink()
     except Exception as e:
         import logging
         logging.warning(f'Could not delete image {image_path}: {e}')

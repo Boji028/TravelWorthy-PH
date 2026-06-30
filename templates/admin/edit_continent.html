@@ -68,13 +68,9 @@
 
 {% block admin_content %}
 <div class="admin-header">
-  <div style="display:flex;justify-content:space-between;align-items:flex-end">
-    <div>
-      <h1>Edit Continent</h1>
-      <p>{{ continent.name }}</p>
-    </div>
-    <a href="{{ url_for('admin.continents') }}" class="btn btn-ghost"><i class="fas fa-arrow-left"></i> Back</a>
-  </div>
+  <h1>Edit Continent</h1>
+  <p>{{ continent.name }}</p>
+  <a href="{{ url_for('admin.continents') }}" class="btn btn-ghost"><i class="fas fa-arrow-left"></i> Back</a>
 </div>
 
 <div style="max-width:600px">

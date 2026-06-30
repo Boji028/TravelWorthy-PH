@@ -68,15 +68,11 @@
 
 {% block admin_content %}
 <div class="admin-header">
-  <div style="display:flex;justify-content:space-between;align-items:flex-end">
-    <div>
-      <h1>{{ country.flag_emoji or '🏳️' }} Edit Country</h1>
-      <p>{{ country.name }}</p>
-    </div>
-    <a href="{{ url_for('admin.countries', continent_id=country.continent_id) }}" class="btn btn-ghost">
-      <i class="fas fa-arrow-left"></i> Back
-    </a>
-  </div>
+  <h1>{{ country.flag_emoji or '🏳️' }} Edit Country</h1>
+  <p>{{ country.name }}</p>
+  <a href="{{ url_for('admin.countries', continent_id=country.continent_id) }}" class="btn btn-ghost">
+    <i class="fas fa-arrow-left"></i> Back
+  </a>
 </div>
 
 <div style="max-width:600px">

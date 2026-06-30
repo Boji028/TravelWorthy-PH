@@ -13,13 +13,13 @@ class InquiryNotification(db.Model):
     __tablename__ = 'inquiry_notifications'
 
     id: int = db.Column(db.Integer, primary_key=True)
-    user_id: int = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    user_id: int = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
     inquiry_id: int = db.Column(db.Integer, db.ForeignKey('inquiries.id'), nullable=False, index=True)
     message: str = db.Column(db.String(255), nullable=False)
     is_read: bool = db.Column(db.Boolean, default=False, nullable=False, index=True)
     created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
-    user = db.relationship('User', backref='inquiry_notifications')
+    user = db.relationship('User', backref=db.backref('inquiry_notifications', passive_deletes=True))
     inquiry = db.relationship('Inquiry', backref=db.backref('notifications', cascade='all, delete-orphan')) 
 
     def __repr__(self) -> str:

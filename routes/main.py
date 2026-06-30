@@ -128,6 +128,10 @@ def add_testimonial():
     if len(message) > 500:
         return jsonify(success=False, error='Review must be 500 characters or fewer.'), 400
 
+    existing = Testimonial.query.filter_by(user_id=current_user.id).first()
+    if existing:
+        return jsonify(success=False, error='You have already submitted a testimonial.'), 400
+
     image_files: list = [f for f in request.files.getlist('image') if f and f.filename]
     image_filenames: list = []
     upload_results: list = []
@@ -143,6 +147,11 @@ def add_testimonial():
                     image_filenames.append(upload_result['path'])
                     upload_results.append(upload_result)
                 except ImageUploadException as e:
+                    for orphan in image_filenames:
+                        try:
+                            delete_old_image(orphan, current_app.config['UPLOAD_FOLDER'])
+                        except Exception:
+                            pass
                     return jsonify(success=False, error=str(e)), 400
 
         from models.testimonial_image import TestimonialImage
@@ -197,6 +206,8 @@ def add_testimonial():
 @login_required
 def delete_testimonial(testimonial_id):
     if not current_user.is_admin:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify(success=False, error='Access denied.'), 403
         flash('Access denied.', 'danger')
         return redirect(url_for('main.home'))
 
@@ -204,11 +215,13 @@ def delete_testimonial(testimonial_id):
 
     from models.testimonial_image import TestimonialImage
     images = TestimonialImage.query.filter_by(testimonial_id=testimonial.id).all()
-    for img in images:
-        delete_old_image(img.path, current_app.config['UPLOAD_FOLDER'])
+    image_paths = [img.path for img in images]
 
     db.session.delete(testimonial)
     db.session.commit()
+
+    for path in image_paths:
+        delete_old_image(path, current_app.config['UPLOAD_FOLDER'])
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify(success=True)
@@ -216,6 +229,7 @@ def delete_testimonial(testimonial_id):
     return redirect(url_for('main.reviews'))
 
 @main_bp.route('/inquiry/<reference_number>')
+@limiter.limit("30 per minute")
 def track_inquiry(reference_number):
     """Public inquiry status tracker — no login required.
     The reference number itself is the access token, same trust model
