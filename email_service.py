@@ -334,7 +334,73 @@ def send_inquiry_confirmed(inquiry) -> None:
         f"Sincerely,\nTravel Worthy PH Team\n"
         f"✈️ Making Your Travel Dreams Real"
     )
-    _send(subject, [inquiry.email], body)
+
+    # --- HTML version (original wording, styled layout) ---
+    logo_url = "https://res.cloudinary.com/dbcjxuxhl/image/upload/brand_logo_ip0yv0.png"
+    safe_name = html_escape(inquiry.name)
+    safe_destination = html_escape(inquiry.destination)
+    safe_ref = html_escape(inquiry.reference_number)
+    safe_package_ref = html_escape(package_ref)
+    dates_str = (
+        f"{inquiry.travel_date_from.strftime('%B %d')} — "
+        f"{inquiry.travel_date_to.strftime('%B %d, %Y')}"
+    )
+    pax_str = (
+        f"{inquiry.num_adults} adult(s), {inquiry.num_children} child(ren), "
+        f"{inquiry.num_infants} infant(s)"
+    )
+
+    html = f"""
+    <html><body style="margin:0;padding:0;background:#ffffff;font-family:Arial,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="height:4px;background:#175968;line-height:4px;font-size:0;">&nbsp;</td></tr>
+      <tr><td style="padding:22px 26px;background:#fdfaf6;">
+
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:18px;">
+          <tr>
+            <td><img src="{logo_url}" width="110" style="display:block;" alt="Travel Worthy PH" /></td>
+            <td align="right"><span style="display:inline-block;background:#e1f5ee;color:#085041;font-size:11px;font-weight:bold;padding:4px 10px;border-radius:12px;">&#10003; CONFIRMED</span></td>
+          </tr>
+        </table>
+
+        <p style="font-size:15px;color:#222222;margin:0 0 4px;">Hi {safe_name},</p>
+        <p style="font-size:14px;color:#444444;line-height:1.6;margin:0 0 20px;">Great news! Your trip inquiry{safe_package_ref} to <strong>{safe_destination}</strong> has been confirmed by our team.</p>
+
+        <table style="width:100%;font-size:13px;color:#424142;border-collapse:collapse;background:#ede5d8;border-radius:6px;margin-bottom:20px;">
+          <tr><td style="padding:10px 14px;color:#8fa8a3;width:100px;">Reference</td><td style="padding:10px 14px 10px 0;font-weight:bold;color:#175968;">{safe_ref}</td></tr>
+          <tr><td style="padding:0 14px 10px;color:#8fa8a3;">Destination</td><td style="padding:0 14px 10px 0;">{safe_destination}</td></tr>
+          <tr><td style="padding:0 14px 10px;color:#8fa8a3;">Dates</td><td style="padding:0 14px 10px 0;">{dates_str}</td></tr>
+          <tr><td style="padding:0 14px 10px;color:#8fa8a3;">Travelers</td><td style="padding:0 14px 10px 0;">{pax_str}</td></tr>
+        </table>
+
+        <p style="font-size:13px;color:#444444;line-height:1.6;margin:0 0 20px;">Your slot has been reserved. Our representative will be in touch shortly with the next steps to finalize your booking.</p>
+
+        <p style="font-size:12px;color:#8fa8a3;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px;">Track your inquiry anytime</p>
+        <a href="{tracking_url}" style="display:inline-block;background:#EF8233;color:#ffffff;font-size:13px;font-weight:bold;padding:9px 18px;border-radius:6px;text-decoration:none;margin-bottom:22px;">View inquiry status &rarr;</a>
+
+        <p style="font-size:12px;color:#8fa8a3;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px;">For immediate assistance</p>
+        <table style="width:100%;font-size:13px;color:#424142;border-collapse:collapse;margin-bottom:22px;">
+          <tr><td style="padding:3px 0;color:#8fa8a3;width:110px;">Phone / SMS</td><td>+63 917 824 7128</td></tr>
+          <tr><td style="padding:3px 0;color:#8fa8a3;">Email</td><td><a href="mailto:travelworthyph@gmail.com" style="color:#175968;text-decoration:none;">travelworthyph@gmail.com</a></td></tr>
+          <tr><td style="padding:3px 0;color:#8fa8a3;">Office Hours</td><td>Monday – Sunday | 9:00 AM – 6:00 PM</td></tr>
+        </table>
+
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-top:2px solid #f5a623;padding-top:14px;">
+          <tr>
+            <td>
+              <p style="font-size:13px;color:#444444;margin:0 0 2px;">Sincerely,</p>
+              <p style="font-size:13px;font-weight:bold;color:#222222;margin:0;">Travel Worthy PH Team</p>
+              <p style="font-size:12px;color:#8fa8a3;margin:4px 0 0;">Making Your Travel Dreams Real</p>
+            </td>
+          </tr>
+        </table>
+
+      </td></tr>
+    </table>
+    </body></html>
+    """
+
+    _send(subject, [inquiry.email], body, html=html)
 
 
 def send_inquiry_receipt(inquiry, base_url: str = None) -> None:
@@ -386,6 +452,11 @@ def send_inquiry_receipt(inquiry, base_url: str = None) -> None:
         f"📞 WANT TO START THE CONVERSATION NOW?\n"
         f"You don't have to wait — reach out directly anytime:\n"
         f"  Phone / SMS  : +63 917 824 7128\n"
+        f"                 +63 929 235 4375\n"
+        f"                 +63 930 672 8009\n"
+        f"                 +63 951 920 9456\n"
+        f"                 +63 966 088 7036\n"
+        f"                 +63 918 905 0610\n"
         f"  Email        : travelworthyph@gmail.com\n"
         f"  Facebook     : facebook.com/travelworthyph\n"
         f"  Instagram    : instagram.com/travelworthyph\n"
@@ -457,7 +528,7 @@ def send_inquiry_receipt(inquiry, base_url: str = None) -> None:
         <p style="font-size:12px;color:#8fa8a3;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px;">Want to start the conversation now?</p>
         <p style="font-size:13px;color:#444444;line-height:1.6;margin:0 0 10px;">You don't have to wait — reach out directly anytime:</p>
         <table style="width:100%;font-size:13px;color:#424142;border-collapse:collapse;margin-bottom:22px;">
-          <tr><td style="padding:3px 0;color:#8fa8a3;width:110px;">Phone / SMS</td><td>+63 917 824 7128</td></tr>
+          <tr><td style="padding:3px 0;color:#8fa8a3;width:110px;vertical-align:top;">Phone / SMS</td><td style="padding:3px 0;line-height:1.7;">+63 917 824 7128<br/>+63 929 235 4375<br/>+63 930 672 8009<br/>+63 951 920 9456<br/>+63 966 088 7036<br/>+63 918 905 0610</td></tr>
           <tr><td style="padding:3px 0;color:#8fa8a3;">Email</td><td><a href="mailto:travelworthyph@gmail.com" style="color:#175968;text-decoration:none;">travelworthyph@gmail.com</a></td></tr>
           <tr><td style="padding:3px 0;color:#8fa8a3;">Facebook</td><td><a href="https://facebook.com/travelworthyph" style="color:#175968;text-decoration:none;">facebook.com/travelworthyph</a></td></tr>
           <tr><td style="padding:3px 0;color:#8fa8a3;">Instagram</td><td><a href="https://instagram.com/travelworthyph" style="color:#175968;text-decoration:none;">instagram.com/travelworthyph</a></td></tr>
