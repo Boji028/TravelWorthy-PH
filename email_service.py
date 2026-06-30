@@ -418,15 +418,59 @@ def send_inquiry_receipt(inquiry, base_url: str = None) -> None:
             when calling from outside a request context (e.g. a background
             thread) — `request.host_url` is only available during a request.
     """
-    subject = f"We received your {inquiry.destination} inquiry!"
+    is_visa = bool(
+        not inquiry.package_id
+        and inquiry.special_requests
+        and inquiry.special_requests.startswith('[FOR VISA]')
+    )
+
+    subject = (
+        f"We received your visa inquiry for {inquiry.destination}!"
+        if is_visa else
+        f"We received your {inquiry.destination} inquiry!"
+    )
     if base_url is None:
         base_url = current_app.config.get('SITE_URL') or request.host_url
     base_url = base_url.rstrip('/')
     tracking_url = f"{base_url}/inquiry/{inquiry.reference_number}"
-    
+
+    if is_visa:
+        intro_line = f"Thank you for your interest in securing a visa for {inquiry.destination}!\n\n"
+        response_intro = (
+            f"We typically respond to all visa inquiries within 24-48 business hours.\n"
+            f"Our team will send you:\n"
+        )
+        response_items = (
+            f"  ✓ Document checklist for your application\n"
+            f"  ✓ Application requirements & fees\n"
+            f"  ✓ Estimated processing timeline\n"
+            f"  ✓ Next steps to file your application\n\n"
+        )
+        meantime_items = (
+            f"  • Our travel blog for destination tips\n"
+            f"  • Other destinations we assist with visas for\n\n"
+        )
+    else:
+        intro_line = f"Thank you for your interest in our {inquiry.destination} trip!\n\n"
+        response_intro = (
+            f"We typically respond to all inquiries within 24-48 business hours.\n"
+            f"Our team will send personalized recommendations with:\n"
+        )
+        response_items = (
+            f"  ✓ Tailored package suggestions\n"
+            f"  ✓ Pricing & availability\n"
+            f"  ✓ Visa requirements\n"
+            f"  ✓ Next steps to finalize your booking\n\n"
+        )
+        meantime_items = (
+            f"  • Our travel blog for destination tips\n"
+            f"  • Visa requirements for {inquiry.destination}\n"
+            f"  • Similar package recommendations\n\n"
+        )
+
     body = (
         f"Hi {inquiry.name},\n\n"
-        f"Thank you for your interest in our {inquiry.destination} trip!\n\n"
+        f"{intro_line}"
         f"We've received your inquiry and our team is already reviewing it.\n\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         f"Your Inquiry Reference: {inquiry.reference_number}\n"
@@ -438,17 +482,11 @@ def send_inquiry_receipt(inquiry, base_url: str = None) -> None:
         f"You can check your inquiry status anytime using your reference number:\n"
         f"{tracking_url}\n\n"
         f"⏱️  EXPECTED RESPONSE TIME\n"
-        f"We typically respond to all inquiries within 24-48 business hours.\n"
-        f"Our team will send personalized recommendations with:\n"
-        f"  ✓ Tailored package suggestions\n"
-        f"  ✓ Pricing & availability\n"
-        f"  ✓ Visa requirements\n"
-        f"  ✓ Next steps to finalize your booking\n\n"
+        f"{response_intro}"
+        f"{response_items}"
         f"🌍 IN THE MEANTIME\n"
         f"Feel free to explore:\n"
-        f"  • Our travel blog for destination tips\n"
-        f"  • Visa requirements for {inquiry.destination}\n"
-        f"  • Similar package recommendations\n\n"
+        f"{meantime_items}"
         f"📞 WANT TO START THE CONVERSATION NOW?\n"
         f"You don't have to wait — reach out directly anytime:\n"
         f"  Phone / SMS  : +63 917 824 7128\n"
@@ -481,16 +519,74 @@ def send_inquiry_receipt(inquiry, base_url: str = None) -> None:
         f"{inquiry.num_infants} infant(s)"
     )
 
+    if is_visa:
+        badge_html = (
+            '<td align="right"><span style="display:inline-block;background:#faeeda;'
+            'color:#633806;font-size:11px;font-weight:bold;padding:4px 10px;'
+            'border-radius:12px;">VISA INQUIRY</span></td>'
+        )
+        intro_html = f'Thank you for your interest in securing a visa for {safe_destination}!'
+        response_intro_html = (
+            'We typically respond to all visa inquiries within 24-48 business hours. '
+            'Our team will send you:'
+        )
+        response_rows_html = (
+            '<tr><td style="padding:3px 0;width:18px;color:#175968;">&#10003;</td>'
+            '<td style="padding:3px 0;">Document checklist for your application</td></tr>'
+            '<tr><td style="padding:3px 0;color:#175968;">&#10003;</td>'
+            '<td style="padding:3px 0;">Application requirements &amp; fees</td></tr>'
+            '<tr><td style="padding:3px 0;color:#175968;">&#10003;</td>'
+            '<td style="padding:3px 0;">Estimated processing timeline</td></tr>'
+            '<tr><td style="padding:3px 0;color:#175968;">&#10003;</td>'
+            '<td style="padding:3px 0;">Next steps to file your application</td></tr>'
+        )
+        meantime_rows_html = (
+            '<tr><td style="padding:3px 0;width:14px;color:#8fa8a3;">&bull;</td>'
+            '<td style="padding:3px 0;">Our travel blog for destination tips</td></tr>'
+            '<tr><td style="padding:3px 0;color:#8fa8a3;">&bull;</td>'
+            '<td style="padding:3px 0;">Other destinations we assist with visas for</td></tr>'
+        )
+    else:
+        badge_html = ''
+        intro_html = f'Thank you for your interest in our {safe_destination} trip!'
+        response_intro_html = (
+            'We typically respond to all inquiries within 24-48 business hours. '
+            'Our team will send personalized recommendations with:'
+        )
+        response_rows_html = (
+            '<tr><td style="padding:3px 0;width:18px;color:#175968;">&#10003;</td>'
+            '<td style="padding:3px 0;">Tailored package suggestions</td></tr>'
+            '<tr><td style="padding:3px 0;color:#175968;">&#10003;</td>'
+            '<td style="padding:3px 0;">Pricing &amp; availability</td></tr>'
+            '<tr><td style="padding:3px 0;color:#175968;">&#10003;</td>'
+            '<td style="padding:3px 0;">Visa requirements</td></tr>'
+            '<tr><td style="padding:3px 0;color:#175968;">&#10003;</td>'
+            '<td style="padding:3px 0;">Next steps to finalize your booking</td></tr>'
+        )
+        meantime_rows_html = (
+            '<tr><td style="padding:3px 0;width:14px;color:#8fa8a3;">&bull;</td>'
+            '<td style="padding:3px 0;">Our travel blog for destination tips</td></tr>'
+            f'<tr><td style="padding:3px 0;color:#8fa8a3;">&bull;</td>'
+            f'<td style="padding:3px 0;">Visa requirements for {safe_destination}</td></tr>'
+            '<tr><td style="padding:3px 0;color:#8fa8a3;">&bull;</td>'
+            '<td style="padding:3px 0;">Similar package recommendations</td></tr>'
+        )
+
     html = f"""
     <html><body style="margin:0;padding:0;background:#ffffff;font-family:Arial,sans-serif;">
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr><td style="height:4px;background:#175968;line-height:4px;font-size:0;">&nbsp;</td></tr>
       <tr><td style="padding:22px 26px;background:#fdfaf6;">
 
-        <img src="{logo_url}" width="110" style="display:block;margin-bottom:18px;" alt="Travel Worthy PH" />
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:18px;">
+          <tr>
+            <td><img src="{logo_url}" width="110" style="display:block;" alt="Travel Worthy PH" /></td>
+            {badge_html}
+          </tr>
+        </table>
 
         <p style="font-size:15px;color:#222222;margin:0 0 4px;">Hi {safe_name},</p>
-        <p style="font-size:14px;color:#444444;line-height:1.6;margin:0 0 4px;">Thank you for your interest in our {safe_destination} trip!</p>
+        <p style="font-size:14px;color:#444444;line-height:1.6;margin:0 0 4px;">{intro_html}</p>
         <p style="font-size:14px;color:#444444;line-height:1.6;margin:0 0 20px;">We've received your inquiry and our team is already reviewing it.</p>
 
         <div style="background:#175968;border-radius:6px;padding:14px 18px;margin-bottom:20px;">
@@ -509,20 +605,15 @@ def send_inquiry_receipt(inquiry, base_url: str = None) -> None:
         <a href="{tracking_url}" style="display:inline-block;background:#EF8233;color:#ffffff;font-size:13px;font-weight:bold;padding:9px 18px;border-radius:6px;text-decoration:none;margin-bottom:22px;">View inquiry status &rarr;</a>
 
         <p style="font-size:12px;color:#8fa8a3;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px;">Expected response time</p>
-        <p style="font-size:13px;color:#444444;line-height:1.6;margin:0 0 10px;">We typically respond to all inquiries within 24-48 business hours. Our team will send personalized recommendations with:</p>
+        <p style="font-size:13px;color:#444444;line-height:1.6;margin:0 0 10px;">{response_intro_html}</p>
         <table style="width:100%;font-size:13px;color:#424142;border-collapse:collapse;margin-bottom:20px;">
-          <tr><td style="padding:3px 0;width:18px;color:#175968;">&#10003;</td><td style="padding:3px 0;">Tailored package suggestions</td></tr>
-          <tr><td style="padding:3px 0;color:#175968;">&#10003;</td><td style="padding:3px 0;">Pricing &amp; availability</td></tr>
-          <tr><td style="padding:3px 0;color:#175968;">&#10003;</td><td style="padding:3px 0;">Visa requirements</td></tr>
-          <tr><td style="padding:3px 0;color:#175968;">&#10003;</td><td style="padding:3px 0;">Next steps to finalize your booking</td></tr>
+          {response_rows_html}
         </table>
 
         <p style="font-size:12px;color:#8fa8a3;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px;">In the meantime</p>
         <p style="font-size:13px;color:#444444;line-height:1.6;margin:0 0 10px;">Feel free to explore:</p>
         <table style="width:100%;font-size:13px;color:#424142;border-collapse:collapse;margin-bottom:20px;">
-          <tr><td style="padding:3px 0;width:14px;color:#8fa8a3;">&bull;</td><td style="padding:3px 0;">Our travel blog for destination tips</td></tr>
-          <tr><td style="padding:3px 0;color:#8fa8a3;">&bull;</td><td style="padding:3px 0;">Visa requirements for {safe_destination}</td></tr>
-          <tr><td style="padding:3px 0;color:#8fa8a3;">&bull;</td><td style="padding:3px 0;">Similar package recommendations</td></tr>
+          {meantime_rows_html}
         </table>
 
         <p style="font-size:12px;color:#8fa8a3;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px;">Want to start the conversation now?</p>
