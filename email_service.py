@@ -2,6 +2,7 @@
 import os
 import re
 from html import escape as html_escape
+from urllib.parse import quote_plus
 
 
 def _strip_headers(value: str) -> str:
@@ -155,16 +156,28 @@ def send_inquiry_reply(inquiry, admin_response: str) -> None:
     _send(subject, [inquiry.email], body)
 
 
-def send_admin_new_inquiry(admin_email: str, inquiry) -> None:
+def send_admin_new_inquiry(admin_email: str, inquiry, base_url: str = None) -> None:
     """Notify admin when a customer submits a new inquiry.
 
     If the inquiry's package has an assigned agent, that agent is CC'd
     automatically so they're looped in without Admin needing to forward it.
     Visa inquiries (no package, tagged '[FOR VISA]' in special_requests)
     instead CC the single site-wide visa agent, if one is configured.
+
+    Args:
+        base_url: Site base URL used to build the "View in admin panel" link
+            in the HTML version. Pass this explicitly when calling from
+            outside a request context (e.g. a background thread) —
+            `request.host_url` is only available during a request. If
+            omitted (and unavailable from config/request), the email still
+            sends, just without the button.
     """
     package_ref = f" [{inquiry.package.title}]" if inquiry.package_id and inquiry.package else ""
     subject = f"[Admin] New Inquiry: {inquiry.destination}{package_ref} — {inquiry.reference_number}"
+
+    is_visa = bool(inquiry.special_requests and inquiry.special_requests.startswith('[FOR VISA]'))
+
+    # --- Plain text body (unchanged) ---
     body = (
         f"A new trip inquiry has been submitted.\n\n"
         f"  Reference : {inquiry.reference_number}\n"
@@ -174,17 +187,20 @@ def send_admin_new_inquiry(admin_email: str, inquiry) -> None:
         f"  Destination: {inquiry.destination}\n"
     )
     cc_list = None
+    agent_name = None
     if inquiry.package_id and inquiry.package:
         body += f"  Package   : {inquiry.package.title}\n"
         agent = inquiry.package.assigned_agent
         if agent and agent.is_active and agent.email:
             cc_list = [agent.email]
+            agent_name = agent.name
             body += f"  Assigned agent: {agent.name} (CC'd on this email)\n"
-    elif inquiry.special_requests and inquiry.special_requests.startswith('[FOR VISA]'):
+    elif is_visa:
         from models.agent import Agent
         agent = Agent.query.filter_by(is_visa_agent=True, is_active=True).first()
         if agent and agent.email:
             cc_list = [agent.email]
+            agent_name = agent.name
             body += f"  Inquiry type: Visa request\n"
             body += f"  Assigned agent: {agent.name} (CC'd on this email)\n"
     body += (
@@ -195,7 +211,102 @@ def send_admin_new_inquiry(admin_email: str, inquiry) -> None:
     )
     if inquiry.special_requests:
         body += f"\nSpecial requests:\n{inquiry.special_requests}\n"
-    _send(subject, [admin_email], body, cc=cc_list)
+
+    # --- HTML version (Option A — minimal brand bar) ---
+    if base_url is None:
+        base_url = current_app.config.get('SITE_URL') or (request.host_url if request else None)
+
+    # NOTE: adjust this path/query param if the admin Inquiries page uses a
+    # different search param name — this assumes ?search=<reference_number>
+    # matches the AJAX filter already built into that page.
+    admin_link = None
+    if base_url:
+        admin_link = (
+            f"{base_url.rstrip('/')}/admin/inquiries"
+            f"?search={quote_plus(inquiry.reference_number)}"
+        )
+
+    logo_url = "https://res.cloudinary.com/dbcjxuxhl/image/upload/brand_logo_ip0yv0.png"
+    safe_ref = html_escape(inquiry.reference_number)
+
+    rows = [
+        ("Name", html_escape(inquiry.name)),
+        ("Email", html_escape(inquiry.email)),
+        ("Phone", html_escape(inquiry.contact_number)),
+        ("Destination", html_escape(inquiry.destination)),
+    ]
+    if inquiry.package_id and inquiry.package:
+        rows.append(("Package", html_escape(inquiry.package.title)))
+    elif is_visa:
+        rows.append(("Type", "Visa request"))
+    rows.append((
+        "Dates",
+        f"{inquiry.travel_date_from.strftime('%b %d')} – "
+        f"{inquiry.travel_date_to.strftime('%b %d, %Y')}"
+    ))
+    rows.append((
+        "Pax",
+        f"{inquiry.num_adults} adult(s), {inquiry.num_children} child(ren), "
+        f"{inquiry.num_infants} infant(s)"
+    ))
+
+    rows_html = "".join(
+        f'<tr><td style="padding:5px 0;color:#8fa8a3;width:110px;">{label}</td>'
+        f'<td style="padding:5px 0;">{value}</td></tr>'
+        for label, value in rows
+    )
+
+    agent_badge_html = ""
+    if agent_name:
+        agent_badge_html = (
+            '<div style="margin:14px 0;">'
+            '<span style="display:inline-block;background:#e1f5ee;color:#085041;'
+            'font-size:11px;font-weight:bold;padding:4px 10px;border-radius:12px;">'
+            f"Agent CC'd: {html_escape(agent_name)}</span></div>"
+        )
+
+    special_requests_html = ""
+    if inquiry.special_requests:
+        special_requests_html = (
+            '<div style="background:#ede5d8;border-radius:6px;padding:10px 12px;'
+            'font-size:12px;color:#424142;margin-bottom:18px;">'
+            f"{html_escape(inquiry.special_requests)}</div>"
+        )
+
+    cta_html = ""
+    if admin_link:
+        cta_html = (
+            f'<a href="{admin_link}" style="display:inline-block;background:#EF8233;'
+            'color:#ffffff;font-size:13px;font-weight:bold;padding:10px 20px;'
+            'border-radius:6px;text-decoration:none;">View in admin panel &rarr;</a>'
+        )
+
+    html = f"""
+    <html><body style="margin:0;padding:0;background:#ffffff;font-family:Arial,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="height:4px;background:#175968;line-height:4px;font-size:0;">&nbsp;</td></tr>
+      <tr><td style="padding:20px 24px;background:#fdfaf6;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td><img src="{logo_url}" width="110" style="display:block;" alt="Travel Worthy PH" /></td>
+            <td align="right" style="font-size:11px;color:#8fa8a3;letter-spacing:0.5px;">NEW INQUIRY</td>
+          </tr>
+        </table>
+        <p style="font-size:13px;color:#424142;margin:18px 0 4px;">Reference</p>
+        <p style="font-size:20px;font-weight:bold;color:#175968;margin:0 0 18px;">{safe_ref}</p>
+        <table style="width:100%;font-size:13px;color:#424142;border-collapse:collapse;">
+          {rows_html}
+        </table>
+        {agent_badge_html}
+        {special_requests_html}
+        {cta_html}
+      </td></tr>
+    </table>
+    </body></html>
+    """
+
+    _send(subject, [admin_email], body, html=html, cc=cc_list)
+
 
 def send_inquiry_confirmed(inquiry) -> None:
     """Notify customer when admin confirms their inquiry (slot reserved)."""
@@ -312,7 +423,7 @@ def send_inquiry_emails_async(inquiry_id: int, base_url: str) -> None:
                 send_inquiry_receipt(inquiry, base_url=base_url)
                 admin_email = os.getenv('ADMIN_EMAIL', '')
                 if admin_email:
-                    send_admin_new_inquiry(admin_email, inquiry)
+                    send_admin_new_inquiry(admin_email, inquiry, base_url=base_url)
             except Exception as e:
                 app.logger.warning(
                     f"Email notification failed for inquiry #{inquiry_id}: {e}", exc_info=True
