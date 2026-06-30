@@ -130,7 +130,7 @@
       </span>
       <span class="flash-text">
         {% if message.startswith('Welcome back, ') %}
-        <span class="flash-accent">Welcome back,</span> <strong>{{ message.replace('Welcome back, ', '') }}</strong>
+        <span class="flash-accent">{{ message }}</span>
         {% else %}
         {{ message }}
         {% endif %}
