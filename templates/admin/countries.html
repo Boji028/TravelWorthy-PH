@@ -182,6 +182,7 @@
     </div>
   </div>
 </div>
+<div id="countriesApp">
 <div class="table-card">
   <div class="table-toolbar">
     <h3>All Countries ({{ countries|length }})</h3>
@@ -200,7 +201,6 @@
       <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
       <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
     </select>
-    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Apply</button>
     {% if search or status_filter %}
     <a href="{{ url_for('admin.countries', continent_id=continent.id) }}" class="btn btn-ghost btn-sm">Clear</a>
     {% endif %}
@@ -270,6 +270,7 @@
     </table>
   </div>
 </div>
+</div>
 
 <script nonce="{{ csp_nonce() }}">
   function toggleCountryActive(countryId) {
@@ -291,5 +292,46 @@
       .catch(() => alert('Failed to update status. Please try again.'));
   }
 
+  (function () {
+    var app = document.getElementById('countriesApp');
+    if (!app) return;
+    function buildUrl(form) {
+      var params = new URLSearchParams();
+      for (var i = 0; i < form.elements.length; i++) {
+        var el = form.elements[i];
+        if (!el.name || el.disabled) continue;
+        params.set(el.name, el.value || '');
+      }
+      return (form.getAttribute('action') || window.location.pathname).split('?')[0] + '?' + params.toString();
+    }
+    async function load(url, push) {
+      if (push === undefined) push = true;
+      app.style.opacity = '0.5';
+      app.style.pointerEvents = 'none';
+      try {
+        var res = await fetch(url, { headers: { 'X-Requested-With': 'fetch' } });
+        if (!res.ok) throw new Error(res.status);
+        var doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+        var fresh = doc.getElementById('countriesApp');
+        if (!fresh) { window.location.href = url; return; }
+        app.innerHTML = fresh.innerHTML;
+        if (doc.title) document.title = doc.title;
+        if (push) history.pushState({}, '', url);
+      } catch (e) { window.location.href = url; }
+      finally { app.style.opacity = ''; app.style.pointerEvents = ''; }
+    }
+    app.addEventListener('submit', function (e) {
+      var form = e.target.closest('form');
+      if (!form || form.method.toLowerCase() !== 'get') return;
+      e.preventDefault(); load(buildUrl(form));
+    });
+    app.addEventListener('click', function (e) {
+      var link = e.target.closest('a');
+      if (!link || link.classList.contains('no-ajax') || link.hasAttribute('target')) return;
+      if (link.origin !== window.location.origin) return;
+      e.preventDefault(); load(link.href);
+    });
+    window.addEventListener('popstate', function () { load(window.location.href, false); });
+  })();
 </script>
 {% endblock %}
