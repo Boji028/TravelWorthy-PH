@@ -477,7 +477,7 @@
                 </select>
               </form>
               <form method="POST" action="{{ url_for('admin.delete_inquiry', inquiry_id=inq.id) }}"
-                data-confirm="Delete this inquiry?">
+                class="inq-delete-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <button type="submit" class="btn-sm-danger" title="Delete inquiry"><i class="fas fa-trash"></i> Delete</button>
               </form>
@@ -563,7 +563,29 @@ inquiriesApp.addEventListener('click', function (e) {
   loadInquiries(link.href);
 });
 
-inquiriesApp.addEventListener('submit', function (e) {
+inquiriesApp.addEventListener('submit', async function (e) {
+  if (e.target.classList.contains('inq-delete-form')) {
+    e.preventDefault();
+    const form = e.target;
+    const ok = await adminConfirm('Delete this inquiry?');
+    if (!ok) return;
+    inquiriesApp.style.opacity = '0.5';
+    inquiriesApp.style.pointerEvents = 'none';
+    try {
+      const res = await fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'fetch' }
+      });
+      if (!res.ok) throw new Error('Delete failed: ' + res.status);
+      await loadInquiries(window.location.href, false);
+    } catch (err) {
+      // Something unexpected happened — reload to show accurate state
+      // rather than leaving the admin looking at a stale table.
+      window.location.reload();
+    }
+    return;
+  }
   if (e.target.id !== 'inq-filter-form') return;
   e.preventDefault();
   loadInquiries(buildUrlFromForm(e.target));
