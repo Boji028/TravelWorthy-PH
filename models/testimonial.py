@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 class Testimonial(db.Model):
     __tablename__ = 'testimonials'
+    __test__ = False  # tell pytest this is a model, not a test class
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     message = db.Column(db.Text, nullable=False)

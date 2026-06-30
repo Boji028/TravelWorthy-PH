@@ -1,4 +1,5 @@
 """Tests for public inquiry submission routes (plan_my_trip, inquire_package)."""
+import pytest
 from datetime import date, timedelta
 from models.inquiry import Inquiry
 from models.package import TourPackage
@@ -46,13 +47,13 @@ class TestInquiryEmailIsAsync:
     both notification emails synchronously before returning the redirect.
     Each simulated slow send below stands in for one real SMTP round trip."""
 
+    @pytest.mark.real_async_email
     def test_plan_my_trip_does_not_block_on_slow_email(self, app, client, monkeypatch):
         import time
         import email_service
         app.config['MAIL_USERNAME'] = 'fake@gmail.com'  # so _send() doesn't skip early
 
         monkeypatch.setattr(email_service.mail, 'send', lambda msg: time.sleep(0.5))
-
         start = time.perf_counter()
         response = client.post('/bookings/plan-my-trip', data=_valid_form())
         elapsed = time.perf_counter() - start

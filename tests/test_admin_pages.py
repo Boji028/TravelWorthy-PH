@@ -260,7 +260,7 @@ class TestTestimonialAdminDelete:
         )
         assert response.status_code == 200
         assert response.get_json()['success'] is True
-        assert Testimonial.query.get(testimonial_id) is None
+        assert db.session.get(Testimonial, testimonial_id) is None
 
     def test_non_admin_cannot_delete(self, app, authenticated_client, admin_user):
         from app import db
@@ -274,4 +274,4 @@ class TestTestimonialAdminDelete:
 
         assert response.status_code == 403
         assert response.get_json()['success'] is False
-        assert Testimonial.query.get(testimonial_id) is not None
+        assert db.session.get(Testimonial, testimonial_id) is not None

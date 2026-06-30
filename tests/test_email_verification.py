@@ -307,6 +307,7 @@ class TestEmailVerificationRoutes:
 
     def test_verify_email_route(self, client, test_user, app):
         """Test email verification via route."""
+        from app import db
         from email_verification_service import EmailVerificationService
 
         # Create verification token
@@ -322,7 +323,7 @@ class TestEmailVerificationRoutes:
         assert b'successfully' in response.data.lower()
 
         # Check that user is now verified
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         assert user.email_verified == True
 
     def test_pending_verification_page(self, client):

@@ -72,6 +72,31 @@ def client(app):
     return app.test_client()
 
 
+@pytest.fixture(autouse=True)
+def _stub_async_inquiry_email(request, monkeypatch):
+    """Prevent the background email thread (spawned by
+    send_inquiry_emails_async on every successful inquiry submission) from
+    outliving the per-test database, which the `app` fixture above drops
+    and deletes the moment a test function returns.
+
+    A thread still mid-query when that teardown runs intermittently raises
+    sqlite3.OperationalError: no such table in the background — it never
+    fails the test itself, but shows up as a flaky
+    PytestUnhandledThreadExceptionWarning attributed to whatever test
+    happens to be running when pytest's exception hook fires, regardless
+    of which test actually started the thread.
+
+    Tests that specifically exercise the real async/threaded behavior opt
+    out via the `real_async_email` marker.
+    """
+    if 'real_async_email' in request.keywords:
+        yield
+        return
+    import email_service
+    monkeypatch.setattr(email_service, 'send_inquiry_emails_async', lambda *a, **k: None)
+    yield
+
+
 @pytest.fixture
 def runner(app):
     """CLI runner for testing commands."""
