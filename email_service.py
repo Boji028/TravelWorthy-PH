@@ -338,6 +338,11 @@ def send_inquiry_confirmed(inquiry) -> None:
         f"Track your inquiry anytime:\n{tracking_url}\n\n"
         f"For immediate assistance:\n"
         f"  Phone / SMS  : +63 917 824 7128\n"
+        f"                 +63 929 235 4375\n"
+        f"                 +63 930 672 8009\n"
+        f"                 +63 951 920 9456\n"
+        f"                 +63 966 088 7036\n"
+        f"                 +63 918 905 0610\n"
         f"  Email        : travelworthyph@gmail.com\n"
         f"  Office Hours : Monday – Sunday | 9:00 AM – 6:00 PM\n\n"
         f"Sincerely,\nTravel Worthy PH Team\n"
@@ -389,7 +394,7 @@ def send_inquiry_confirmed(inquiry) -> None:
 
         <p style="font-size:12px;color:#8fa8a3;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px;">For immediate assistance</p>
         <table style="width:100%;font-size:13px;color:#424142;border-collapse:collapse;margin-bottom:22px;">
-          <tr><td style="padding:3px 0;color:#8fa8a3;width:110px;">Phone / SMS</td><td>+63 917 824 7128</td></tr>
+          <tr><td style="padding:3px 0;color:#8fa8a3;width:110px;vertical-align:top;">Phone / SMS</td><td style="padding:3px 0;line-height:1.7;">+63 917 824 7128<br/>+63 929 235 4375<br/>+63 930 672 8009<br/>+63 951 920 9456<br/>+63 966 088 7036<br/>+63 918 905 0610</td></tr>
           <tr><td style="padding:3px 0;color:#8fa8a3;">Email</td><td><a href="mailto:travelworthyph@gmail.com" style="color:#175968;text-decoration:none;">travelworthyph@gmail.com</a></td></tr>
           <tr><td style="padding:3px 0;color:#8fa8a3;">Office Hours</td><td>Monday – Sunday | 9:00 AM – 6:00 PM</td></tr>
         </table>
