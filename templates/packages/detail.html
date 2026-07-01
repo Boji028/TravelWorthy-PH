@@ -780,7 +780,7 @@
 
   .modal-content::-webkit-scrollbar {
     display: none;
-  } 
+  }
 
   @keyframes slideUp {
     from {
@@ -1177,7 +1177,8 @@
               review</label>
             <textarea name="message" class="form-control" rows="3" required id="review-msg"
               placeholder="What did you love? Any tips for future travelers?"
-              style="resize:vertical;width:100%;margin-bottom:.25rem" oninput="updateReviewChar()">{{ user_review.message }}</textarea>
+              style="resize:vertical;width:100%;margin-bottom:.25rem"
+              oninput="updateReviewChar()">{{ user_review.message }}</textarea>
             <div
               style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--mist);margin-bottom:.85rem">
               <span id="review-char-hint">Be specific — longer reviews are more helpful</span>
@@ -1191,7 +1192,8 @@
             </div>
           </form>
           {% else %}
-          <form method="POST" action="{{ url_for('packages.submit_review', package_id=package.id) }}" autocomplete="off">
+          <form method="POST" action="{{ url_for('packages.submit_review', package_id=package.id) }}"
+            autocomplete="off">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
             <input type="hidden" name="rating" id="rating-input" value="5" />
             <label
@@ -1311,8 +1313,8 @@
         src="{{ (package.flier_image | cloudinary_enhance) if package.flier_image.startswith('http') else '/uploads/' + package.flier_image }}"
         alt="{{ package.title }} flier"
         style="width:100%;border-radius:var(--radius);margin-bottom:1.25rem;display:block;" />
-      <a href="{{ package.flier_image if package.flier_image.startswith('http') else '/uploads/' + package.flier_image }}" download
-        target="_blank" class="btn btn-amber"
+      <a href="{{ package.flier_image if package.flier_image.startswith('http') else '/uploads/' + package.flier_image }}"
+        download target="_blank" class="btn btn-amber"
         style="display:inline-flex;align-items:center;gap:.5rem;padding:.72rem 1.75rem;font-size:.88rem;text-decoration:none;margin-bottom:.75rem;">
         <i class="fas fa-download"></i> Download Flier
       </a>
@@ -1388,9 +1390,8 @@
       </div>
       <div class="form-group">
         <label>Travel Destination</label>
-        <input type="text" name="destination" class="form-control" readonly
-               value="{{ package.destination }}"
-               style="background:var(--linen);color:var(--mist);cursor:not-allowed;border-color:transparent;" />
+        <input type="text" name="destination" class="form-control" readonly value="{{ package.destination }}"
+          style="background:var(--linen);color:var(--mist);cursor:not-allowed;border-color:transparent;" />
       </div>
       <div class="form-group">
         <label>Preferred Travel Dates <span style="color:var(--danger)">*</span></label>
@@ -1476,7 +1477,19 @@
     });
   });
 
-  const allPhotos = [{% for img in all_images %}"{{ (img | cloudinary_enhance) if img.startswith('http') else img }}"{% if not loop.last %},{% endif %}{% endfor %}];
+  const allPhotos = [{
+      %
+      for img in all_images %
+    }
+    "{{ (img | cloudinary_enhance) if img.startswith('http') else img }}" {
+      %
+      if not loop.last %
+    }, {
+      % endif %
+    } {
+      % endfor %
+    }
+  ];
   let currentPhoto = 0;
 
   function openPhotoViewer(index) {
@@ -1587,8 +1600,13 @@
     "description": "{{ package.description[:160] | replace('"
     ', '\\
     "') }}",
-    "touristType": "Any"{% if package.image %},
-    "image": "{% if package.image.startswith('http') %}{{ package.image }}{% else %}{{ config['SITE_URL'] }}/uploads/{{ package.image }}{% endif %}"{% endif %},
+    "touristType": "Any" {
+      %
+      if package.image %
+    },
+    "image": "{% if package.image.startswith('http') %}{{ package.image }}{% else %}{{ config['SITE_URL'] }}/uploads/{{ package.image }}{% endif %}" {
+      % endif %
+    },
     "offers": {
       "@type": "Offer",
       "price": "{{ package.price }}",

@@ -371,7 +371,7 @@
   <form method="GET" class="inq-toolbar" id="inq-filter-form">
     <input type="hidden" name="status" value="{{ status_filter }}">
     <input type="hidden" name="sort" value="{{ sort }}">
-    <input type="text" name="search" placeholder="Search name or email" value="{{ search }}">
+    <input type="text" name="search" placeholder="Search name, email or reference no." value="{{ search }}">
     <select name="type">
       <option value="" {% if not type_filter %}selected{% endif %}>All types</option>
       <option value="trip" {% if type_filter == 'trip' %}selected{% endif %}>Plan My Trip</option>

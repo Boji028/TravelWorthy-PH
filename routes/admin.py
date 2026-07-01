@@ -719,7 +719,11 @@ def _apply_inquiry_filters(query, params: dict):
         )
 
     if params['search']:
-        query = query.filter(or_(Inquiry.name.ilike(f"%{params['search']}%"), Inquiry.email.ilike(f"%{params['search']}%")))
+        query = query.filter(or_(
+    Inquiry.name.ilike(f"%{params['search']}%"),
+    Inquiry.email.ilike(f"%{params['search']}%"),
+    Inquiry.reference_number.ilike(f"%{params['search']}%"),
+))
 
     # Precedence: month quick-pick > year quick-pick > manual from/to range
     effective_from = None
