@@ -416,6 +416,87 @@ def send_inquiry_confirmed(inquiry) -> None:
 
     _send(subject, [inquiry.email], body, html=html)
 
+    # Notify admin and CC assigned agent for paper trail.
+    admin_email = os.getenv('ADMIN_EMAIL', '')
+    if admin_email:
+        cc_list = None
+        if inquiry.package_id and inquiry.package:
+            agent = inquiry.package.assigned_agent
+            if agent and agent.is_active and agent.email:
+                cc_list = [agent.email]
+        elif inquiry.special_requests and inquiry.special_requests.startswith('[FOR VISA]'):
+            from models.agent import Agent
+            agent = Agent.query.filter_by(is_visa_agent=True, is_active=True).first()
+            if agent and agent.email:
+                cc_list = [agent.email]
+
+        admin_subject = f"[Admin] Inquiry Confirmed: {inquiry.destination} — {inquiry.reference_number}"
+        admin_body = (
+            f"The following inquiry has been marked as confirmed.\n\n"
+            f"  Reference  : {inquiry.reference_number}\n"
+            f"  Customer   : {inquiry.name} ({inquiry.email})\n"
+            f"  Phone      : {inquiry.contact_number}\n"
+            f"  Destination: {inquiry.destination}\n"
+            f"  Dates      : {inquiry.travel_date_from.strftime('%b %d')} — "
+            f"{inquiry.travel_date_to.strftime('%b %d, %Y')}\n"
+            f"  Pax        : {inquiry.num_adults} adult(s), "
+            f"{inquiry.num_children} child(ren), {inquiry.num_infants} infant(s)\n"
+        )
+        if cc_list:
+            admin_body += f"  Agent CC'd : {cc_list[0]}\n"
+
+        safe_ref = html_escape(inquiry.reference_number)
+        safe_name = html_escape(inquiry.name)
+        safe_destination = html_escape(inquiry.destination)
+        safe_email = html_escape(inquiry.email)
+        safe_phone = html_escape(inquiry.contact_number)
+        logo_url = "https://res.cloudinary.com/dbcjxuxhl/image/upload/brand_logo_ip0yv0.png"
+        dates_str = (
+            f"{inquiry.travel_date_from.strftime('%b %d')} — "
+            f"{inquiry.travel_date_to.strftime('%b %d, %Y')}"
+        )
+        pax_str = (
+            f"{inquiry.num_adults} adult(s), {inquiry.num_children} child(ren), "
+            f"{inquiry.num_infants} infant(s)"
+        )
+        agent_badge_html = ""
+        if cc_list:
+            agent_badge_html = (
+                '<div style="margin:14px 0;">'
+                '<span style="display:inline-block;background:#e1f5ee;color:#085041;'
+                'font-size:11px;font-weight:bold;padding:4px 10px;border-radius:12px;">'
+                f"Agent CC'd: {html_escape(cc_list[0])}</span></div>"
+            )
+
+        admin_html = f"""
+        <html><body style="margin:0;padding:0;background:#ffffff;font-family:Arial,sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr><td style="height:4px;background:#175968;line-height:4px;font-size:0;">&nbsp;</td></tr>
+          <tr><td style="padding:20px 24px;background:#fdfaf6;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td><img src="{logo_url}" width="110" style="display:block;" alt="Travel Worthy PH" /></td>
+                <td align="right"><span style="display:inline-block;background:#e1f5ee;color:#085041;
+                  font-size:11px;font-weight:bold;padding:4px 10px;border-radius:12px;">&#10003; CONFIRMED</span></td>
+              </tr>
+            </table>
+            <p style="font-size:13px;color:#424142;margin:18px 0 4px;">Reference</p>
+            <p style="font-size:20px;font-weight:bold;color:#175968;margin:0 0 18px;">{safe_ref}</p>
+            <table style="width:100%;font-size:13px;color:#424142;border-collapse:collapse;">
+              <tr><td style="padding:5px 0;color:#8fa8a3;width:110px;">Customer</td><td style="padding:5px 0;">{safe_name}</td></tr>
+              <tr><td style="padding:5px 0;color:#8fa8a3;">Email</td><td style="padding:5px 0;">{safe_email}</td></tr>
+              <tr><td style="padding:5px 0;color:#8fa8a3;">Phone</td><td style="padding:5px 0;">{safe_phone}</td></tr>
+              <tr><td style="padding:5px 0;color:#8fa8a3;">Destination</td><td style="padding:5px 0;">{safe_destination}</td></tr>
+              <tr><td style="padding:5px 0;color:#8fa8a3;">Dates</td><td style="padding:5px 0;">{dates_str}</td></tr>
+              <tr><td style="padding:5px 0;color:#8fa8a3;">Pax</td><td style="padding:5px 0;">{pax_str}</td></tr>
+            </table>
+            {agent_badge_html}
+          </td></tr>
+        </table>
+        </body></html>
+        """
+        _send(admin_subject, [admin_email], admin_body, html=admin_html, cc=cc_list)
+
 
 def send_inquiry_receipt(inquiry, base_url: str = None) -> None:
     """Send immediate receipt confirmation to customer after inquiry submission.
