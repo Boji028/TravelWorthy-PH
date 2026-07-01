@@ -139,6 +139,54 @@
 
   .value-card p { font-size: .85rem; color: #3a2e22; line-height: 1.6; }
 
+  /* ── WHY CHOOSE US ── */
+  .why-section { background: var(--sand); padding: 4.5rem 2rem; }
+  .why-inner { max-width: 1080px; margin: 0 auto; }
+  .why-head { text-align: center; max-width: 560px; margin: 0 auto 2.5rem; }
+  .why-eyebrow { font-size: .78rem; letter-spacing: .16em; text-transform: uppercase; color: var(--amber-d); font-weight: 700; display: block; margin-bottom: .6rem; }
+  .why-head h2 { font-family: 'Pogonia', serif; font-weight: 300; font-size: 2.2rem; color: var(--bark); }
+  .why-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; }
+
+  .why-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 1.6rem 1.4rem;
+    box-shadow: 0 2px 12px rgba(58, 46, 34, .07);
+    border-top: 3px solid transparent;
+    transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
+  }
+
+  .why-card:hover { transform: translateY(-5px); box-shadow: 0 14px 32px rgba(58, 46, 34, .14); border-top-color: var(--amber); }
+  .why-card h3 { font-size: 1.05rem; color: var(--bark); margin-bottom: .5rem; font-weight: 700; }
+  .why-card p { font-size: .85rem; color: #6b5f52; line-height: 1.6; }
+
+  @media (max-width: 780px) {
+    .why-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ── OUR SERVICES ── */
+  .services-section { background: var(--white); padding: 4.5rem 2rem; }
+  .services-inner { max-width: 1080px; margin: 0 auto; }
+  .services-eyebrow { font-size: .78rem; letter-spacing: .16em; text-transform: uppercase; color: var(--amber-d); font-weight: 700; display: block; margin-bottom: .6rem; }
+  .services-inner h2 { font-family: 'Pogonia', serif; font-weight: 300; font-size: 2.2rem; color: var(--bark); margin-bottom: 2.25rem; }
+  .service-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border-top: 1px solid var(--sand); }
+
+  .service-item {
+    padding: .95rem 0;
+    border-bottom: 1px solid var(--sand);
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    font-size: .92rem;
+    color: var(--bark);
+  }
+
+  .service-item::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--amber); flex-shrink: 0; }
+
+  @media (max-width: 780px) {
+    .service-list { grid-template-columns: repeat(2, 1fr); }
+  }
+
   /* page-scoped amber override: PDF gold for accreditations and destinations sections only */
   .ab-pdf-scope { --amber: #FAAB1C; }
 
@@ -302,6 +350,54 @@
     </div>
   </div>
 </div>
+
+<section class="why-section">
+  <div class="why-inner">
+    <div class="why-head ab-reveal">
+      <span class="why-eyebrow">Why choose us</span>
+      <h2>Personalized service, reliable partnerships</h2>
+    </div>
+    <div class="why-grid">
+      <div class="why-card ab-reveal">
+        <h3>Tailored to you</h3>
+        <p>Every itinerary is planned around your goals, schedule, and budget - whether it's a family holiday or a full workforce deployment.</p>
+      </div>
+      <div class="why-card ab-reveal ab-d1">
+        <h3>Transparent pricing</h3>
+        <p>Honest recommendations and clear costs at every stage - no surprises, no hidden fees.</p>
+      </div>
+      <div class="why-card ab-reveal ab-d2">
+        <h3>End-to-end support</h3>
+        <p>From documentation to on-ground coordination, our team handles the details so you don't have to.</p>
+      </div>
+      <div class="why-card ab-reveal ab-d2">
+        <h3>Trusted partnerships</h3>
+        <p>We work with trusted airlines, hotels, and transport providers to ensure comfort, safety, and value.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="services-section">
+  <div class="services-inner">
+    <span class="services-eyebrow ab-reveal">What we offer</span>
+    <h2 class="ab-reveal">Our services</h2>
+    <div class="service-list ab-reveal ab-d1">
+      <div class="service-item">Airline ticketing</div>
+      <div class="service-item">Personalized / customized tours</div>
+      <div class="service-item">Corporate &amp; incentive group tours</div>
+      <div class="service-item">Local &amp; international group travel</div>
+      <div class="service-item">Holiday &amp; honeymoon packages</div>
+      <div class="service-item">Pilgrimage tours</div>
+      <div class="service-item">Flight, hotel &amp; land arrangements</div>
+      <div class="service-item">Cruise trips</div>
+      <div class="service-item">Team building &amp; recognition trips</div>
+      <div class="service-item">Visa assistance</div>
+      <div class="service-item">Passport assistance</div>
+      <div class="service-item">Documents assistance (PSA, apostille)</div>
+    </div>
+  </div>
+</section>
 
 <!-- page-scoped amber override: PDF gold (#FAAB1C) for accreditations and destinations only -->
 <div class="ab-pdf-scope">
