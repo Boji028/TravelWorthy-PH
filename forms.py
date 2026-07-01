@@ -41,7 +41,7 @@ class RegisterForm(FlaskForm):
     ])
     email = StringField('Email', filters=(_strip,), validators=[
         DataRequired('Email is required'),
-        Email('Invalid email format'),
+        Email(message='Invalid email format', granular_message=False),
         Length(max=150, message='Email must be 150 characters or fewer'),
     ])
     phone = StringField('Phone', validators=[
@@ -62,7 +62,7 @@ class LoginForm(FlaskForm):
     """User login form with validation."""
     email = StringField('Email', filters=(_strip,), validators=[
         DataRequired('Email is required'),
-        Email('Invalid email format'),
+        Email(message='Invalid email format', granular_message=False),
         Length(max=150, message='Email must be 150 characters or fewer'),
     ])
     password = PasswordField('Password', validators=[
@@ -96,11 +96,11 @@ class ContactForm(FlaskForm):
     ])
     email = StringField('Email', filters=(_strip,), validators=[
         DataRequired('Email is required'),
-        Email('Invalid email format'),
+        Email(message='Invalid email format', granular_message=False),
     ])
     subject = StringField('Subject', validators=[
         DataRequired('Subject is required'),
-        Length(min=5, max=200, message='Subject must be 5-200 characters')
+        Length(min=2, max=200, message='Subject must be 2-200 characters')
     ])
     message = TextAreaField('Message', validators=[
         DataRequired('Message is required'),
@@ -116,7 +116,7 @@ class InquiryForm(FlaskForm):
     ])
     email = StringField('Email', validators=[
         DataRequired('Email is required'),
-        Email('Invalid email format')
+        Email(message='Invalid email format', granular_message=False)
     ])
     contact_number = StringField('Contact Number', validators=[
         DataRequired('Contact number is required'),
