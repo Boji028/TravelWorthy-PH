@@ -38,71 +38,49 @@ def send_contact_autoreply(name: str, to_email: str, subject: str) -> None:
         "received your inquiry and a representative will respond within 24 hours.\n\n"
         "For immediate assistance:\n"
         "  Phone / SMS  : +63 917 824 7128\n"
+        "                 +63 929 235 4375\n"
+        "                 +63 930 672 8009\n"
+        "                 +63 951 920 9456\n"
+        "                 +63 966 088 7036\n"
+        "                 +63 918 905 0610\n"
         "  Email        : travelworthyph@gmail.com\n"
         "  Facebook     : facebook.com/travelworthyph\n"
         "  Office Hours : Monday – Sunday | 9:00 AM – 6:00 PM\n\n"
-        "Sincerely,\nTravel Worthy PH"
+        "Sincerely,\nTravel Worthy PH Team"
     )
     html = f"""
     <html><body style="margin:0;padding:0;background:#ffffff;font-family:Arial,sans-serif;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="padding:24px;">
-      <tr><td>
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="height:4px;background:#175968;line-height:4px;font-size:0;">&nbsp;</td></tr>
+      <tr><td style="padding:22px 26px;background:#fdfaf6;">
 
-        <!-- BODY -->
-        <p style="font-size:14px;color:#222222;margin:0 0 14px;">Dear <strong>{safe_name}</strong>,</p>
-        <p style="font-size:14px;color:#444444;line-height:1.7;margin:0 0 14px;">
+        <img src="{logo_url}" width="110" style="display:block;margin-bottom:18px;" alt="Travel Worthy PH" />
+
+        <p style="font-size:15px;color:#222222;margin:0 0 4px;">Dear <strong>{safe_name}</strong>,</p>
+        <p style="font-size:14px;color:#444444;line-height:1.6;margin:0 0 4px;">
           Thank you for contacting <strong>Travel Worthy PH</strong>. This is to confirm that we have
           received your inquiry regarding <em>"{safe_subject}"</em> and a representative will
           respond to you within <strong>24 hours</strong>.
         </p>
-        <p style="font-size:14px;color:#444444;line-height:1.7;margin:0 0 10px;">
+        <p style="font-size:14px;color:#444444;line-height:1.6;margin:0 0 14px;">
           For immediate assistance, you may reach us through any of the following:
         </p>
-        <table cellpadding="0" cellspacing="0" style="margin:0 0 20px 8px;">
-          <tr><td style="font-size:14px;color:#444444;padding:3px 0;">📞&nbsp; <strong>Phone / SMS</strong>&nbsp;:&nbsp; +63 917 824 7128</td></tr>
-          <tr><td style="font-size:14px;color:#444444;padding:3px 0;">📧&nbsp; <strong>Email</strong>&nbsp;:&nbsp; travelworthyph@gmail.com</td></tr>
-          <tr><td style="font-size:14px;color:#444444;padding:3px 0;">📘&nbsp; <strong>Facebook</strong>&nbsp;:&nbsp; <a href="https://facebook.com/travelworthyph" style="color:#175968;">facebook.com/travelworthyph</a></td></tr>
-          <tr><td style="font-size:14px;color:#444444;padding:3px 0;">🕐&nbsp; <strong>Office Hours</strong>&nbsp;:&nbsp; Monday – Sunday | 9:00 AM – 6:00 PM</td></tr>
+        <table style="width:100%;font-size:13px;color:#424142;border-collapse:collapse;margin-bottom:22px;">
+          <tr><td style="padding:3px 0;color:#8fa8a3;width:110px;vertical-align:top;">Phone / SMS</td><td style="padding:3px 0;line-height:1.7;">+63 917 824 7128<br/>+63 929 235 4375<br/>+63 930 672 8009<br/>+63 951 920 9456<br/>+63 966 088 7036<br/>+63 918 905 0610</td></tr>
+          <tr><td style="padding:3px 0;color:#8fa8a3;">Email</td><td><a href="mailto:travelworthyph@gmail.com" style="color:#175968;text-decoration:none;">travelworthyph@gmail.com</a></td></tr>
+          <tr><td style="padding:3px 0;color:#8fa8a3;">Facebook</td><td><a href="https://facebook.com/travelworthyph" style="color:#175968;text-decoration:none;">facebook.com/travelworthyph</a></td></tr>
+          <tr><td style="padding:3px 0;color:#8fa8a3;">Office Hours</td><td>Monday – Sunday | 9:00 AM – 6:00 PM</td></tr>
         </table>
-        <p style="font-size:14px;color:#444444;margin:0 0 4px;">Sincerely,</p>
-        <p style="font-size:14px;color:#444444;margin:0 0 28px;"><strong>Travel Worthy PH Team</strong></p>
 
-        <!-- SIGNATURE -->
-        <table width="100%" cellpadding="0" cellspacing="0" style="border-top:2px solid #f5a623;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-top:2px solid #f5a623;padding-top:14px;">
           <tr>
-            <td width="160" style="background:#ffffff;padding:10px 12px;vertical-align:middle;border:1px solid #eeeeee;">
-              <img src="{logo_url}" width="140" height="60"
-                style="display:block;object-fit:contain;" alt="Travel Worthy PH" />
-            </td>
-            <td style="padding:12px 0 12px 16px;vertical-align:middle;">
-              <div style="font-size:13px;font-weight:bold;color:#222222;">Admin | Representative</div>
-              <div style="font-size:12px;color:#555555;margin-top:3px;">(+63) 936 882 7966</div>
-              <div style="margin-top:4px;">
-                <a href="https://www.facebook.com/jhakie.travelworthyph/"
-                  style="font-size:12px;color:#1a5276;text-decoration:none;">
-                  https://www.facebook.com/jhakie.travelworthyph/
-                </a>
-              </div>
-              <div style="margin-top:3px;">
-                <a href="https://www.google.com/maps/place/WalterMart+Batangas/@13.7637654,121.0538241,17z"
-                  style="font-size:12px;color:#555555;text-decoration:none;">
-                  3F Waltermart Batangas, Batangas City, Philippines 4200
-                </a>
-              </div>
+            <td>
+              <p style="font-size:13px;color:#444444;margin:0 0 2px;">Sincerely,</p>
+              <p style="font-size:13px;font-weight:bold;color:#222222;margin:0;">Travel Worthy PH Team</p>
+              <p style="font-size:12px;color:#8fa8a3;margin:4px 0 0;">Making Your Travel Dreams Real</p>
             </td>
           </tr>
         </table>
-
-        <!-- DISCLAIMER -->
-        <p style="font-size:10px;color:#999999;line-height:1.6;margin-top:12px;
-                  border-top:1px solid #eeeeee;padding-top:10px;">
-          This e-mail message (including attachments, if any) is intended for the use of the individual
-          or the entity to whom it is addressed and may contain information that is privileged, proprietary,
-          confidential and exempt from disclosure. If you are not the intended recipient, you are notified
-          that any dissemination, distribution or copying of this communication is strictly prohibited.
-          If you have received this communication in error, please notify the sender and delete this
-          e-mail message immediately.
-        </p>
 
       </td></tr>
     </table>
@@ -121,7 +99,36 @@ def send_contact_admin_alert(admin_email: str, name: str, email: str, subject: s
         f"  Subject : {subject}\n\n"
         f"  Message :\n{message}\n"
     )
-    _send(alert_subject, [admin_email], body)
+    safe_name = html_escape(name)
+    safe_email = html_escape(email)
+    safe_subject = html_escape(subject)
+    safe_message = html_escape(message)
+    logo_url = "https://res.cloudinary.com/dbcjxuxhl/image/upload/brand_logo_ip0yv0.png"
+    html = f"""
+    <html><body style="margin:0;padding:0;background:#ffffff;font-family:Arial,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="height:4px;background:#175968;line-height:4px;font-size:0;">&nbsp;</td></tr>
+      <tr><td style="padding:20px 24px;background:#fdfaf6;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:18px;">
+          <tr>
+            <td><img src="{logo_url}" width="110" style="display:block;" alt="Travel Worthy PH" /></td>
+            <td align="right" style="font-size:11px;color:#8fa8a3;letter-spacing:0.5px;">NEW MESSAGE</td>
+          </tr>
+        </table>
+        <table style="width:100%;font-size:13px;color:#424142;border-collapse:collapse;margin-bottom:16px;">
+          <tr><td style="padding:5px 0;color:#8fa8a3;width:80px;">From</td><td style="padding:5px 0;">{safe_name}</td></tr>
+          <tr><td style="padding:5px 0;color:#8fa8a3;">Email</td><td style="padding:5px 0;"><a href="mailto:{safe_email}" style="color:#175968;text-decoration:none;">{safe_email}</a></td></tr>
+          <tr><td style="padding:5px 0;color:#8fa8a3;">Subject</td><td style="padding:5px 0;">{safe_subject}</td></tr>
+        </table>
+        <div style="background:#ede5d8;border-radius:6px;padding:10px 14px;font-size:13px;color:#424142;margin-bottom:18px;line-height:1.6;">
+          {safe_message}
+        </div>
+        <a href="mailto:{safe_email}" style="display:inline-block;background:#EF8233;color:#ffffff;font-size:13px;font-weight:bold;padding:10px 20px;border-radius:6px;text-decoration:none;">Reply to sender &rarr;</a>
+      </td></tr>
+    </table>
+    </body></html>
+    """
+    _send(alert_subject, [admin_email], body, html=html)
 
 
 def send_user_registration_welcome(user) -> None:
