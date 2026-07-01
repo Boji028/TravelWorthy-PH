@@ -310,14 +310,23 @@ def send_admin_new_inquiry(admin_email: str, inquiry, base_url: str = None) -> N
 
 def send_inquiry_confirmed(inquiry) -> None:
     """Notify customer when admin confirms their inquiry (slot reserved)."""
+    is_visa = bool(
+        not inquiry.package_id
+        and inquiry.special_requests
+        and inquiry.special_requests.startswith('[FOR VISA]')
+    )
     package_ref = f" for {inquiry.package.title}" if inquiry.package_id and inquiry.package else ""
-    subject = f"Your {inquiry.destination} inquiry has been confirmed! — {inquiry.reference_number}"
+    subject = (
+        f"Your visa inquiry for {inquiry.destination} has been confirmed! — {inquiry.reference_number}"
+        if is_visa else
+        f"Your {inquiry.destination} inquiry has been confirmed! — {inquiry.reference_number}"
+    )
     base_url = current_app.config.get('SITE_URL', request.host_url).rstrip('/')
     tracking_url = f"{base_url}/inquiry/{inquiry.reference_number}"
     body = (
         f"Hi {inquiry.name},\n\n"
-        f"Great news! Your trip inquiry{package_ref} to {inquiry.destination} "
-        f"has been confirmed by our team.\n\n"
+        f"Great news! Your {'visa inquiry for' if is_visa else f'trip inquiry{package_ref} to'} "
+        f"{inquiry.destination} has been confirmed by our team.\n\n"
         f"  Reference  : {inquiry.reference_number}\n"
         f"  Destination: {inquiry.destination}\n"
         f"  Dates      : {inquiry.travel_date_from.strftime('%B %d')} — "
@@ -364,7 +373,7 @@ def send_inquiry_confirmed(inquiry) -> None:
         </table>
 
         <p style="font-size:15px;color:#222222;margin:0 0 4px;">Hi {safe_name},</p>
-        <p style="font-size:14px;color:#444444;line-height:1.6;margin:0 0 20px;">Great news! Your trip inquiry{safe_package_ref} to <strong>{safe_destination}</strong> has been confirmed by our team.</p>
+        <p style="font-size:14px;color:#444444;line-height:1.6;margin:0 0 20px;">Great news! Your {'visa inquiry for' if is_visa else f'trip inquiry{safe_package_ref} to'} <strong>{safe_destination}</strong> has been confirmed by our team.</p>
 
         <table style="width:100%;font-size:13px;color:#424142;border-collapse:collapse;background:#ede5d8;border-radius:6px;margin-bottom:20px;">
           <tr><td style="padding:10px 14px;color:#8fa8a3;width:100px;">Reference</td><td style="padding:10px 14px 10px 0;font-weight:bold;color:#175968;">{safe_ref}</td></tr>
