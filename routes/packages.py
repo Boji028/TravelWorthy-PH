@@ -2,6 +2,7 @@
 from typing import Union, Dict, Any
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
+from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 
 from app import db, limiter
@@ -87,7 +88,9 @@ def package_detail(package_id: int) -> str:
     package = TourPackage.query.filter_by(id=package_id, is_active=True).first_or_404()
     reviews = PackageReview.query.filter_by(package_id=package_id)\
         .order_by(PackageReview.created_at.desc()).all()
-    avg_rating = round(sum(r.rating for r in reviews) / len(reviews), 1) if reviews else None
+    avg_result = db.session.query(func.avg(PackageReview.rating))\
+        .filter_by(package_id=package_id).scalar()
+    avg_rating = round(float(avg_result), 1) if avg_result else None
     user_review = None
     if current_user.is_authenticated:
         user_review = PackageReview.query.filter_by(

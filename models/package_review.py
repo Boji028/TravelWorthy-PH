@@ -5,11 +5,11 @@ class PackageReview(db.Model):
     __tablename__ = 'package_reviews'
 
     id         = db.Column(db.Integer, primary_key=True)
-    package_id = db.Column(db.Integer, db.ForeignKey('tour_packages.id', ondelete='CASCADE'), nullable=False)
+    package_id = db.Column(db.Integer, db.ForeignKey('tour_packages.id', ondelete='CASCADE'), nullable=False, index=True)
     user_id    = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     rating     = db.Column(db.Integer, nullable=False)
     message    = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
     package = db.relationship('TourPackage', backref=db.backref('reviews', cascade='all, delete-orphan'))
     user    = db.relationship('User', backref=db.backref('package_reviews', cascade='all, delete-orphan'))
