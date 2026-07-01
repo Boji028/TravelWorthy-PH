@@ -138,6 +138,131 @@
   }
 
   .value-card p { font-size: .85rem; color: #3a2e22; line-height: 1.6; }
+
+  /* page-scoped amber override: PDF gold for accreditations and destinations sections only */
+  .ab-pdf-scope { --amber: #FAAB1C; }
+
+  /* ── ACCREDITATIONS & PARTNERS ── */
+  .trust-section {
+    background: linear-gradient(160deg, var(--teal-d) 0%, var(--teal) 75%);
+    padding: 5rem 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .trust-section::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle at 88% 12%, rgba(250, 171, 28, .16) 0, transparent 45%);
+    pointer-events: none;
+  }
+
+  .trust-inner { max-width: 1080px; margin: 0 auto; position: relative; z-index: 2; }
+  .trust-head { text-align: center; max-width: 560px; margin: 0 auto 3rem; }
+
+  .trust-eyebrow {
+    font-size: .78rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--amber);
+    font-weight: 700;
+    display: block;
+    margin-bottom: .6rem;
+  }
+
+  .trust-head h2 { font-family: 'Pogonia', serif; font-weight: 300; font-size: 2.3rem; color: var(--white); margin-bottom: .75rem; }
+  .trust-head p { color: rgba(255, 255, 255, .75); font-size: .95rem; line-height: 1.7; }
+  .trust-group { margin-top: 3rem; }
+
+  .trust-group-label {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 1.5rem;
+    font-size: .78rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, .55);
+    font-weight: 700;
+  }
+
+  .trust-group-label::after { content: ""; flex: 1; height: 1px; background: rgba(255, 255, 255, .15); }
+  .logo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+
+  .logo-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 1.1rem .9rem .9rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .55rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, .12);
+    transition: transform .25s ease, box-shadow .25s ease;
+    min-height: 118px;
+  }
+
+  .logo-card:hover { transform: translateY(-4px); box-shadow: 0 14px 28px rgba(0, 0, 0, .2); }
+  .logo-card img { max-width: 100%; max-height: 56px; width: auto; object-fit: contain; }
+  .logo-card span { font-size: .68rem; color: #6b5f52; text-align: center; font-weight: 500; line-height: 1.3; }
+
+  @media (max-width: 780px) {
+    .logo-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ── DESTINATIONS ── */
+  .dest-section { background: var(--linen); padding: 5rem 2rem; }
+  .dest-inner { max-width: 1080px; margin: 0 auto; }
+  .dest-head { text-align: center; max-width: 560px; margin: 0 auto 1rem; }
+
+  .dest-eyebrow {
+    font-size: .78rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--amber);
+    font-weight: 700;
+    display: block;
+    margin-bottom: .6rem;
+  }
+
+  .dest-head h2 { font-family: 'Pogonia', serif; font-weight: 300; font-size: 2.2rem; color: var(--bark); margin-bottom: .6rem; }
+  .dest-head p { color: #6b5f52; font-size: .93rem; }
+  .dest-group { margin-top: 2.75rem; }
+
+  .dest-group-label {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 1.25rem;
+    font-size: .78rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--teal);
+    font-weight: 700;
+  }
+
+  .dest-group-label::after { content: ""; flex: 1; height: 1px; background: #ddd3c0; }
+  .dest-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: .6rem; }
+  .dest-tile { position: relative; border-radius: 10px; overflow: hidden; aspect-ratio: 1 / 1; box-shadow: 0 2px 8px rgba(58, 46, 34, .1); }
+  .dest-tile img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s ease; }
+  .dest-tile:hover img { transform: scale(1.08); }
+
+  .dest-tile span {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    padding: .35rem .5rem .3rem;
+    background: linear-gradient(to top, rgba(14, 61, 71, .88), transparent);
+    color: var(--white);
+    font-size: .62rem;
+    font-weight: 700;
+    letter-spacing: .01em;
+  }
+
+  @media (max-width: 900px) {
+    .dest-grid { grid-template-columns: repeat(4, 1fr); }
+  }
 </style>
 {% endblock %}
 
@@ -176,14 +301,158 @@
       <p>Your Travel, made <strong>worth it</strong>.</p>
     </div>
   </div>
+</div>
 
-  <div class="ab-reveal" style="text-align:center;margin-top:3rem;padding:2rem;background:var(--white);border-radius:var(--radius-lg);box-shadow:0 2px 12px rgba(58,46,34,.07);">
+<!-- page-scoped amber override: PDF gold (#FAAB1C) for accreditations and destinations only -->
+<div class="ab-pdf-scope">
+  <section class="trust-section">
+    <div class="trust-inner">
+      <div class="trust-head ab-reveal">
+        <span class="trust-eyebrow">Backed by</span>
+        <h2>Accreditations &amp; partners</h2>
+        <p>Recognized by the Philippines' tourism authorities, and trusted by companies who need their people moving reliably.</p>
+      </div>
+
+      <div class="trust-group ab-reveal ab-d1">
+        <div class="trust-group-label">Company accreditations</div>
+        <div class="logo-grid">
+          <div class="logo-card">
+            <img src="{{ url_for('static', filename='images/about-accred-dot.png') }}" alt="Department of Tourism Philippines" loading="lazy">
+            <span>Department of Tourism</span>
+          </div>
+          <div class="logo-card">
+            <img src="{{ url_for('static', filename='images/about-accred-love-ph.png') }}" alt="Love the Philippines" loading="lazy">
+            <span>Love the Philippines</span>
+          </div>
+          <div class="logo-card">
+            <img src="{{ url_for('static', filename='images/about-accred-tpb.png') }}" alt="TPB Philippines" loading="lazy">
+            <span>TPB Philippines</span>
+          </div>
+          <div class="logo-card">
+            <img src="{{ url_for('static', filename='images/about-accred-philtoa.png') }}" alt="PHILTOA" loading="lazy">
+            <span>PHILTOA</span>
+          </div>
+          <div class="logo-card">
+            <img src="{{ url_for('static', filename='images/about-accred-itatoa.png') }}" alt="ITATOA" loading="lazy">
+            <span>ITATOA</span>
+          </div>
+          <div class="logo-card">
+            <img src="{{ url_for('static', filename='images/about-accred-tap.png') }}" alt="Travellers Alliance of the Philippines" loading="lazy">
+            <span>TAP Alliance</span>
+          </div>
+          <div class="logo-card">
+            <img src="{{ url_for('static', filename='images/about-accred-baptta.png') }}" alt="Batangas Province Travel and Tours Association" loading="lazy">
+            <span>BAPTTA</span>
+          </div>
+          <div class="logo-card">
+            <img src="{{ url_for('static', filename='images/about-accred-batangas-tourism.png') }}" alt="Batangas Tourism and Cultural Affairs Office" loading="lazy">
+            <span>Batangas Tourism Office</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="trust-group ab-reveal ab-d2">
+        <div class="trust-group-label">Trusted by</div>
+        <div class="logo-grid">
+          <div class="logo-card">
+            <img src="{{ url_for('static', filename='images/about-partner-bdo.png') }}" alt="BDO" loading="lazy">
+            <span>BDO</span>
+          </div>
+          <div class="logo-card">
+            <img src="{{ url_for('static', filename='images/about-partner-sunlife.png') }}" alt="Sun Life" loading="lazy">
+            <span>Sun Life</span>
+          </div>
+          <div class="logo-card">
+            <img src="{{ url_for('static', filename='images/about-partner-cirrusglobal.png') }}" alt="Cirrus Global Philippines Recruitment" loading="lazy">
+            <span>Cirrus Global</span>
+          </div>
+          <div class="logo-card">
+            <img src="{{ url_for('static', filename='images/about-partner-demeterland.png') }}" alt="Demeterland" loading="lazy">
+            <span>Demeterland</span>
+          </div>
+          <div class="logo-card">
+            <img src="{{ url_for('static', filename='images/about-partner-dcx.png') }}" alt="DCX" loading="lazy">
+            <span>DCX</span>
+          </div>
+          <div class="logo-card">
+            <img src="{{ url_for('static', filename='images/about-partner-dv-philippines.png') }}" alt="D&V Philippines" loading="lazy">
+            <span>D&amp;V Philippines</span>
+          </div>
+          <div class="logo-card">
+            <img src="{{ url_for('static', filename='images/about-partner-efren-ramirez.png') }}" alt="Efren Ramirez Construction and General Services Corporation" loading="lazy">
+            <span>Efren Ramirez Construction</span>
+          </div>
+          <div class="logo-card">
+            <img src="{{ url_for('static', filename='images/about-partner-joel-chavez.png') }}" alt="Joel Chavez Equipment Rentals Corp" loading="lazy">
+            <span>Joel Chavez Equipment Rentals</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="dest-section">
+    <div class="dest-inner">
+      <div class="dest-head ab-reveal">
+        <span class="dest-eyebrow">Where we take you</span>
+        <h2>Local &amp; international destinations</h2>
+        <p>From island-hopping around the Philippines to visa-supported trips abroad, we've got the route covered.</p>
+      </div>
+
+      <div class="dest-group ab-reveal ab-d1">
+        <div class="dest-group-label">Local</div>
+        <div class="dest-grid">
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-local-bacolod.jpg') }}" alt="Bacolod" loading="lazy"><span>Bacolod</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-local-baguio.jpg') }}" alt="Baguio" loading="lazy"><span>Baguio</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-local-batanes.jpg') }}" alt="Batanes" loading="lazy"><span>Batanes</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-local-batangas.jpg') }}" alt="Batangas" loading="lazy"><span>Batangas</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-local-bicol.jpg') }}" alt="Bicol" loading="lazy"><span>Bicol</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-local-bohol.jpg') }}" alt="Bohol" loading="lazy"><span>Bohol</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-local-boracay.jpg') }}" alt="Boracay" loading="lazy"><span>Boracay</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-local-cebu.jpg') }}" alt="Cebu" loading="lazy"><span>Cebu</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-local-coron.jpg') }}" alt="Coron" loading="lazy"><span>Coron</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-local-dumaguete.jpg') }}" alt="Dumaguete" loading="lazy"><span>Dumaguete</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-local-el-nido.jpg') }}" alt="El Nido" loading="lazy"><span>El Nido</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-local-iloilo.jpg') }}" alt="Iloilo" loading="lazy"><span>Iloilo</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-local-puerto-galera.jpg') }}" alt="Puerto Galera" loading="lazy"><span>P. Galera</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-local-puerto-princesa.jpg') }}" alt="Puerto Princesa" loading="lazy"><span>P. Princesa</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-local-siargao.jpg') }}" alt="Siargao" loading="lazy"><span>Siargao</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-local-siquijor.jpg') }}" alt="Siquijor" loading="lazy"><span>Siquijor</span></div>
+        </div>
+      </div>
+
+      <div class="dest-group ab-reveal ab-d2">
+        <div class="dest-group-label">International</div>
+        <div class="dest-grid">
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-intl-australia.jpg') }}" alt="Australia" loading="lazy"><span>Australia</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-intl-china.jpg') }}" alt="China" loading="lazy"><span>China</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-intl-europe.jpg') }}" alt="Europe" loading="lazy"><span>Europe</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-intl-hong-kong.jpg') }}" alt="Hong Kong" loading="lazy"><span>Hong Kong</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-intl-indonesia.jpg') }}" alt="Indonesia" loading="lazy"><span>Indonesia</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-intl-japan.jpg') }}" alt="Japan" loading="lazy"><span>Japan</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-intl-kazakhstan.jpg') }}" alt="Kazakhstan" loading="lazy"><span>Kazakhstan</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-intl-malaysia.jpg') }}" alt="Malaysia" loading="lazy"><span>Malaysia</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-intl-maldives.jpg') }}" alt="Maldives" loading="lazy"><span>Maldives</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-intl-singapore.jpg') }}" alt="Singapore" loading="lazy"><span>Singapore</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-intl-south-korea.jpg') }}" alt="South Korea" loading="lazy"><span>South Korea</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-intl-taiwan.jpg') }}" alt="Taiwan" loading="lazy"><span>Taiwan</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-intl-thailand.jpg') }}" alt="Thailand" loading="lazy"><span>Thailand</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-intl-uae.jpg') }}" alt="UAE" loading="lazy"><span>UAE</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-intl-usa.jpg') }}" alt="USA" loading="lazy"><span>USA</span></div>
+          <div class="dest-tile"><img src="{{ url_for('static', filename='images/about-dest-intl-vietnam.jpg') }}" alt="Vietnam" loading="lazy"><span>Vietnam</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="about-inner" style="margin-top:2rem;">
+  <div class="ab-reveal" style="text-align:center;padding:2rem;background:var(--white);border-radius:var(--radius-lg);box-shadow:0 2px 12px rgba(58,46,34,.07);">
     <p style="color:var(--mist);font-size:.95rem;margin-bottom:1rem;">Want to plan your next adventure with us?</p>
     <a href="{{ url_for('main.contact') }}" class="btn btn-amber">
       <i class="fas fa-envelope"></i> Get In Touch
     </a>
   </div>
-
 </div>
 
 <script nonce="{{ csp_nonce() }}">
