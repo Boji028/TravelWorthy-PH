@@ -692,11 +692,15 @@ def _get_inquiry_filter_params() -> dict:
     agree on what "the current filters" means.
     """
     sort = request.args.get('sort', 'desc').strip()
+    # Default to current month if no date filter is set, to limit default query size.
+    month_default = datetime.now(timezone.utc).strftime('%Y-%m') \
+        if not any(request.args.get(k) for k in ('month', 'year', 'date_from', 'date_to', 'search', 'status', 'type')) \
+        else ''
     return {
         'status': request.args.get('status', '').strip(),
         'type': request.args.get('type', '').strip(),
         'search': request.args.get('search', '').strip(),
-        'month': request.args.get('month', '').strip(),
+        'month': request.args.get('month', month_default).strip(),
         'year': request.args.get('year', '').strip(),
         'date_from': request.args.get('date_from', '').strip(),
         'date_to': request.args.get('date_to', '').strip(),
@@ -782,8 +786,22 @@ def inquiries():
 
     # Pill counts reflect the search/type/date filters but not the status pill itself,
     # so switching status pills doesn't make the other counts disappear.
-    status_counts = {s.value: base_query.filter(Inquiry.status == s.value).count() for s in InquiryStatus}
-    status_counts['all'] = base_query.count()
+    # Single query counts all statuses at once instead of one COUNT per status.
+    from sqlalchemy import case
+    count_rows = db.session.query(
+        func.count().label('total'),
+        func.sum(case((Inquiry.status == 'new',        1), else_=0)).label('new'),
+        func.sum(case((Inquiry.status == 'contacted',  1), else_=0)).label('contacted'),
+        func.sum(case((Inquiry.status == 'confirmed',  1), else_=0)).label('confirmed'),
+        func.sum(case((Inquiry.status == 'closed',     1), else_=0)).label('closed'),
+    ).filter(base_query.whereclause).one()
+    status_counts = {
+        'all':       count_rows.total or 0,
+        'new':       count_rows.new or 0,
+        'contacted': count_rows.contacted or 0,
+        'confirmed': count_rows.confirmed or 0,
+        'closed':    count_rows.closed or 0,
+    }
 
     query = base_query
     if status_filter:
