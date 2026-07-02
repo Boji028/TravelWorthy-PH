@@ -65,7 +65,7 @@ class TestContactRoute:
         client.post('/contact', data={
             'name': 'Juan',
             'email': 'juan@example.com',
-            'subject': 'Hi',
+            'subject': 'H',
             'message': 'A question.',
         })
         assert ContactMessage.query.count() == 0
