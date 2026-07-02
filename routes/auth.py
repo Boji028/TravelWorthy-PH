@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app import db, limiter
+from oauth import oauth
 from models.user import User
 from forms import RegisterForm, LoginForm, ChangePasswordForm
 from email_verification_service import EmailVerificationService
@@ -111,7 +112,7 @@ def login():
         try:
             user = User.query.filter_by(email=form.email.data.lower()).first()
 
-            if not user or not check_password_hash(user.password, form.password.data):
+            if not user or not user.password or not check_password_hash(user.password, form.password.data):
                 current_app.logger.warning(f"Failed login attempt for email: {form.email.data.lower()} from IP: {request.remote_addr}")
                 flash('Invalid email or password.', 'danger')
                 return redirect(url_for('auth.login'))
@@ -149,6 +150,89 @@ def login():
             flash('An unexpected error occurred. Please try again later.', 'danger')
 
     return render_template('auth/login.html', form=form)
+
+def _oauth_login(user):
+    """Shared login step for both OAuth callbacks."""
+    login_user(user, remember=True)
+    current_app.logger.info(f"User logged in via {user.oauth_provider}: {user.email}")
+    flash(f'Welcome back, {user.name}!', 'success')
+    return redirect(url_for('main.home'))
+
+
+@auth_bp.route('/google/login')
+@limiter.limit("10 per hour")
+def google_login():
+    if 'google' not in oauth._clients:
+        flash('Google sign-in is not configured yet.', 'danger')
+        return redirect(url_for('auth.login'))
+    redirect_uri = url_for('auth.google_callback', _external=True)
+    return oauth.google.authorize_redirect(redirect_uri)
+
+
+@auth_bp.route('/google/callback')
+def google_callback():
+    if 'google' not in oauth._clients:
+        flash('Google sign-in is not configured yet.', 'danger')
+        return redirect(url_for('auth.login'))
+    try:
+        token = oauth.google.authorize_access_token()
+        userinfo = token.get('userinfo') or oauth.google.userinfo()
+    except Exception as e:
+        current_app.logger.error(f"Google OAuth callback failed: {e}", exc_info=True)
+        flash('Google sign-in failed. Please try again.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    google_id = userinfo.get('sub')
+    email = (userinfo.get('email') or '').lower()
+    email_verified = userinfo.get('email_verified', False)
+    name = userinfo.get('name') or email.split('@')[0]
+
+    if not google_id or not email:
+        flash('Google did not return the required account details.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    try:
+        # 1. Already linked to this Google identity — just log in.
+        user = User.query.filter_by(oauth_provider='google', oauth_id=google_id).first()
+        if user:
+            return _oauth_login(user)
+
+        # 2. Email matches an existing account. Google verifies email
+        #    ownership, so it's safe to auto-link.
+        existing = User.query.filter_by(email=email).first()
+        if existing:
+            if email_verified:
+                existing.oauth_provider = 'google'
+                existing.oauth_id = google_id
+                db.session.commit()
+                current_app.logger.info(f"Linked Google identity to existing account: {email}")
+                return _oauth_login(existing)
+            flash(
+                'An account with this email already exists. '
+                'Please log in with your password first.',
+                'warning',
+            )
+            return redirect(url_for('auth.login'))
+
+        # 3. Brand new account.
+        new_user = User(
+            name=name,
+            email=email,
+            password=None,
+            oauth_provider='google',
+            oauth_id=google_id,
+            email_verified=email_verified,
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        current_app.logger.info(f"New user registered via Google: {email}")
+        return _oauth_login(new_user)
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        current_app.logger.error(f"Database error during Google OAuth: {e}", exc_info=True)
+        flash('Sign-in failed due to a database error. Please try again.', 'danger')
+        return redirect(url_for('auth.login'))
 
 
 @auth_bp.route('/logout')

@@ -120,6 +120,9 @@ def create_app():
     mail.init_app(app)
     migrate.init_app(app, db)
 
+    from oauth import init_oauth
+    init_oauth(app)
+
     login_manager.login_view = 'auth.login'
     login_manager.login_message_category = 'info'
 

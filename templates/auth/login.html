@@ -105,6 +105,16 @@
       <p>Welcome back, explorer!</p>
     </div>
 
+    <div style="margin-bottom:1.25rem;">
+      <a href="{{ url_for('auth.google_login') }}" class="btn" style="width:100%;justify-content:center;border:2px solid #e8e8e8;color:#1a1a1a;background:#fff;">
+        <i class="fab fa-google" style="color:#DB4437;"></i> Continue with Google
+      </a>
+    </div>
+    <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.5rem;color:#999;font-size:.85rem;">
+      <div style="flex:1;height:1px;background:#e8e8e8;"></div>
+      or continue with email
+      <div style="flex:1;height:1px;background:#e8e8e8;"></div>
+    </div>
     <form method="POST" action="{{ url_for('auth.login') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <div class="form-group">
