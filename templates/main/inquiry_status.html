@@ -365,9 +365,10 @@
         {% endif %}
       </div>
 
-      {% if inquiry.special_requests and '[FOR VISA]' not in inquiry.special_requests %}
+      {% set visitor_note = inquiry.special_requests.replace('[FOR VISA] ', '', 1).strip() if inquiry.special_requests else '' %}
+      {% if visitor_note %}
       <div class="track-requests">
-        <strong>Your notes:</strong> {{ inquiry.special_requests }}
+        <strong>Your notes:</strong> {{ visitor_note }}
       </div>
       {% endif %}
 
