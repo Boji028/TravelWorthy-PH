@@ -96,6 +96,11 @@
   /* ── WAVES ── */
   .tw-waves { position: absolute; left: 0; right: 0; bottom: -1px; height: 80px; z-index: 4; pointer-events: none; }
   .tw-wave { position: absolute; left: 0; bottom: 0; width: 200%; height: 100%; background-repeat: repeat-x; background-size: 1200px 80px; }
+  @media (max-width: 640px) {
+    .tw-waves { height: 44px; }
+    .tw-wave { background-size: 700px 44px; }
+    @keyframes twFlow { to { transform: translateX(-700px); } }
+  }
   .tw-w1 { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 80' preserveAspectRatio='none'%3E%3Cpath d='M0,34 C180,70 360,6 600,32 C840,58 1020,10 1200,36 L1200,80 L0,80 Z' fill='%23f5efe6' fill-opacity='0.35'/%3E%3C/svg%3E"); animation: twFlow 12s linear infinite; }
   .tw-w2 { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 80' preserveAspectRatio='none'%3E%3Cpath d='M0,46 C200,14 380,68 600,40 C820,12 1020,66 1200,38 L1200,80 L0,80 Z' fill='%23f5efe6'/%3E%3C/svg%3E"); animation: twFlow 8s linear infinite reverse; }
 

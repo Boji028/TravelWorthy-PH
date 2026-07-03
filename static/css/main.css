@@ -636,18 +636,48 @@ select.form-control {
     .nav-links {
         display: none;
         flex-direction: column;
+        align-items: stretch;
+        gap: 0;
         position: absolute;
         top: 68px;
         left: 0;
         right: 0;
         background: var(--white);
-        padding: 1rem 2rem;
+        padding: .5rem 1.25rem 1.25rem;
         border-bottom: 1px solid var(--linen);
+        box-shadow: 0 12px 24px rgba(0,0,0,.08);
         z-index: 99;
     }
 
     .nav-links.nav-open{
         display: flex;
+    }
+
+    .nav-links li {
+        width: 100%;
+    }
+
+    .nav-links a {
+        display: block;
+        width: 100%;
+        padding: .85rem .5rem;
+        border-bottom: 1px solid var(--linen);
+        text-align: left;
+        border-radius: 0;
+    }
+
+    .nav-links li:last-child a {
+        border-bottom: none;
+    }
+
+    .nav-links .btn,
+    .nav-links a.btn {
+        display: flex;
+        justify-content: center;
+        text-align: center;
+        margin-top: .75rem;
+        border-bottom: none;
+        padding: .85rem 1rem;
     }
     .flash-wrap {
         left: 1rem;
