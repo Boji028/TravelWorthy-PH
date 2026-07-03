@@ -60,27 +60,6 @@ skip_gitignore = true
 known_first_party = ["app", "models", "routes", "decorators", "utils"]
 skip = [".venv", "venv", "env", "migrations"]
 
-# Pytest configuration
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = "test_*.py"
-python_classes = "Test*"
-python_functions = "test_*"
-addopts = "--verbose --strict-markers --tb=short"
-markers = [
-    "unit: Unit tests",
-    "integration: Integration tests",
-    "slow: Slow tests",
-    "auth: Authentication tests",
-    "bookings: Booking system tests",
-    "admin: Admin functionality tests",
-    "email: Email verification tests",
-    "backup: Backup system tests",
-]
-filterwarnings = [
-    "ignore::DeprecationWarning",
-    "ignore::PendingDeprecationWarning",
-]
 # Coverage configuration
 [tool.coverage.run]
 source = ["app.py", "models", "routes", "decorators", "utils"]
