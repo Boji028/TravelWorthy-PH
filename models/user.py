@@ -28,13 +28,13 @@ class User(db.Model, UserMixin):
     id: int = db.Column(db.Integer, primary_key=True)
     name: str = db.Column(db.String(100), nullable=False)
     email: str = db.Column(db.String(150), unique=True, nullable=False, index=True)
-    # Nullable: OAuth-only accounts (Google/Facebook) never set a password.
+    # Nullable: OAuth-only accounts (Google) never set a password.
     password: Optional[str] = db.Column(db.String(200), nullable=True)
     phone: Optional[str] = db.Column(db.String(20), nullable=True)
     is_admin: bool = db.Column(db.Boolean, default=False, index=True)
     email_verified: bool = db.Column(db.Boolean, default=False, index=True)
     email_verified_at: Optional[datetime] = db.Column(db.DateTime, nullable=True)
-    # 'google' | 'facebook' | None (None = normal email/password account)
+    # 'google' | None (None = normal email/password account)
     oauth_provider: Optional[str] = db.Column(db.String(20), nullable=True, index=True)
     oauth_id: Optional[str] = db.Column(db.String(255), nullable=True)
     created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))

@@ -1,4 +1,4 @@
-"""OAuth client registration for Google and Facebook sign-in.
+"""OAuth client registration for Google sign-in.
 
 Kept in its own module (mirrors email_verification_service.py,
 backup_service.py) rather than bolted directly into app.py, since
@@ -11,7 +11,7 @@ oauth = OAuth()
 
 
 def init_oauth(app):
-    """Register the Google and Facebook OAuth clients on the app.
+    """Register the Google OAuth client on the app.
 
     Call this once from create_app(), after db/login_manager/etc. are
     initialized. Missing credentials are tolerated (buttons will still
