@@ -4,10 +4,11 @@
 {% block extra_styles %}
 <style>
   .profile-wrap { max-width: 900px; margin: 3rem auto; padding: 0 2rem; }
+
   .profile-header {
     display: flex; align-items: center; gap: 1.5rem;
     background: var(--white); border-radius: var(--radius-lg);
-    padding: 1.75rem 2rem; box-shadow: 0 2px 12px rgba(58,46,34,.07); margin-bottom: 2rem;
+    padding: 1.75rem 2rem; box-shadow: 0 2px 12px rgba(58,46,34,.07); margin-bottom: 1.25rem;
   }
   .avatar {
     width: 72px; height: 72px;
@@ -15,29 +16,74 @@
     border-radius: 50%; display: flex; align-items: center; justify-content: center;
     font-family: 'Pogonia', serif; font-size: 1.8rem; color: var(--white); flex-shrink: 0;
   }
+  .profile-id { min-width: 0; }
   .profile-name { font-family: 'Pogonia', serif; font-size: 1.6rem; font-weight: 600; color: var(--bark); }
-  .profile-meta { font-size: .85rem; color: var(--mist); margin-top: .25rem; }
-  .profile-meta span { margin-right: 1.2rem; }
   .admin-badge {
     background: var(--amber); color: var(--white); font-size: .72rem;
     padding: .2rem .7rem; border-radius: 999px; font-weight: 600;
     text-transform: uppercase; letter-spacing: .06em;
   }
+  .oauth-badge {
+    display: inline-flex; align-items: center; gap: .35rem;
+    background: #eaf4f2; color: var(--teal); font-size: .72rem; font-weight: 700;
+    border-radius: 999px; padding: .25rem .75rem; margin-top: .35rem;
+  }
+  .oauth-badge i { font-size: .78rem; }
 
-  /* Password change card */
+  .profile-meta { margin-top: .6rem; }
+  .meta-row {
+    display: flex; align-items: flex-start; gap: .55rem;
+    font-size: .85rem; color: var(--bark); padding: .3rem 0;
+  }
+  .meta-row i { color: var(--teal); font-size: .8rem; width: 16px; text-align: center; margin-top: .15rem; flex-shrink: 0; }
+  .meta-row span { word-break: break-all; line-height: 1.45; min-width: 0; }
+
+  /* Quick links */
+  .quick-links { display: flex; gap: 1rem; margin-bottom: 1.25rem; }
+  .quick-link {
+    flex: 1; background: var(--white); border-radius: var(--radius-lg);
+    box-shadow: 0 2px 12px rgba(58,46,34,.07); padding: 1.1rem;
+    text-align: center; text-decoration: none; transition: transform .2s, box-shadow .2s;
+  }
+  .quick-link:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(58,46,34,.10); }
+  .quick-link i { font-size: 1.15rem; color: var(--amber); }
+  .quick-link span { display: block; font-size: .82rem; font-weight: 700; color: var(--teal); margin-top: .35rem; }
+
+  /* Security card */
   .pw-card {
     background: var(--white); border-radius: var(--radius-lg);
     padding: 1.75rem 2rem; box-shadow: 0 2px 12px rgba(58,46,34,.07); margin-bottom: 2rem;
   }
   .pw-card h3 { font-size: 1.05rem; color: var(--bark); margin-bottom: 1.2rem; }
   .pw-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
-  @media(max-width:680px) { .pw-grid { grid-template-columns: 1fr; } }
   .pw-grid label { font-size: .83rem; color: var(--mist); display: block; margin-bottom: .3rem; }
   .pw-grid input {
     width: 100%; padding: .55rem .85rem; border: 1px solid var(--sand-d);
     border-radius: var(--radius); font-size: .9rem; outline: none; box-sizing: border-box;
   }
   .pw-grid input:focus { border-color: var(--teal); }
+
+  .oauth-note { font-size: .88rem; color: var(--mist); line-height: 1.6; margin-bottom: 1rem; }
+  .oauth-manage {
+    display: inline-flex; align-items: center; gap: .45rem;
+    border: 1.5px solid var(--teal); color: var(--teal); border-radius: 10px;
+    padding: .6rem 1.2rem; font-size: .85rem; font-weight: 600;
+    text-decoration: none; transition: background .2s, color .2s;
+  }
+  .oauth-manage:hover { background: var(--teal); color: #fff; }
+
+  /* ── Mobile ── */
+  @media (max-width: 680px) {
+    .profile-wrap { margin: 1.5rem auto; padding: 0 1rem; }
+    .profile-header {
+      flex-direction: column; text-align: center; padding: 1.5rem 1.25rem;
+      gap: .75rem;
+    }
+    .profile-id { width: 100%; }
+    .profile-meta { text-align: left; }
+    .pw-grid { grid-template-columns: 1fr; }
+    .pw-card { padding: 1.4rem 1.25rem; }
+  }
 </style>
 {% endblock %}
 
@@ -47,23 +93,37 @@
   <!-- Profile header -->
   <div class="profile-header">
     <div class="avatar">{{ current_user.name[0].upper() }}</div>
-    <div>
+    <div class="profile-id">
       <div class="profile-name">
         {{ current_user.name }}
         {% if current_user.is_admin %}<span class="admin-badge">Admin</span>{% endif %}
       </div>
+      {% if current_user.oauth_provider == 'google' %}
+      <span class="oauth-badge"><i class="fab fa-google"></i> Google account</span>
+      {% endif %}
       <div class="profile-meta">
-        <span><i class="fas fa-envelope" style="color:var(--teal);margin-right:.3rem"></i>{{ current_user.email }}</span>
+        <div class="meta-row"><i class="fas fa-envelope"></i><span>{{ current_user.email }}</span></div>
         {% if current_user.phone %}
-          <span><i class="fas fa-phone" style="color:var(--teal);margin-right:.3rem"></i>{{ current_user.phone }}</span>
+        <div class="meta-row"><i class="fas fa-phone"></i><span>{{ current_user.phone }}</span></div>
         {% endif %}
-        <span><i class="fas fa-calendar" style="color:var(--teal);margin-right:.3rem"></i>Joined {{ current_user.created_at.strftime('%B %Y') }}</span>
+        <div class="meta-row"><i class="fas fa-calendar"></i><span>Joined {{ current_user.created_at.strftime('%B %Y') }}</span></div>
       </div>
     </div>
   </div>
 
-  <!-- Change password -->
+  <!-- Quick links -->
+  <div class="quick-links">
+    <a href="{{ url_for('main.my_inquiries') }}" class="quick-link">
+      <i class="fas fa-receipt"></i><span>My Inquiries</span>
+    </a>
+    <a href="{{ url_for('main.reviews') }}" class="quick-link">
+      <i class="fas fa-star"></i><span>Reviews</span>
+    </a>
+  </div>
+
+  <!-- Sign-in & Security -->
   <div class="pw-card">
+    {% if current_user.password %}
     <h3><i class="fas fa-lock" style="color:var(--teal);margin-right:.5rem"></i>Change Password</h3>
     <form method="POST" action="{{ url_for('auth.profile') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -85,8 +145,18 @@
         <button type="submit" class="btn btn-primary btn-sm">Update Password</button>
       </div>
     </form>
+    {% else %}
+    <h3><i class="fas fa-lock" style="color:var(--teal);margin-right:.5rem"></i>Sign-in &amp; Security</h3>
+    <p class="oauth-note">
+      You sign in with Google, so there's no password to change here.
+      Your account security — password, two-factor authentication, and recovery options —
+      is managed through your Google Account.
+    </p>
+    <a href="https://myaccount.google.com/security" target="_blank" rel="noopener" class="oauth-manage">
+      <i class="fab fa-google"></i> Manage Google Account <i class="fas fa-arrow-up-right-from-square" style="font-size:.7rem"></i>
+    </a>
+    {% endif %}
   </div>
-
 
 </div>
 {% endblock %}
