@@ -1,8 +1,9 @@
 from app import db
 from datetime import datetime, timezone
 
+
 class Country(db.Model):
-    __tablename__ = 'countries'
+    __tablename__ = "countries"
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
@@ -13,8 +14,8 @@ class Country(db.Model):
     description = db.Column(db.Text, nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    continent_id = db.Column(db.Integer, db.ForeignKey('continents.id'), nullable=True)
-    packages = db.relationship('TourPackage', backref='country', lazy=True)
+    continent_id = db.Column(db.Integer, db.ForeignKey("continents.id"), nullable=True)
+    packages = db.relationship("TourPackage", backref="country", lazy=True)
 
     def __repr__(self):
-        return f'<Country {self.name}>'
+        return f"<Country {self.name}>"

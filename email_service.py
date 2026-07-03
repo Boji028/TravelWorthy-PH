@@ -7,7 +7,8 @@ from urllib.parse import quote_plus
 
 def _strip_headers(value: str) -> str:
     """Remove CRLF sequences to prevent SMTP header injection."""
-    return re.sub(r'[\r\n]+', ' ', value).strip()
+    return re.sub(r"[\r\n]+", " ", value).strip()
+
 
 from flask import current_app, render_template_string, request
 from flask_mail import Message
@@ -16,7 +17,7 @@ from app import mail
 
 def _send(subject: str, recipients: list, body: str, html: str = None, cc: list = None) -> None:
     """Send an email, silently failing if mail is not configured."""
-    if not current_app.config.get('MAIL_USERNAME'):
+    if not current_app.config.get("MAIL_USERNAME"):
         return  # Mail not configured — skip silently
     try:
         msg = Message(subject=subject, recipients=recipients, body=body, html=html, cc=cc or None)
@@ -182,7 +183,7 @@ def send_admin_new_inquiry(admin_email: str, inquiry, base_url: str = None) -> N
     package_ref = f" [{inquiry.package.title}]" if inquiry.package_id and inquiry.package else ""
     subject = f"[Admin] New Inquiry: {inquiry.destination}{package_ref} — {inquiry.reference_number}"
 
-    is_visa = bool(inquiry.special_requests and inquiry.special_requests.startswith('[FOR VISA]'))
+    is_visa = bool(inquiry.special_requests and inquiry.special_requests.startswith("[FOR VISA]"))
 
     # --- Plain text body (unchanged) ---
     body = (
@@ -204,6 +205,7 @@ def send_admin_new_inquiry(admin_email: str, inquiry, base_url: str = None) -> N
             body += f"  Assigned agent: {agent.name} (CC'd on this email)\n"
     elif is_visa:
         from models.agent import Agent
+
         agent = Agent.query.filter_by(is_visa_agent=True, is_active=True).first()
         if agent and agent.email:
             cc_list = [agent.email]
@@ -221,17 +223,14 @@ def send_admin_new_inquiry(admin_email: str, inquiry, base_url: str = None) -> N
 
     # --- HTML version (Option A — minimal brand bar) ---
     if base_url is None:
-        base_url = current_app.config.get('SITE_URL') or (request.host_url if request else None)
+        base_url = current_app.config.get("SITE_URL") or (request.host_url if request else None)
 
     # NOTE: adjust this path/query param if the admin Inquiries page uses a
     # different search param name — this assumes ?search=<reference_number>
     # matches the AJAX filter already built into that page.
     admin_link = None
     if base_url:
-        admin_link = (
-            f"{base_url.rstrip('/')}/admin/inquiries"
-            f"?search={quote_plus(inquiry.reference_number)}"
-        )
+        admin_link = f"{base_url.rstrip('/')}/admin/inquiries" f"?search={quote_plus(inquiry.reference_number)}"
 
     logo_url = "https://res.cloudinary.com/dbcjxuxhl/image/upload/brand_logo_ip0yv0.png"
     safe_ref = html_escape(inquiry.reference_number)
@@ -246,16 +245,12 @@ def send_admin_new_inquiry(admin_email: str, inquiry, base_url: str = None) -> N
         rows.append(("Package", html_escape(inquiry.package.title)))
     elif is_visa:
         rows.append(("Type", "Visa request"))
-    rows.append((
-        "Dates",
-        f"{inquiry.travel_date_from.strftime('%b %d')} – "
-        f"{inquiry.travel_date_to.strftime('%b %d, %Y')}"
-    ))
-    rows.append((
-        "Pax",
-        f"{inquiry.num_adults} adult(s), {inquiry.num_children} child(ren), "
-        f"{inquiry.num_infants} infant(s)"
-    ))
+    rows.append(
+        ("Dates", f"{inquiry.travel_date_from.strftime('%b %d')} – " f"{inquiry.travel_date_to.strftime('%b %d, %Y')}")
+    )
+    rows.append(
+        ("Pax", f"{inquiry.num_adults} adult(s), {inquiry.num_children} child(ren), " f"{inquiry.num_infants} infant(s)")
+    )
 
     rows_html = "".join(
         f'<tr><td style="padding:5px 0;color:#8fa8a3;width:110px;">{label}</td>'
@@ -284,7 +279,7 @@ def send_admin_new_inquiry(admin_email: str, inquiry, base_url: str = None) -> N
     if admin_link:
         cta_html = (
             f'<a href="{admin_link}" style="display:inline-block;background:#EF8233;'
-            'color:#ffffff;font-size:13px;font-weight:bold;padding:10px 20px;'
+            "color:#ffffff;font-size:13px;font-weight:bold;padding:10px 20px;"
             'border-radius:6px;text-decoration:none;">View in admin panel &rarr;</a>'
         )
 
@@ -317,18 +312,14 @@ def send_admin_new_inquiry(admin_email: str, inquiry, base_url: str = None) -> N
 
 def send_inquiry_confirmed(inquiry) -> None:
     """Notify customer when admin confirms their inquiry (slot reserved)."""
-    is_visa = bool(
-        not inquiry.package_id
-        and inquiry.special_requests
-        and inquiry.special_requests.startswith('[FOR VISA]')
-    )
+    is_visa = bool(not inquiry.package_id and inquiry.special_requests and inquiry.special_requests.startswith("[FOR VISA]"))
     package_ref = f" for {inquiry.package.title}" if inquiry.package_id and inquiry.package else ""
     subject = (
         f"Your visa inquiry for {inquiry.destination} has been confirmed! — {inquiry.reference_number}"
-        if is_visa else
-        f"Your {inquiry.destination} inquiry has been confirmed! — {inquiry.reference_number}"
+        if is_visa
+        else f"Your {inquiry.destination} inquiry has been confirmed! — {inquiry.reference_number}"
     )
-    base_url = current_app.config.get('SITE_URL', request.host_url).rstrip('/')
+    base_url = current_app.config.get("SITE_URL", request.host_url).rstrip("/")
     tracking_url = f"{base_url}/inquiry/{inquiry.reference_number}"
     body = (
         f"Hi {inquiry.name},\n\n"
@@ -362,14 +353,8 @@ def send_inquiry_confirmed(inquiry) -> None:
     safe_destination = html_escape(inquiry.destination)
     safe_ref = html_escape(inquiry.reference_number)
     safe_package_ref = html_escape(package_ref)
-    dates_str = (
-        f"{inquiry.travel_date_from.strftime('%B %d')} — "
-        f"{inquiry.travel_date_to.strftime('%B %d, %Y')}"
-    )
-    pax_str = (
-        f"{inquiry.num_adults} adult(s), {inquiry.num_children} child(ren), "
-        f"{inquiry.num_infants} infant(s)"
-    )
+    dates_str = f"{inquiry.travel_date_from.strftime('%B %d')} — " f"{inquiry.travel_date_to.strftime('%B %d, %Y')}"
+    pax_str = f"{inquiry.num_adults} adult(s), {inquiry.num_children} child(ren), " f"{inquiry.num_infants} infant(s)"
 
     html = f"""
     <html><body style="margin:0;padding:0;background:#ffffff;font-family:Arial,sans-serif;">
@@ -424,15 +409,16 @@ def send_inquiry_confirmed(inquiry) -> None:
     _send(subject, [inquiry.email], body, html=html)
 
     # Notify admin and CC assigned agent for paper trail.
-    admin_email = os.getenv('ADMIN_EMAIL', '')
+    admin_email = os.getenv("ADMIN_EMAIL", "")
     if admin_email:
         cc_list = None
         if inquiry.package_id and inquiry.package:
             agent = inquiry.package.assigned_agent
             if agent and agent.is_active and agent.email:
                 cc_list = [agent.email]
-        elif inquiry.special_requests and inquiry.special_requests.startswith('[FOR VISA]'):
+        elif inquiry.special_requests and inquiry.special_requests.startswith("[FOR VISA]"):
             from models.agent import Agent
+
             agent = Agent.query.filter_by(is_visa_agent=True, is_active=True).first()
             if agent and agent.email:
                 cc_list = [agent.email]
@@ -458,14 +444,8 @@ def send_inquiry_confirmed(inquiry) -> None:
         safe_email = html_escape(inquiry.email)
         safe_phone = html_escape(inquiry.contact_number)
         logo_url = "https://res.cloudinary.com/dbcjxuxhl/image/upload/brand_logo_ip0yv0.png"
-        dates_str = (
-            f"{inquiry.travel_date_from.strftime('%b %d')} — "
-            f"{inquiry.travel_date_to.strftime('%b %d, %Y')}"
-        )
-        pax_str = (
-            f"{inquiry.num_adults} adult(s), {inquiry.num_children} child(ren), "
-            f"{inquiry.num_infants} infant(s)"
-        )
+        dates_str = f"{inquiry.travel_date_from.strftime('%b %d')} — " f"{inquiry.travel_date_to.strftime('%b %d, %Y')}"
+        pax_str = f"{inquiry.num_adults} adult(s), {inquiry.num_children} child(ren), " f"{inquiry.num_infants} infant(s)"
         agent_badge_html = ""
         if cc_list:
             agent_badge_html = (
@@ -507,40 +487,35 @@ def send_inquiry_confirmed(inquiry) -> None:
 
 def send_inquiry_receipt(inquiry, base_url: str = None) -> None:
     """Send immediate receipt confirmation to customer after inquiry submission.
-    
+
     Includes:
     - Confirmation that inquiry was received
     - Unique reference number for tracking
     - Link to track inquiry status (no login required)
     - Expected response time
-    
+
     Args:
         inquiry: The Inquiry object that was just created
         base_url: Site base URL for the tracking link. Pass this explicitly
             when calling from outside a request context (e.g. a background
             thread) — `request.host_url` is only available during a request.
     """
-    is_visa = bool(
-        not inquiry.package_id
-        and inquiry.special_requests
-        and inquiry.special_requests.startswith('[FOR VISA]')
-    )
+    is_visa = bool(not inquiry.package_id and inquiry.special_requests and inquiry.special_requests.startswith("[FOR VISA]"))
 
     subject = (
         f"We received your visa inquiry for {inquiry.destination}!"
-        if is_visa else
-        f"We received your {inquiry.destination} inquiry!"
+        if is_visa
+        else f"We received your {inquiry.destination} inquiry!"
     )
     if base_url is None:
-        base_url = current_app.config.get('SITE_URL') or request.host_url
-    base_url = base_url.rstrip('/')
+        base_url = current_app.config.get("SITE_URL") or request.host_url
+    base_url = base_url.rstrip("/")
     tracking_url = f"{base_url}/inquiry/{inquiry.reference_number}"
 
     if is_visa:
         intro_line = f"Thank you for your interest in securing a visa for {inquiry.destination}!\n\n"
         response_intro = (
-            f"We typically respond to all visa inquiries within 24-48 business hours.\n"
-            f"Our team will send you:\n"
+            f"We typically respond to all visa inquiries within 24-48 business hours.\n" f"Our team will send you:\n"
         )
         response_items = (
             f"  ✓ Document checklist for your application\n"
@@ -548,10 +523,7 @@ def send_inquiry_receipt(inquiry, base_url: str = None) -> None:
             f"  ✓ Estimated processing timeline\n"
             f"  ✓ Next steps to file your application\n\n"
         )
-        meantime_items = (
-            f"  • Our travel blog for destination tips\n"
-            f"  • Other destinations we assist with visas for\n\n"
-        )
+        meantime_items = f"  • Our travel blog for destination tips\n" f"  • Other destinations we assist with visas for\n\n"
     else:
         intro_line = f"Thank you for your interest in our {inquiry.destination} trip!\n\n"
         response_intro = (
@@ -612,25 +584,18 @@ def send_inquiry_receipt(inquiry, base_url: str = None) -> None:
     safe_name = html_escape(inquiry.name)
     safe_destination = html_escape(inquiry.destination)
     safe_ref = html_escape(inquiry.reference_number)
-    dates_str = (
-        f"{inquiry.travel_date_from.strftime('%B %d')} - "
-        f"{inquiry.travel_date_to.strftime('%B %d, %Y')}"
-    )
-    pax_str = (
-        f"{inquiry.num_adults} adult(s), {inquiry.num_children} child(ren), "
-        f"{inquiry.num_infants} infant(s)"
-    )
+    dates_str = f"{inquiry.travel_date_from.strftime('%B %d')} - " f"{inquiry.travel_date_to.strftime('%B %d, %Y')}"
+    pax_str = f"{inquiry.num_adults} adult(s), {inquiry.num_children} child(ren), " f"{inquiry.num_infants} infant(s)"
 
     if is_visa:
         badge_html = (
             '<td align="right"><span style="display:inline-block;background:#faeeda;'
-            'color:#633806;font-size:11px;font-weight:bold;padding:4px 10px;'
+            "color:#633806;font-size:11px;font-weight:bold;padding:4px 10px;"
             'border-radius:12px;">VISA INQUIRY</span></td>'
         )
-        intro_html = f'Thank you for your interest in securing a visa for {safe_destination}!'
+        intro_html = f"Thank you for your interest in securing a visa for {safe_destination}!"
         response_intro_html = (
-            'We typically respond to all visa inquiries within 24-48 business hours. '
-            'Our team will send you:'
+            "We typically respond to all visa inquiries within 24-48 business hours. " "Our team will send you:"
         )
         response_rows_html = (
             '<tr><td style="padding:3px 0;width:18px;color:#175968;">&#10003;</td>'
@@ -649,11 +614,11 @@ def send_inquiry_receipt(inquiry, base_url: str = None) -> None:
             '<td style="padding:3px 0;">Other destinations we assist with visas for</td></tr>'
         )
     else:
-        badge_html = ''
-        intro_html = f'Thank you for your interest in our {safe_destination} trip!'
+        badge_html = ""
+        intro_html = f"Thank you for your interest in our {safe_destination} trip!"
         response_intro_html = (
-            'We typically respond to all inquiries within 24-48 business hours. '
-            'Our team will send personalized recommendations with:'
+            "We typically respond to all inquiries within 24-48 business hours. "
+            "Our team will send personalized recommendations with:"
         )
         response_rows_html = (
             '<tr><td style="padding:3px 0;width:18px;color:#175968;">&#10003;</td>'
@@ -759,23 +724,23 @@ def send_inquiry_emails_async(inquiry_id: int, base_url: str) -> None:
     context, which a background thread never has.
     """
     from threading import Thread
+
     app = current_app._get_current_object()
 
     def _worker():
         with app.app_context():
             from app import db
             from models.inquiry import Inquiry
+
             inquiry = db.session.get(Inquiry, inquiry_id)
             if not inquiry:
                 return
             try:
                 send_inquiry_receipt(inquiry, base_url=base_url)
-                admin_email = os.getenv('ADMIN_EMAIL', '')
+                admin_email = os.getenv("ADMIN_EMAIL", "")
                 if admin_email:
                     send_admin_new_inquiry(admin_email, inquiry, base_url=base_url)
             except Exception as e:
-                app.logger.warning(
-                    f"Email notification failed for inquiry #{inquiry_id}: {e}", exc_info=True
-                )
+                app.logger.warning(f"Email notification failed for inquiry #{inquiry_id}: {e}", exc_info=True)
 
     Thread(target=_worker, daemon=True).start()

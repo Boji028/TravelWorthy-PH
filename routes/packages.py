@@ -11,13 +11,13 @@ from models.country import Country
 from models.continent import Continent
 from models.visa import VisaCountry
 
-packages_bp = Blueprint('packages', __name__)
+packages_bp = Blueprint("packages", __name__)
 
 
-@packages_bp.route('/')
+@packages_bp.route("/")
 def list_packages() -> Union[str, object]:
     """List tour packages with filtering options.
-    
+
     Query parameters:
         - destination: Filter by destination name
         - country_id: Filter by country
@@ -25,14 +25,14 @@ def list_packages() -> Union[str, object]:
         - duration: Filter by duration days
         - page: Pagination page number
     """
-    destination: str = request.args.get('destination', '')
-    country_id: int = request.args.get('country_id', type=int)
-    continent_id: int = request.args.get('continent_id', type=int)
-    package_type: str = request.args.get('package_type', '').strip()
+    destination: str = request.args.get("destination", "")
+    country_id: int = request.args.get("country_id", type=int)
+    continent_id: int = request.args.get("continent_id", type=int)
+    package_type: str = request.args.get("package_type", "").strip()
 
     query = TourPackage.query.options(selectinload(TourPackage.images)).filter_by(is_active=True)
 
-    if package_type in ('domestic', 'international'):
+    if package_type in ("domestic", "international"):
         query = query.filter_by(package_type=package_type)
 
     if country_id:
@@ -40,212 +40,192 @@ def list_packages() -> Union[str, object]:
     elif continent_id:
         # Use subquery instead of Python loop to avoid N+1
         query = query.filter(
-            TourPackage.country_id.in_(
-                db.session.query(Country.id)
-                .filter_by(continent_id=continent_id, is_active=True)
-            )
+            TourPackage.country_id.in_(db.session.query(Country.id).filter_by(continent_id=continent_id, is_active=True))
         )
 
     if destination:
-        query = query.filter(TourPackage.destination.ilike(f'%{destination}%'))
+        query = query.filter(TourPackage.destination.ilike(f"%{destination}%"))
 
-    duration: int = request.args.get('duration', type=int)
+    duration: int = request.args.get("duration", type=int)
 
     if duration:
         query = query.filter(TourPackage.duration_days == duration)
 
-    page: int = request.args.get('page', 1, type=int)
-    packages = query.order_by(TourPackage.created_at.desc()).paginate(
-        page=page, per_page=9, error_out=False
-    )
+    page: int = request.args.get("page", 1, type=int)
+    packages = query.order_by(TourPackage.created_at.desc()).paginate(page=page, per_page=9, error_out=False)
 
     # Load related continent/country data to prevent N+1 queries
-    continents = (
-        Continent.query
-        .filter_by(is_active=True)
-        .order_by(Continent.name)
-        .all()
-    )
+    continents = Continent.query.filter_by(is_active=True).order_by(Continent.name).all()
     active_continent = db.session.get(Continent, continent_id) if continent_id else None
     active_country = db.session.get(Country, country_id) if country_id else None
 
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render_template('packages/list_ajax.html', packages=packages.items)
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return render_template("packages/list_ajax.html", packages=packages.items)
 
-    return render_template('packages/list.html',
-                           packages=packages.items,
-                           pagination=packages,
-                           continents=continents,
-                           active_continent=active_continent,
-                           active_country=active_country,
-                           package_type=package_type)
+    return render_template(
+        "packages/list.html",
+        packages=packages.items,
+        pagination=packages,
+        continents=continents,
+        active_continent=active_continent,
+        active_country=active_country,
+        package_type=package_type,
+    )
 
 
-@packages_bp.route('/<int:package_id>')
+@packages_bp.route("/<int:package_id>")
 def package_detail(package_id: int) -> str:
     from models.package_review import PackageReview
     from flask_login import current_user
+
     package = TourPackage.query.filter_by(id=package_id, is_active=True).first_or_404()
-    reviews = PackageReview.query.filter_by(package_id=package_id)\
-        .order_by(PackageReview.created_at.desc()).all()
-    avg_result = db.session.query(func.avg(PackageReview.rating))\
-        .filter_by(package_id=package_id).scalar()
+    reviews = PackageReview.query.filter_by(package_id=package_id).order_by(PackageReview.created_at.desc()).all()
+    avg_result = db.session.query(func.avg(PackageReview.rating)).filter_by(package_id=package_id).scalar()
     avg_rating = round(float(avg_result), 1) if avg_result else None
     user_review = None
     if current_user.is_authenticated:
-        user_review = PackageReview.query.filter_by(
-            package_id=package_id, user_id=current_user.id
-        ).first()
+        user_review = PackageReview.query.filter_by(package_id=package_id, user_id=current_user.id).first()
     # Build image list for the full-screen photo viewer
     all_images = []
-    if package.image and package.image != 'default_tour.jpg':
+    if package.image and package.image != "default_tour.jpg":
         all_images.append(package.image)
     for img in package.images:
         all_images.append(img.path)
 
-    return render_template('packages/detail.html', package=package,
-                           reviews=reviews, avg_rating=avg_rating,
-                           user_reviewed=user_review is not None,
-                           user_review=user_review,
-                           all_images=all_images)
-                            
-                       
+    return render_template(
+        "packages/detail.html",
+        package=package,
+        reviews=reviews,
+        avg_rating=avg_rating,
+        user_reviewed=user_review is not None,
+        user_review=user_review,
+        all_images=all_images,
+    )
 
 
-@packages_bp.route('/<int:package_id>/review', methods=['POST'])
+@packages_bp.route("/<int:package_id>/review", methods=["POST"])
 @login_required
 def submit_review(package_id: int):
     from models.package_review import PackageReview
     from models.inquiry import Inquiry
     from constants import InquiryStatus
     from app import db
+
     package = TourPackage.query.filter_by(id=package_id, is_active=True).first_or_404()
 
     has_booking = Inquiry.query.filter(
         Inquiry.user_id == current_user.id,
         Inquiry.package_id == package_id,
-        Inquiry.status.in_([InquiryStatus.CONFIRMED.value, InquiryStatus.CLOSED.value])
+        Inquiry.status.in_([InquiryStatus.CONFIRMED.value, InquiryStatus.CLOSED.value]),
     ).first()
     if not has_booking:
-        flash('You can only review packages you have a confirmed booking for.', 'warning')
-        return redirect(url_for('packages.package_detail', package_id=package_id) + '#s-reviews')
+        flash("You can only review packages you have a confirmed booking for.", "warning")
+        return redirect(url_for("packages.package_detail", package_id=package_id) + "#s-reviews")
 
-    existing = PackageReview.query.filter_by(
-        package_id=package_id, user_id=current_user.id
-    ).first()
+    existing = PackageReview.query.filter_by(package_id=package_id, user_id=current_user.id).first()
     if existing:
-        flash('You have already reviewed this package.', 'warning')
-        return redirect(url_for('packages.package_detail', package_id=package_id) + '#s-reviews')
+        flash("You have already reviewed this package.", "warning")
+        return redirect(url_for("packages.package_detail", package_id=package_id) + "#s-reviews")
 
     try:
-        rating = int(request.form.get('rating', ''))
+        rating = int(request.form.get("rating", ""))
         if rating < 1 or rating > 5:
-            raise ValueError('out of range')
+            raise ValueError("out of range")
     except (ValueError, TypeError):
-        flash('Please select a rating between 1 and 5 stars.', 'danger')
-        return redirect(url_for('packages.package_detail', package_id=package_id) + '#s-reviews')
+        flash("Please select a rating between 1 and 5 stars.", "danger")
+        return redirect(url_for("packages.package_detail", package_id=package_id) + "#s-reviews")
 
-    message = request.form.get('message', '').strip()
+    message = request.form.get("message", "").strip()
     if not message:
-        flash('Please write something in your review.', 'danger')
-        return redirect(url_for('packages.package_detail', package_id=package_id) + '#s-reviews')
+        flash("Please write something in your review.", "danger")
+        return redirect(url_for("packages.package_detail", package_id=package_id) + "#s-reviews")
 
-    review = PackageReview(
-        package_id=package_id,
-        user_id=current_user.id,
-        rating=rating,
-        message=message
-    )
+    review = PackageReview(package_id=package_id, user_id=current_user.id, rating=rating, message=message)
     db.session.add(review)
     db.session.commit()
-    flash('Thank you for your review!', 'success')
-    return redirect(url_for('packages.package_detail', package_id=package_id) + '#s-reviews')
+    flash("Thank you for your review!", "success")
+    return redirect(url_for("packages.package_detail", package_id=package_id) + "#s-reviews")
 
 
-@packages_bp.route('/<int:package_id>/review/edit', methods=['POST'])
+@packages_bp.route("/<int:package_id>/review/edit", methods=["POST"])
 @login_required
 def edit_review(package_id: int):
     """Update the current user's existing review for this package."""
     from models.package_review import PackageReview
     from app import db
-    review = PackageReview.query.filter_by(
-        package_id=package_id, user_id=current_user.id
-    ).first_or_404()
+
+    review = PackageReview.query.filter_by(package_id=package_id, user_id=current_user.id).first_or_404()
 
     try:
-        rating = int(request.form.get('rating', ''))
+        rating = int(request.form.get("rating", ""))
         if rating < 1 or rating > 5:
-            raise ValueError('out of range')
+            raise ValueError("out of range")
     except (ValueError, TypeError):
-        flash('Please select a rating between 1 and 5 stars.', 'danger')
-        return redirect(url_for('packages.package_detail', package_id=package_id) + '#s-reviews')
+        flash("Please select a rating between 1 and 5 stars.", "danger")
+        return redirect(url_for("packages.package_detail", package_id=package_id) + "#s-reviews")
 
-    message = request.form.get('message', '').strip()
+    message = request.form.get("message", "").strip()
     if not message:
-        flash('Please write something in your review.', 'danger')
-        return redirect(url_for('packages.package_detail', package_id=package_id) + '#s-reviews')
+        flash("Please write something in your review.", "danger")
+        return redirect(url_for("packages.package_detail", package_id=package_id) + "#s-reviews")
 
     review.rating = rating
     review.message = message
     db.session.commit()
-    flash('Your review has been updated.', 'success')
-    return redirect(url_for('packages.package_detail', package_id=package_id) + '#s-reviews')
+    flash("Your review has been updated.", "success")
+    return redirect(url_for("packages.package_detail", package_id=package_id) + "#s-reviews")
 
 
-@packages_bp.route('/autocomplete')
+@packages_bp.route("/autocomplete")
 @limiter.limit("60 per minute")
 def autocomplete() -> str:
     """Autocomplete endpoint for destination and country search.
-    
+
     Rate limited to prevent keystroke abuse.
     """
-    q: str = request.args.get('q', '').strip()
+    q: str = request.args.get("q", "").strip()
     if len(q) < 2:
         return jsonify([])
 
     results: list = []
 
     # Query for package destinations
-    packages = TourPackage.query.filter(
-        TourPackage.is_active == True,
-        TourPackage.destination.ilike(f'%{q}%')
-    ).limit(5).all()
+    packages = TourPackage.query.filter(TourPackage.is_active == True, TourPackage.destination.ilike(f"%{q}%")).limit(5).all()
 
     for p in packages:
-        if p.destination not in [r['name'] for r in results]:
-            results.append({'name': p.destination})
+        if p.destination not in [r["name"] for r in results]:
+            results.append({"name": p.destination})
 
     # Query for countries
-    countries = Country.query.filter(
-        Country.is_active == True,
-        Country.name.ilike(f'%{q}%')
-    ).limit(3).all()
+    countries = Country.query.filter(Country.is_active == True, Country.name.ilike(f"%{q}%")).limit(3).all()
 
     for c in countries:
-        if c.name not in [r['name'] for r in results]:
-            results.append({'name': c.name})
+        if c.name not in [r["name"] for r in results]:
+            results.append({"name": c.name})
 
     return jsonify(results[:6])
 
 
-@packages_bp.route('/visa')
+@packages_bp.route("/visa")
 def visa() -> str:
     """Display visa requirements by country."""
     countries = VisaCountry.query.filter_by(is_active=True).order_by(VisaCountry.country_name).all()
-    return render_template('packages/visa.html', countries=countries)
+    return render_template("packages/visa.html", countries=countries)
 
 
-@packages_bp.route('/visa/country/<int:visa_id>/requirements')
+@packages_bp.route("/visa/country/<int:visa_id>/requirements")
 def visa_requirements(visa_id: int) -> str:
     """Display visa requirements for a specific country.
-    
+
     Args:
         visa_id: ID of the visa country record
     """
     country = db.get_or_404(VisaCountry, visa_id)
-    return jsonify({
-        'id': country.id,
-        'name': country.country_name,
-        'flag_emoji': country.flag_emoji or '',
-        'requirements': country.requirements_pdf or ''
-    })
+    return jsonify(
+        {
+            "id": country.id,
+            "name": country.country_name,
+            "flag_emoji": country.flag_emoji or "",
+            "requirements": country.requirements_pdf or "",
+        }
+    )

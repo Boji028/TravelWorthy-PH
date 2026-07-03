@@ -21,14 +21,13 @@ def init_oauth(app):
     """
     oauth.init_app(app)
 
-    if os.getenv('GOOGLE_CLIENT_ID') and os.getenv('GOOGLE_CLIENT_SECRET'):
+    if os.getenv("GOOGLE_CLIENT_ID") and os.getenv("GOOGLE_CLIENT_SECRET"):
         oauth.register(
-            name='google',
-            client_id=os.getenv('GOOGLE_CLIENT_ID'),
-            client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
-            server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-            client_kwargs={'scope': 'openid email profile'},
+            name="google",
+            client_id=os.getenv("GOOGLE_CLIENT_ID"),
+            client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+            server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+            client_kwargs={"scope": "openid email profile"},
         )
     else:
-        app.logger.warning('GOOGLE_CLIENT_ID/SECRET not set — Google sign-in disabled')
-
+        app.logger.warning("GOOGLE_CLIENT_ID/SECRET not set — Google sign-in disabled")

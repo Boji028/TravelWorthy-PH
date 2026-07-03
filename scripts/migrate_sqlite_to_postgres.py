@@ -29,17 +29,17 @@ load_dotenv()
 
 def get_sqlite_engine():
     """Create SQLite engine (using existing database)."""
-    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'instance', 'travel_agency.db')
-    return create_engine(f'sqlite:///{db_path}', echo=False)
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "instance", "travel_agency.db")
+    return create_engine(f"sqlite:///{db_path}", echo=False)
 
 
 def get_postgres_engine():
     """Create PostgreSQL engine from DATABASE_URL."""
-    db_url = os.getenv('DATABASE_URL')
+    db_url = os.getenv("DATABASE_URL")
     if not db_url:
-        raise RuntimeError('DATABASE_URL not set in .env file!')
-    if 'sqlite' in db_url:
-        raise RuntimeError('DATABASE_URL is still pointing to SQLite! Update .env to use PostgreSQL.')
+        raise RuntimeError("DATABASE_URL not set in .env file!")
+    if "sqlite" in db_url:
+        raise RuntimeError("DATABASE_URL is still pointing to SQLite! Update .env to use PostgreSQL.")
     return create_engine(db_url, echo=False)
 
 
@@ -58,7 +58,7 @@ def copy_table_data(sqlite_engine, postgres_engine, table_name):
         sqlite_session = SQLiteSession()
         postgres_session = PostgresSession()
 
-        result = sqlite_session.execute(text(f'SELECT * FROM {table_name}'))
+        result = sqlite_session.execute(text(f"SELECT * FROM {table_name}"))
         rows = result.fetchall()
 
         if not rows:
@@ -73,12 +73,12 @@ def copy_table_data(sqlite_engine, postgres_engine, table_name):
         pg_inspector = inspect(postgres_engine)
         boolean_cols = set()
         for col in pg_inspector.get_columns(table_name):
-            if str(col['type']).upper() == 'BOOLEAN':
-                boolean_cols.add(col['name'])
+            if str(col["type"]).upper() == "BOOLEAN":
+                boolean_cols.add(col["name"])
 
-        columns = ', '.join(column_names)
-        placeholders = ', '.join([f':{col}' for col in column_names])
-        insert_sql = f'INSERT INTO {table_name} ({columns}) VALUES ({placeholders}) ON CONFLICT DO NOTHING'
+        columns = ", ".join(column_names)
+        placeholders = ", ".join([f":{col}" for col in column_names])
+        insert_sql = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders}) ON CONFLICT DO NOTHING"
 
         inserted = 0
         for row in rows:
@@ -100,10 +100,11 @@ def copy_table_data(sqlite_engine, postgres_engine, table_name):
 
         # Reset auto-increment sequence
         try:
-            postgres_session.execute(text(
-                f"SELECT setval(pg_get_serial_sequence('{table_name}', 'id'), "
-                f"COALESCE(MAX(id), 1)) FROM {table_name}"
-            ))
+            postgres_session.execute(
+                text(
+                    f"SELECT setval(pg_get_serial_sequence('{table_name}', 'id'), " f"COALESCE(MAX(id), 1)) FROM {table_name}"
+                )
+            )
             postgres_session.commit()
         except Exception:
             pass
@@ -123,17 +124,17 @@ def migrate():
     print("🚀 SQLite → PostgreSQL Migration")
     print("=" * 70)
     print()
-    
+
     # Check environments
     print("📋 Checking configuration...")
-    
+
     try:
         sqlite_engine = get_sqlite_engine()
         print("  ✓ SQLite database found")
     except Exception as e:
         print(f"  ❌ SQLite error: {e}")
         return False
-    
+
     try:
         postgres_engine = get_postgres_engine()
         print("  ✓ PostgreSQL connection successful")
@@ -143,26 +144,27 @@ def migrate():
         print("💡 Make sure PostgreSQL is running and DATABASE_URL is set correctly:")
         print("   DATABASE_URL=postgresql://user:password@localhost:5432/travel_agency")
         return False
-    
+
     print()
-    
+
     # Get list of tables from SQLite
     sqlite_inspector = inspect(sqlite_engine)
     sqlite_tables = sqlite_inspector.get_table_names()
-    
+
     if not sqlite_tables:
         print("⚠️  No tables found in SQLite database!")
         return False
-    
+
     print(f"📊 Found {len(sqlite_tables)} tables in SQLite:")
     print()
-    
+
     # Import models to create schema in PostgreSQL
     print("🔧 Creating PostgreSQL schema...")
     try:
         from app import create_app, db
+
         app = create_app()
-        
+
         with app.app_context():
             # Create all tables in PostgreSQL
             db.create_all()
@@ -170,55 +172,55 @@ def migrate():
     except Exception as e:
         print(f"  ❌ Error creating schema: {e}")
         return False
-    
+
     print()
     print("📦 Copying data...")
     print()
-    
+
     # Copy data from each table
     total_rows = 0
     for table in sqlite_tables:
-        if table == 'sqlite_sequence':  # Skip internal SQLite table
+        if table == "sqlite_sequence":  # Skip internal SQLite table
             continue
-        
+
         rows_copied = copy_table_data(sqlite_engine, postgres_engine, table)
         total_rows += rows_copied
         status = "✓" if rows_copied > 0 else "ℹ️"
         print(f"  {status} {table}: {rows_copied} rows")
-    
+
     print()
     print("=" * 70)
     print(f"✅ Migration Complete! ({total_rows} total rows copied)")
     print("=" * 70)
     print()
-    
+
     # Verification
     print("🔍 Verifying data integrity...")
     print()
-    
+
     try:
         from app import create_app, db
         from models.package import TourPackage
         from models.user import User
         from models.blog import BlogPost
-        
+
         app = create_app()
-        
+
         with app.app_context():
             package_count = TourPackage.query.count()
             user_count = User.query.count()
             blog_count = BlogPost.query.count()
-            
+
             print(f"  📦 Packages: {package_count}")
             print(f"  👥 Users: {user_count}")
             print(f"  📝 Blog posts: {blog_count}")
-        
+
         print()
         print("🎉 Data verification successful!")
-        
+
     except Exception as e:
         print(f"  ⚠️  Verification error: {e}")
-    
+
     print()
     print("📝 Next steps:")
     print("  1. Verify .env has: DATABASE_URL=postgresql://...travel_agency")
@@ -228,11 +230,11 @@ def migrate():
     print("💾 Your SQLite database is untouched at: travel_agency.db")
     print("   You can delete it once you're confident PostgreSQL works.")
     print()
-    
+
     return True
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         success = migrate()
         sys.exit(0 if success else 1)
@@ -242,5 +244,6 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"\n❌ Fatal error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

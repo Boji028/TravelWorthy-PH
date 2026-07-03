@@ -19,20 +19,17 @@ load_dotenv()
 
 
 def get_connection():
-    db_url = os.getenv('DATABASE_URL')
+    db_url = os.getenv("DATABASE_URL")
     if not db_url:
         print("ERROR: DATABASE_URL not set in .env")
         sys.exit(1)
-    db_url = db_url.replace('postgresql+psycopg2://', 'postgresql://')
+    db_url = db_url.replace("postgresql+psycopg2://", "postgresql://")
     return psycopg2.connect(db_url)
 
 
 def list_users(conn):
     cursor = conn.cursor()
-    cursor.execute(
-        "SELECT id, email, name, is_admin, email_verified, password "
-        "FROM users ORDER BY created_at DESC"
-    )
+    cursor.execute("SELECT id, email, name, is_admin, email_verified, password " "FROM users ORDER BY created_at DESC")
     users = cursor.fetchall()
 
     print("\n" + "=" * 80)
@@ -68,11 +65,11 @@ def check_password(conn, email):
     print(f"\n{email}: password {'MATCHES' if matches else 'does NOT match'}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     conn = get_connection()
 
-    if '--check-password' in sys.argv:
-        idx = sys.argv.index('--check-password')
+    if "--check-password" in sys.argv:
+        idx = sys.argv.index("--check-password")
         target_email = sys.argv[idx + 1] if len(sys.argv) > idx + 1 else None
         if not target_email:
             print("Usage: python scripts/debug_users.py --check-password <email>")

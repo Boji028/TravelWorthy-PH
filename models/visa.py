@@ -1,8 +1,9 @@
 from app import db
 from datetime import datetime, timezone
 
+
 class VisaCountry(db.Model):
-    __tablename__ = 'visa_countries'
+    __tablename__ = "visa_countries"
 
     id = db.Column(db.Integer, primary_key=True)
     country_name = db.Column(db.String(100), nullable=False)
@@ -10,12 +11,12 @@ class VisaCountry(db.Model):
     requirements_pdf = db.Column(db.String(300), nullable=True)
     price = db.Column(db.Float, nullable=True)
     is_active = db.Column(db.Boolean, default=True)
-    region           = db.Column(db.String(100), nullable=True)
-    visa_type        = db.Column(db.String(50),  nullable=True)
-    processing_time  = db.Column(db.String(50),  nullable=True)
-    stay_validity    = db.Column(db.String(50),  nullable=True)
-    documents_count  = db.Column(db.Integer,     nullable=True)
+    region = db.Column(db.String(100), nullable=True)
+    visa_type = db.Column(db.String(50), nullable=True)
+    processing_time = db.Column(db.String(50), nullable=True)
+    stay_validity = db.Column(db.String(50), nullable=True)
+    documents_count = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     def __repr__(self):
-        return f'<VisaCountry {self.country_name}>'
+        return f"<VisaCountry {self.country_name}>"

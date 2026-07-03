@@ -43,33 +43,59 @@ from models.site_settings import SiteSettings
 # Confirmed via full-codebase grep on 2026-07-02 — do not flag these even
 # if the DB scan below doesn't find them.
 SAFELIST = {
-    'LOGO.jpg', 'PrimaryBG.jpg', 'beach.jpg', 'default_tour.jpg',
-    'japan.jpg',
-    'about-accred-baptta.png', 'about-accred-batangas-tourism.png',
-    'about-accred-dot.png', 'about-accred-itatoa.png',
-    'about-accred-love-ph.png', 'about-accred-philtoa.png',
-    'about-accred-tap.png', 'about-accred-tpb.png',
-    'about-partner-bdo.png', 'about-partner-cirrusglobal.png',
-    'about-partner-dcx.png', 'about-partner-demeterland.png',
-    'about-partner-dv-philippines.png', 'about-partner-efren-ramirez.png',
-    'about-partner-joel-chavez.png', 'about-partner-sunlife.png',
-    'about-dest-intl-australia.jpg', 'about-dest-intl-china.jpg',
-    'about-dest-intl-europe.jpg', 'about-dest-intl-hong-kong.jpg',
-    'about-dest-intl-indonesia.jpg', 'about-dest-intl-japan.jpg',
-    'about-dest-intl-kazakhstan.jpg', 'about-dest-intl-malaysia.jpg',
-    'about-dest-intl-maldives.jpg', 'about-dest-intl-singapore.jpg',
-    'about-dest-intl-south-korea.jpg', 'about-dest-intl-taiwan.jpg',
-    'about-dest-intl-thailand.jpg', 'about-dest-intl-uae.jpg',
-    'about-dest-intl-usa.jpg', 'about-dest-intl-vietnam.jpg',
-    'about-dest-local-bacolod.jpg', 'about-dest-local-baguio.jpg',
-    'about-dest-local-batanes.jpg', 'about-dest-local-batangas.jpg',
-    'about-dest-local-bicol.jpg', 'about-dest-local-bohol.jpg',
-    'about-dest-local-boracay.jpg', 'about-dest-local-cebu.jpg',
-    'about-dest-local-coron.jpg', 'about-dest-local-dumaguete.jpg',
-    'about-dest-local-el-nido.jpg', 'about-dest-local-iloilo.jpg',
-    'about-dest-local-puerto-galera.jpg',
-    'about-dest-local-puerto-princesa.jpg',
-    'about-dest-local-siargao.jpg', 'about-dest-local-siquijor.jpg',
+    "LOGO.jpg",
+    "PrimaryBG.jpg",
+    "beach.jpg",
+    "default_tour.jpg",
+    "japan.jpg",
+    "about-accred-baptta.png",
+    "about-accred-batangas-tourism.png",
+    "about-accred-dot.png",
+    "about-accred-itatoa.png",
+    "about-accred-love-ph.png",
+    "about-accred-philtoa.png",
+    "about-accred-tap.png",
+    "about-accred-tpb.png",
+    "about-partner-bdo.png",
+    "about-partner-cirrusglobal.png",
+    "about-partner-dcx.png",
+    "about-partner-demeterland.png",
+    "about-partner-dv-philippines.png",
+    "about-partner-efren-ramirez.png",
+    "about-partner-joel-chavez.png",
+    "about-partner-sunlife.png",
+    "about-dest-intl-australia.jpg",
+    "about-dest-intl-china.jpg",
+    "about-dest-intl-europe.jpg",
+    "about-dest-intl-hong-kong.jpg",
+    "about-dest-intl-indonesia.jpg",
+    "about-dest-intl-japan.jpg",
+    "about-dest-intl-kazakhstan.jpg",
+    "about-dest-intl-malaysia.jpg",
+    "about-dest-intl-maldives.jpg",
+    "about-dest-intl-singapore.jpg",
+    "about-dest-intl-south-korea.jpg",
+    "about-dest-intl-taiwan.jpg",
+    "about-dest-intl-thailand.jpg",
+    "about-dest-intl-uae.jpg",
+    "about-dest-intl-usa.jpg",
+    "about-dest-intl-vietnam.jpg",
+    "about-dest-local-bacolod.jpg",
+    "about-dest-local-baguio.jpg",
+    "about-dest-local-batanes.jpg",
+    "about-dest-local-batangas.jpg",
+    "about-dest-local-bicol.jpg",
+    "about-dest-local-bohol.jpg",
+    "about-dest-local-boracay.jpg",
+    "about-dest-local-cebu.jpg",
+    "about-dest-local-coron.jpg",
+    "about-dest-local-dumaguete.jpg",
+    "about-dest-local-el-nido.jpg",
+    "about-dest-local-iloilo.jpg",
+    "about-dest-local-puerto-galera.jpg",
+    "about-dest-local-puerto-princesa.jpg",
+    "about-dest-local-siargao.jpg",
+    "about-dest-local-siquijor.jpg",
 }
 
 
@@ -83,7 +109,7 @@ def get_referenced_files():
             referenced.add(post.featured_image)
 
     for package in TourPackage.query.all():
-        if package.image and package.image != 'default_tour.jpg':
+        if package.image and package.image != "default_tour.jpg":
             referenced.add(os.path.basename(package.image))
             referenced.add(package.image)
         if package.flier_image:
@@ -120,7 +146,7 @@ def get_referenced_files():
 
     settings = SiteSettings.query.first()
     if settings:
-        for field in ('hero_image', 'testimonial_image', 'cta_image'):
+        for field in ("hero_image", "testimonial_image", "cta_image"):
             value = getattr(settings, field, None)
             if value:
                 referenced.add(os.path.basename(value))
@@ -155,8 +181,7 @@ def scan_static_images(images_folder, referenced, delete=False):
         print("✅ No orphaned files found. static/images/ is clean.")
         return
 
-    print(f"🗑️  Found {len(orphaned)} orphaned file(s), "
-          f"{total_size / 1024:.1f} KB total:\n")
+    print(f"🗑️  Found {len(orphaned)} orphaned file(s), " f"{total_size / 1024:.1f} KB total:\n")
     for filename, size in orphaned:
         print(f"   - {filename}  ({size / 1024:.1f} KB)")
 
@@ -165,22 +190,20 @@ def scan_static_images(images_folder, referenced, delete=False):
         for filename, _ in orphaned:
             os.remove(os.path.join(images_folder, filename))
             print(f"   ✔ removed {filename}")
-        print(f"\n✅ Deleted {len(orphaned)} file(s), "
-              f"freed {total_size / 1024:.1f} KB.")
+        print(f"\n✅ Deleted {len(orphaned)} file(s), " f"freed {total_size / 1024:.1f} KB.")
     else:
-        print("\nℹ️  Preview only — nothing was deleted. "
-              "Re-run with --delete to actually remove these files.")
+        print("\nℹ️  Preview only — nothing was deleted. " "Re-run with --delete to actually remove these files.")
 
 
 def main():
-    delete = '--delete' in sys.argv
+    delete = "--delete" in sys.argv
 
     app = create_app()
     with app.app_context():
         referenced = get_referenced_files()
-        images_folder = os.path.join(app.root_path, 'static', 'images')
+        images_folder = os.path.join(app.root_path, "static", "images")
         scan_static_images(images_folder, referenced, delete=delete)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

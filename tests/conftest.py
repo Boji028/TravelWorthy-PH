@@ -19,28 +19,28 @@ def app():
     the object back) is what fixes the DetachedInstanceError: the same
     SQLAlchemy session stays alive and bound for as long as the test runs.
     """
-    test_db_path = f'test_{uuid.uuid4().hex}.db'
+    test_db_path = f"test_{uuid.uuid4().hex}.db"
 
-    os.environ['FLASK_ENV'] = 'testing'
-    os.environ['TESTING'] = 'true'
-    os.environ['SECRET_KEY'] = 'test-secret-key-do-not-use-in-production'
-    os.environ['DATABASE_URL'] = f'sqlite:///{test_db_path}'
-    os.environ['ADMIN_EMAIL'] = 'admin@test.com'
-    os.environ['ADMIN_PASSWORD'] = 'TestPass123'
-    os.environ['REQUIRE_EMAIL_VERIFICATION'] = 'false'
+    os.environ["FLASK_ENV"] = "testing"
+    os.environ["TESTING"] = "true"
+    os.environ["SECRET_KEY"] = "test-secret-key-do-not-use-in-production"
+    os.environ["DATABASE_URL"] = f"sqlite:///{test_db_path}"
+    os.environ["ADMIN_EMAIL"] = "admin@test.com"
+    os.environ["ADMIN_PASSWORD"] = "TestPass123"
+    os.environ["REQUIRE_EMAIL_VERIFICATION"] = "false"
     # Force mail off — without this, a real MAIL_USERNAME/PASSWORD sitting in
     # .env gets picked up by load_dotenv() and tests will try to make a real
     # outbound SMTP connection (slow at best, and a real bug to depend on
     # live network/Gmail access just to run the test suite).
-    os.environ['MAIL_USERNAME'] = ''
-    os.environ['MAIL_PASSWORD'] = ''
+    os.environ["MAIL_USERNAME"] = ""
+    os.environ["MAIL_PASSWORD"] = ""
 
     from app import create_app, db
 
     flask_app = create_app()
-    flask_app.config['TESTING'] = True
-    flask_app.config['WTF_CSRF_ENABLED'] = False
-    flask_app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{test_db_path}'
+    flask_app.config["TESTING"] = True
+    flask_app.config["WTF_CSRF_ENABLED"] = False
+    flask_app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{test_db_path}"
 
     with flask_app.app_context():
         db.create_all()
@@ -89,11 +89,12 @@ def _stub_async_inquiry_email(request, monkeypatch):
     Tests that specifically exercise the real async/threaded behavior opt
     out via the `real_async_email` marker.
     """
-    if 'real_async_email' in request.keywords:
+    if "real_async_email" in request.keywords:
         yield
         return
     import email_service
-    monkeypatch.setattr(email_service, 'send_inquiry_emails_async', lambda *a, **k: None)
+
+    monkeypatch.setattr(email_service, "send_inquiry_emails_async", lambda *a, **k: None)
     yield
 
 
@@ -116,10 +117,10 @@ def test_user(app):
     from models.user import User
 
     user = User(
-        name='Test User',
-        email='testuser@example.com',
-        password=generate_password_hash('TestPass123!'),
-        phone='+1234567890',
+        name="Test User",
+        email="testuser@example.com",
+        password=generate_password_hash("TestPass123!"),
+        phone="+1234567890",
         is_admin=False,
         email_verified=True,
     )
@@ -135,9 +136,9 @@ def admin_user(app):
     from models.user import User
 
     admin = User(
-        name='Admin User',
-        email='admin@example.com',
-        password=generate_password_hash('AdminPass123!'),
+        name="Admin User",
+        email="admin@example.com",
+        password=generate_password_hash("AdminPass123!"),
         is_admin=True,
         email_verified=True,
     )
@@ -153,14 +154,14 @@ def test_package(app):
     from models.package import TourPackage
 
     package = TourPackage(
-        title='Test Package',
-        description='A test tour package',
-        destination='Test Destination',
+        title="Test Package",
+        description="A test tour package",
+        destination="Test Destination",
         duration_days=7,
         price=5000.00,
-        currency='PHP',
-        image='default_tour.jpg',
-        is_active=True
+        currency="PHP",
+        image="default_tour.jpg",
+        is_active=True,
     )
     db.session.add(package)
     db.session.commit()
@@ -176,8 +177,8 @@ def authenticated_client(client, test_user):
     session_transaction() doesn't reliably provide.
     """
     with client.session_transaction() as sess:
-        sess['_user_id'] = str(test_user.id)
-        sess['_fresh'] = True
+        sess["_user_id"] = str(test_user.id)
+        sess["_fresh"] = True
     return client
 
 
@@ -185,6 +186,6 @@ def authenticated_client(client, test_user):
 def admin_client(client, admin_user):
     """Client authenticated as admin."""
     with client.session_transaction() as sess:
-        sess['_user_id'] = str(admin_user.id)
-        sess['_fresh'] = True
+        sess["_user_id"] = str(admin_user.id)
+        sess["_fresh"] = True
     return client

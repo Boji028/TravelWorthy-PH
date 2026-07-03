@@ -15,16 +15,16 @@ from constants import InquiryStatus
 def _valid_inquiry_form_data(**overrides):
     """Form data that satisfies every InquiryForm validator."""
     data = {
-        'name': 'Test User',
-        'email': 'testuser@example.com',
-        'contact_number': '+639171234567',
-        'destination': 'Bali',
-        'travel_date_from': (date.today() + timedelta(days=30)).isoformat(),
-        'travel_date_to': (date.today() + timedelta(days=37)).isoformat(),
-        'num_adults': 2,
-        'num_children': 0,
-        'num_infants': 0,
-        'special_requests': '',
+        "name": "Test User",
+        "email": "testuser@example.com",
+        "contact_number": "+639171234567",
+        "destination": "Bali",
+        "travel_date_from": (date.today() + timedelta(days=30)).isoformat(),
+        "travel_date_to": (date.today() + timedelta(days=37)).isoformat(),
+        "num_adults": 2,
+        "num_children": 0,
+        "num_infants": 0,
+        "special_requests": "",
     }
     data.update(overrides)
     return data
@@ -33,16 +33,16 @@ def _valid_inquiry_form_data(**overrides):
 def _make_inquiry(db, user_id=None, package_id=None, status=InquiryStatus.NEW.value):
     """Create and commit an Inquiry the same way the live routes do."""
     inquiry = Inquiry(
-        name='Test User',
-        email='testuser@example.com',
-        contact_number='+639171234567',
-        destination='Bali',
+        name="Test User",
+        email="testuser@example.com",
+        contact_number="+639171234567",
+        destination="Bali",
         travel_date_from=date.today() + timedelta(days=30),
         travel_date_to=date.today() + timedelta(days=37),
         num_adults=2,
         num_children=0,
         num_infants=0,
-        special_requests='',
+        special_requests="",
         status=status,
         user_id=user_id,
         package_id=package_id,
@@ -57,12 +57,11 @@ class TestInquiryNotificationModel:
 
     def test_notification_creation_defaults(self, app, test_user):
         from app import db
+
         inquiry = _make_inquiry(db, user_id=test_user.id)
 
         notif = InquiryNotification(
-            user_id=test_user.id,
-            inquiry_id=inquiry.id,
-            message='Your inquiry to Bali is now confirmed.'
+            user_id=test_user.id, inquiry_id=inquiry.id, message="Your inquiry to Bali is now confirmed."
         )
         db.session.add(notif)
         db.session.commit()
@@ -74,9 +73,10 @@ class TestInquiryNotificationModel:
 
     def test_notification_repr(self, app, test_user):
         from app import db
+
         inquiry = _make_inquiry(db, user_id=test_user.id)
 
-        notif = InquiryNotification(user_id=test_user.id, inquiry_id=inquiry.id, message='Test message')
+        notif = InquiryNotification(user_id=test_user.id, inquiry_id=inquiry.id, message="Test message")
         db.session.add(notif)
         db.session.commit()
 
@@ -86,9 +86,10 @@ class TestInquiryNotificationModel:
 
     def test_notification_relationships(self, app, test_user):
         from app import db
+
         inquiry = _make_inquiry(db, user_id=test_user.id)
 
-        notif = InquiryNotification(user_id=test_user.id, inquiry_id=inquiry.id, message='Test message')
+        notif = InquiryNotification(user_id=test_user.id, inquiry_id=inquiry.id, message="Test message")
         db.session.add(notif)
         db.session.commit()
 
@@ -104,6 +105,7 @@ class TestNotificationService:
     def test_notify_inquiry_created_for_logged_in_user(self, app, test_user):
         from app import db
         from notification_service import notify_inquiry_created
+
         inquiry = _make_inquiry(db, user_id=test_user.id)
 
         notify_inquiry_created(inquiry)
@@ -111,11 +113,12 @@ class TestNotificationService:
 
         notifs = InquiryNotification.query.filter_by(user_id=test_user.id).all()
         assert len(notifs) == 1
-        assert 'Bali' in notifs[0].message
+        assert "Bali" in notifs[0].message
 
     def test_notify_inquiry_created_skips_guest(self, app):
         from app import db
         from notification_service import notify_inquiry_created
+
         inquiry = _make_inquiry(db, user_id=None)
 
         notify_inquiry_created(inquiry)
@@ -126,21 +129,23 @@ class TestNotificationService:
     def test_notify_inquiry_status_change_for_owner(self, app, test_user):
         from app import db
         from notification_service import notify_inquiry_status_change
+
         inquiry = _make_inquiry(db, user_id=test_user.id)
 
-        notify_inquiry_status_change(inquiry, 'Your inquiry to Bali is now confirmed.')
+        notify_inquiry_status_change(inquiry, "Your inquiry to Bali is now confirmed.")
         db.session.commit()
 
         notif = InquiryNotification.query.filter_by(user_id=test_user.id).first()
         assert notif is not None
-        assert notif.message == 'Your inquiry to Bali is now confirmed.'
+        assert notif.message == "Your inquiry to Bali is now confirmed."
 
     def test_notify_inquiry_status_change_skips_guest(self, app):
         from app import db
         from notification_service import notify_inquiry_status_change
+
         inquiry = _make_inquiry(db, user_id=None)
 
-        notify_inquiry_status_change(inquiry, 'Status changed.')
+        notify_inquiry_status_change(inquiry, "Status changed.")
         db.session.commit()
 
         assert InquiryNotification.query.count() == 0
@@ -152,9 +157,9 @@ class TestNotificationService:
         from werkzeug.security import generate_password_hash
 
         second_admin = User(
-            name='Second Admin',
-            email='admin2@example.com',
-            password=generate_password_hash('AdminPass123!'),
+            name="Second Admin",
+            email="admin2@example.com",
+            password=generate_password_hash("AdminPass123!"),
             is_admin=True,
             email_verified=True,
         )
@@ -171,6 +176,7 @@ class TestNotificationService:
     def test_notify_admins_new_inquiry_works_for_guest_inquiries(self, app, admin_user):
         from app import db
         from notification_service import notify_admins_new_inquiry
+
         inquiry = _make_inquiry(db, user_id=None)
 
         notify_admins_new_inquiry(inquiry)
@@ -178,30 +184,26 @@ class TestNotificationService:
 
         notif = InquiryNotification.query.filter_by(user_id=admin_user.id).first()
         assert notif is not None
-        assert 'Test User' in notif.message
+        assert "Test User" in notif.message
 
 
 class TestInquiryCreationNotifications:
     """Test that submitting an inquiry through the real routes creates the right notifications."""
 
     def test_plan_my_trip_notifies_logged_in_user(self, authenticated_client, test_user, admin_user):
-        response = authenticated_client.post(
-            '/bookings/plan-my-trip', data=_valid_inquiry_form_data(), follow_redirects=False
-        )
+        response = authenticated_client.post("/bookings/plan-my-trip", data=_valid_inquiry_form_data(), follow_redirects=False)
         assert response.status_code == 302
 
         user_notif = InquiryNotification.query.filter_by(user_id=test_user.id).first()
         assert user_notif is not None
-        assert 'Bali' in user_notif.message
+        assert "Bali" in user_notif.message
 
         admin_notif = InquiryNotification.query.filter_by(user_id=admin_user.id).first()
         assert admin_notif is not None
-        assert 'Test User' in admin_notif.message
+        assert "Test User" in admin_notif.message
 
     def test_plan_my_trip_guest_gets_no_user_notification_but_admin_does(self, client, admin_user):
-        response = client.post(
-            '/bookings/plan-my-trip', data=_valid_inquiry_form_data(), follow_redirects=False
-        )
+        response = client.post("/bookings/plan-my-trip", data=_valid_inquiry_form_data(), follow_redirects=False)
         assert response.status_code == 302
 
         guest_notifs = InquiryNotification.query.filter(InquiryNotification.user_id != admin_user.id).all()
@@ -212,7 +214,7 @@ class TestInquiryCreationNotifications:
 
     def test_inquire_package_notifies_logged_in_user(self, authenticated_client, test_user, test_package, admin_user):
         response = authenticated_client.post(
-            f'/bookings/inquire/{test_package.id}', data=_valid_inquiry_form_data(), follow_redirects=False
+            f"/bookings/inquire/{test_package.id}", data=_valid_inquiry_form_data(), follow_redirects=False
         )
         assert response.status_code == 302
 
@@ -229,12 +231,11 @@ class TestInquiryUpdateNotifications:
 
     def test_status_update_to_confirmed_notifies_owner(self, app, admin_client, test_user):
         from app import db
+
         inquiry = _make_inquiry(db, user_id=test_user.id, status=InquiryStatus.NEW.value)
 
         response = admin_client.post(
-            f'/admin/inquiries/update/{inquiry.id}',
-            data={'status': InquiryStatus.CONFIRMED.value},
-            follow_redirects=False
+            f"/admin/inquiries/update/{inquiry.id}", data={"status": InquiryStatus.CONFIRMED.value}, follow_redirects=False
         )
         assert response.status_code == 302
 
@@ -244,29 +245,29 @@ class TestInquiryUpdateNotifications:
 
     def test_status_update_to_same_status_does_not_duplicate_notification(self, app, admin_client, test_user):
         from app import db
+
         inquiry = _make_inquiry(db, user_id=test_user.id, status=InquiryStatus.CONFIRMED.value)
 
         admin_client.post(
-            f'/admin/inquiries/update/{inquiry.id}',
-            data={'status': InquiryStatus.CONFIRMED.value},
-            follow_redirects=False
+            f"/admin/inquiries/update/{inquiry.id}", data={"status": InquiryStatus.CONFIRMED.value}, follow_redirects=False
         )
 
         assert InquiryNotification.query.filter_by(user_id=test_user.id).count() == 0
 
     def test_reply_notifies_owner(self, app, admin_client, test_user):
         from app import db
+
         inquiry = _make_inquiry(db, user_id=test_user.id)
 
         admin_client.post(
-            f'/admin/inquiries/reply/{inquiry.id}',
-            data={'response': 'Thanks for reaching out, we have a great package for Bali!'},
-            follow_redirects=False
+            f"/admin/inquiries/reply/{inquiry.id}",
+            data={"response": "Thanks for reaching out, we have a great package for Bali!"},
+            follow_redirects=False,
         )
 
         notif = InquiryNotification.query.filter_by(user_id=test_user.id).first()
         assert notif is not None
-        assert 'replied' in notif.message.lower()
+        assert "replied" in notif.message.lower()
 
 
 class TestMarkNotificationRead:
@@ -274,14 +275,15 @@ class TestMarkNotificationRead:
 
     def test_marks_own_notification_as_read(self, app, authenticated_client, test_user):
         from app import db
+
         inquiry = _make_inquiry(db, user_id=test_user.id)
-        notif = InquiryNotification(user_id=test_user.id, inquiry_id=inquiry.id, message='Test')
+        notif = InquiryNotification(user_id=test_user.id, inquiry_id=inquiry.id, message="Test")
         db.session.add(notif)
         db.session.commit()
 
-        response = authenticated_client.post(f'/notifications/{notif.id}/mark-read')
+        response = authenticated_client.post(f"/notifications/{notif.id}/mark-read")
         assert response.status_code == 200
-        assert response.get_json()['success'] is True
+        assert response.get_json()["success"] is True
 
         db.session.refresh(notif)
         assert notif.is_read is True
@@ -290,12 +292,13 @@ class TestMarkNotificationRead:
         """Security: a user hitting another user's notification ID should
         not be able to mark it read."""
         from app import db
+
         inquiry = _make_inquiry(db, user_id=admin_user.id)
-        notif = InquiryNotification(user_id=admin_user.id, inquiry_id=inquiry.id, message='Not yours')
+        notif = InquiryNotification(user_id=admin_user.id, inquiry_id=inquiry.id, message="Not yours")
         db.session.add(notif)
         db.session.commit()
 
-        response = authenticated_client.post(f'/notifications/{notif.id}/mark-read')
+        response = authenticated_client.post(f"/notifications/{notif.id}/mark-read")
         assert response.status_code == 200
 
         db.session.refresh(notif)
@@ -303,12 +306,13 @@ class TestMarkNotificationRead:
 
     def test_mark_read_requires_login(self, client, app, test_user):
         from app import db
+
         inquiry = _make_inquiry(db, user_id=test_user.id)
-        notif = InquiryNotification(user_id=test_user.id, inquiry_id=inquiry.id, message='Test')
+        notif = InquiryNotification(user_id=test_user.id, inquiry_id=inquiry.id, message="Test")
         db.session.add(notif)
         db.session.commit()
 
-        response = client.post(f'/notifications/{notif.id}/mark-read')
+        response = client.post(f"/notifications/{notif.id}/mark-read")
         assert response.status_code in (302, 401)
 
 
@@ -317,33 +321,35 @@ class TestNotificationContextProcessor:
 
     def test_only_unread_notifications_appear(self, app, authenticated_client, test_user):
         from app import db
+
         inquiry = _make_inquiry(db, user_id=test_user.id)
 
-        unread = InquiryNotification(user_id=test_user.id, inquiry_id=inquiry.id, message='Unread one')
-        read = InquiryNotification(user_id=test_user.id, inquiry_id=inquiry.id, message='Read one', is_read=True)
+        unread = InquiryNotification(user_id=test_user.id, inquiry_id=inquiry.id, message="Unread one")
+        read = InquiryNotification(user_id=test_user.id, inquiry_id=inquiry.id, message="Read one", is_read=True)
         db.session.add_all([unread, read])
         db.session.commit()
 
-        response = authenticated_client.get('/')
+        response = authenticated_client.get("/")
         assert response.status_code == 200
         page = response.get_data(as_text=True)
-        assert 'Unread one' in page
-        assert 'Read one' not in page
+        assert "Unread one" in page
+        assert "Read one" not in page
 
     def test_unread_count_matches_badge(self, app, authenticated_client, test_user):
         from app import db
+
         inquiry = _make_inquiry(db, user_id=test_user.id)
 
         for i in range(3):
-            db.session.add(InquiryNotification(user_id=test_user.id, inquiry_id=inquiry.id, message=f'Msg {i}'))
+            db.session.add(InquiryNotification(user_id=test_user.id, inquiry_id=inquiry.id, message=f"Msg {i}"))
         db.session.commit()
 
-        response = authenticated_client.get('/')
+        response = authenticated_client.get("/")
         page = response.get_data(as_text=True)
         assert 'class="notif-badge"' in page
 
     def test_anonymous_user_sees_no_notifications(self, client):
-        response = client.get('/')
+        response = client.get("/")
         assert response.status_code == 200
         page = response.get_data(as_text=True)
         assert 'class="notif-badge"' not in page

@@ -11,20 +11,20 @@ from models.user import User
 from forms import RegisterForm, LoginForm, ChangePasswordForm
 from email_verification_service import EmailVerificationService
 
-auth_bp = Blueprint('auth', __name__)
+auth_bp = Blueprint("auth", __name__)
 
 
 def _email_verification_required() -> bool:
     """Return True when new users must verify email before logging in."""
-    return current_app.config.get('REQUIRE_EMAIL_VERIFICATION', False)
+    return current_app.config.get("REQUIRE_EMAIL_VERIFICATION", False)
 
 
-@auth_bp.route('/register', methods=['GET', 'POST'])
+@auth_bp.route("/register", methods=["GET", "POST"])
 @limiter.limit("10 per hour")
 def register():
     """User registration route with email validation and error handling."""
     if current_user.is_authenticated:
-        return redirect(url_for('main.home'))
+        return redirect(url_for("main.home"))
 
     form = RegisterForm()
     if form.validate_on_submit():
@@ -33,8 +33,8 @@ def register():
             existing_user = User.query.filter_by(email=form.email.data.lower()).first()
             if existing_user:
                 current_app.logger.info(f"Registration attempt with existing email: {form.email.data.lower()}")
-                flash('Email already registered. Please login.', 'warning')
-                return redirect(url_for('auth.login'))
+                flash("Email already registered. Please login.", "warning")
+                return redirect(url_for("auth.login"))
 
             verification_required = _email_verification_required()
             new_user = User(
@@ -61,51 +61,50 @@ def register():
                     is_resend=False,
                     expires_in_hours=24,
                 ):
-                    current_app.logger.warning(
-                        f"Verification email failed for {new_user.email}"
-                    )
+                    current_app.logger.warning(f"Verification email failed for {new_user.email}")
                     flash(
-                        'Registration successful! However, the verification email '
-                        'could not be sent. Use the resend link below or contact support.',
-                        'warning',
+                        "Registration successful! However, the verification email "
+                        "could not be sent. Use the resend link below or contact support.",
+                        "warning",
                     )
                 else:
                     flash(
-                        'Registration successful! Please check your email to verify your account.',
-                        'success',
+                        "Registration successful! Please check your email to verify your account.",
+                        "success",
                     )
-                session['pending_verification_email'] = new_user.email
-                return redirect(url_for('auth.pending_verification'))
+                session["pending_verification_email"] = new_user.email
+                return redirect(url_for("auth.pending_verification"))
             try:
                 from email_service import send_user_registration_welcome
+
                 send_user_registration_welcome(new_user)
             except Exception:
                 pass
-            flash('Registration successful! You can now log in.', 'success')
-            return redirect(url_for('auth.login'))
-        
+            flash("Registration successful! You can now log in.", "success")
+            return redirect(url_for("auth.login"))
+
         except IntegrityError as e:
             db.session.rollback()
             current_app.logger.error(f"Database integrity error during registration: {e}", exc_info=True)
-            flash('An account with this email already exists.', 'danger')
+            flash("An account with this email already exists.", "danger")
         except SQLAlchemyError as e:
             db.session.rollback()
             current_app.logger.error(f"Database error during registration: {e}", exc_info=True)
-            flash('Registration failed due to a database error. Please try again.', 'danger')
+            flash("Registration failed due to a database error. Please try again.", "danger")
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Unexpected error during registration: {e}", exc_info=True)
-            flash('An unexpected error occurred. Please try again later.', 'danger')
+            flash("An unexpected error occurred. Please try again later.", "danger")
 
-    return render_template('auth/register.html', form=form)
+    return render_template("auth/register.html", form=form)
 
 
-@auth_bp.route('/login', methods=['GET', 'POST'])
+@auth_bp.route("/login", methods=["GET", "POST"])
 @limiter.limit("5 per minute")
 def login():
     """User login route with session management and error handling."""
     if current_user.is_authenticated:
-        return redirect(url_for('main.home'))
+        return redirect(url_for("main.home"))
 
     form = LoginForm()
     if form.validate_on_submit():
@@ -113,87 +112,85 @@ def login():
             user = User.query.filter_by(email=form.email.data.lower()).first()
 
             if not user or not user.password or not check_password_hash(user.password, form.password.data):
-                current_app.logger.warning(f"Failed login attempt for email: {form.email.data.lower()} from IP: {request.remote_addr}")
-                flash('Invalid email or password.', 'danger')
-                return redirect(url_for('auth.login'))
+                current_app.logger.warning(
+                    f"Failed login attempt for email: {form.email.data.lower()} from IP: {request.remote_addr}"
+                )
+                flash("Invalid email or password.", "danger")
+                return redirect(url_for("auth.login"))
 
             if _email_verification_required() and not user.email_verified:
                 current_app.logger.warning(f"Login attempt with unverified email: {user.email}")
                 flash(
-                    'Please verify your email before logging in. '
-                    'Check your inbox for a verification link.',
-                    'warning',
+                    "Please verify your email before logging in. " "Check your inbox for a verification link.",
+                    "warning",
                 )
-                return redirect(url_for('auth.pending_verification', email=user.email))
+                return redirect(url_for("auth.pending_verification", email=user.email))
 
             login_user(user, remember=form.remember.data)
             current_app.logger.info(f"User logged in: {user.email} from IP: {request.remote_addr}")
-            
-            next_page = request.args.get('next')
+
+            next_page = request.args.get("next")
             # Reject anything that isn't a plain relative path: must start with /
             # and must not start with // or contain backslashes (browser open-redirect vectors).
-            if next_page and not (
-                next_page.startswith('/')
-                and not next_page.startswith('//')
-                and '\\' not in next_page
-            ):
+            if next_page and not (next_page.startswith("/") and not next_page.startswith("//") and "\\" not in next_page):
                 next_page = None
-            
-            flash(f'Welcome back, {user.name}!', 'success')
-            return redirect(next_page or url_for('main.home'))
-        
+
+            flash(f"Welcome back, {user.name}!", "success")
+            return redirect(next_page or url_for("main.home"))
+
         except SQLAlchemyError as e:
             current_app.logger.error(f"Database error during login: {e}", exc_info=True)
-            flash('Login failed. Please try again.', 'danger')
+            flash("Login failed. Please try again.", "danger")
         except Exception as e:
             current_app.logger.error(f"Unexpected error during login: {e}", exc_info=True)
-            flash('An unexpected error occurred. Please try again later.', 'danger')
+            flash("An unexpected error occurred. Please try again later.", "danger")
 
-    return render_template('auth/login.html', form=form)
+    return render_template("auth/login.html", form=form)
+
 
 def _oauth_login(user):
     """Shared login step for both OAuth callbacks."""
     login_user(user, remember=True)
     current_app.logger.info(f"User logged in via {user.oauth_provider}: {user.email}")
-    flash(f'Welcome back, {user.name}!', 'success')
-    return redirect(url_for('main.home'))
+    flash(f"Welcome back, {user.name}!", "success")
+    return redirect(url_for("main.home"))
 
 
-@auth_bp.route('/google/login')
+@auth_bp.route("/google/login")
 @limiter.limit("10 per hour")
 def google_login():
-    if 'google' not in oauth._clients:
-        flash('Google sign-in is not configured yet.', 'danger')
-        return redirect(url_for('auth.login'))
-    redirect_uri = url_for('auth.google_callback', _external=True)
+    if "google" not in oauth._clients:
+        flash("Google sign-in is not configured yet.", "danger")
+        return redirect(url_for("auth.login"))
+    redirect_uri = url_for("auth.google_callback", _external=True)
     return oauth.google.authorize_redirect(redirect_uri)
 
 
-@auth_bp.route('/google/callback')
+@auth_bp.route("/google/callback")
 def google_callback():
-    if 'google' not in oauth._clients:
-        flash('Google sign-in is not configured yet.', 'danger')
-        return redirect(url_for('auth.login'))
+    if "google" not in oauth._clients:
+        flash("Google sign-in is not configured yet.", "danger")
+        return redirect(url_for("auth.login"))
     try:
         token = oauth.google.authorize_access_token()
-        userinfo = token.get('userinfo') or oauth.google.userinfo()
+        userinfo = token.get("userinfo") or oauth.google.userinfo()
     except Exception as e:
         current_app.logger.error(f"Google OAuth callback failed: {e}", exc_info=True)
-        flash('Google sign-in failed. Please try again.', 'danger')
-        return redirect(url_for('auth.login'))
+        flash("Google sign-in failed. Please try again.", "danger")
+        return redirect(url_for("auth.login"))
 
-    google_id = userinfo.get('sub')
-    email = (userinfo.get('email') or '').lower()
-    email_verified = userinfo.get('email_verified', False)
-    name = userinfo.get('name') or email.split('@')[0]
+    google_id = userinfo.get("sub")
+    email = (userinfo.get("email") or "").lower()
+    email_verified = userinfo.get("email_verified", False)
+    name = userinfo.get("name") or email.split("@")[0]
 
     if not google_id or not email:
-        flash('Google did not return the required account details.', 'danger')
-        return redirect(url_for('auth.login'))
+        flash("Google did not return the required account details.", "danger")
+        return redirect(url_for("auth.login"))
 
     try:
         # 1. Already linked to this Google identity — just log in.
-        user = User.query.filter_by(oauth_provider='google', oauth_id=google_id).first()
+        user = User.query.filter_by(oauth_provider="google", oauth_id=google_id).first()
         if user:
             return _oauth_login(user)
 
@@ -202,24 +199,23 @@ def google_callback():
         existing = User.query.filter_by(email=email).first()
         if existing:
             if email_verified:
-                existing.oauth_provider = 'google'
+                existing.oauth_provider = "google"
                 existing.oauth_id = google_id
                 db.session.commit()
                 current_app.logger.info(f"Linked Google identity to existing account: {email}")
                 return _oauth_login(existing)
             flash(
-                'An account with this email already exists. '
-                'Please log in with your password first.',
-                'warning',
+                "An account with this email already exists. " "Please log in with your password first.",
+                "warning",
             )
-            return redirect(url_for('auth.login'))
+            return redirect(url_for("auth.login"))
 
         # 3. Brand new account.
         new_user = User(
             name=name,
             email=email,
             password=None,
-            oauth_provider='google',
+            oauth_provider="google",
             oauth_id=google_id,
             email_verified=email_verified,
         )
@@ -231,20 +227,20 @@ def google_callback():
     except SQLAlchemyError as e:
         db.session.rollback()
         current_app.logger.error(f"Database error during Google OAuth: {e}", exc_info=True)
-        flash('Sign-in failed due to a database error. Please try again.', 'danger')
-        return redirect(url_for('auth.login'))
+        flash("Sign-in failed due to a database error. Please try again.", "danger")
+        return redirect(url_for("auth.login"))
 
 
-@auth_bp.route('/logout')
+@auth_bp.route("/logout")
 @login_required
 def logout():
     """User logout route."""
     logout_user()
-    flash('You have been logged out.', 'info')
-    return redirect(url_for('main.home'))
+    flash("You have been logged out.", "info")
+    return redirect(url_for("main.home"))
 
 
-@auth_bp.route('/profile', methods=['GET', 'POST'])
+@auth_bp.route("/profile", methods=["GET", "POST"])
 @login_required
 def profile():
     """User profile and password change route with error handling."""
@@ -253,72 +249,73 @@ def profile():
         try:
             if not check_password_hash(current_user.password, form.current_password.data):
                 current_app.logger.warning(f"Failed password change attempt for user: {current_user.email}")
-                flash('Current password is incorrect.', 'danger')
-                return redirect(url_for('auth.profile'))
+                flash("Current password is incorrect.", "danger")
+                return redirect(url_for("auth.profile"))
 
             if check_password_hash(current_user.password, form.new_password.data):
-                flash('New password must be different from your current password.', 'danger')
-                return redirect(url_for('auth.profile'))
+                flash("New password must be different from your current password.", "danger")
+                return redirect(url_for("auth.profile"))
 
             current_user.password = generate_password_hash(form.new_password.data)
             db.session.commit()
             current_app.logger.info(f"Password changed for user: {current_user.email}")
-            flash('Password changed successfully!', 'success')
-            return redirect(url_for('auth.profile'))
-        
+            flash("Password changed successfully!", "success")
+            return redirect(url_for("auth.profile"))
+
         except SQLAlchemyError as e:
             db.session.rollback()
             current_app.logger.error(f"Database error changing password for {current_user.email}: {e}", exc_info=True)
-            flash('Password change failed due to a database error. Please try again.', 'danger')
+            flash("Password change failed due to a database error. Please try again.", "danger")
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Unexpected error changing password: {e}", exc_info=True)
-            flash('An unexpected error occurred. Please try again later.', 'danger')
+            flash("An unexpected error occurred. Please try again later.", "danger")
 
-    return render_template('auth/profile.html', form=form)
+    return render_template("auth/profile.html", form=form)
 
 
-@auth_bp.route('/pending-verification')
+@auth_bp.route("/pending-verification")
 def pending_verification():
     """Show page for user to verify their email."""
-    email = session.pop('pending_verification_email', request.args.get('email', ''))
-    return render_template('auth/pending_verification.html', email=email)
+    email = session.pop("pending_verification_email", request.args.get("email", ""))
+    return render_template("auth/pending_verification.html", email=email)
 
 
-@auth_bp.route('/verify-email/<token>')
+@auth_bp.route("/verify-email/<token>")
 def verify_email(token):
     """Verify user email with token."""
     success, message, user = EmailVerificationService.verify_email(token)
-    
+
     if success:
-        flash(message, 'success')
-        return redirect(url_for('auth.login'))
+        flash(message, "success")
+        return redirect(url_for("auth.login"))
     else:
-        flash(message, 'danger')
+        flash(message, "danger")
         # Get email from token if possible
         from models.email_verification import EmailVerificationToken
+
         token_obj = EmailVerificationToken.query.filter_by(token=token).first()
-        email = token_obj.email if token_obj else ''
-        return redirect(url_for('auth.pending_verification', email=email))
+        email = token_obj.email if token_obj else ""
+        return redirect(url_for("auth.pending_verification", email=email))
 
 
-@auth_bp.route('/resend-verification', methods=['GET', 'POST'])
+@auth_bp.route("/resend-verification", methods=["GET", "POST"])
 @limiter.limit("3 per minute")
-@limiter.limit("5 per hour", key_func=lambda: request.form.get('email', request.remote_addr).lower())
+@limiter.limit("5 per hour", key_func=lambda: request.form.get("email", request.remote_addr).lower())
 def resend_verification():
     """Resend verification email to user."""
-    if request.method == 'POST':
-        email = request.form.get('email', '').lower()
+    if request.method == "POST":
+        email = request.form.get("email", "").lower()
         if not email:
-            flash('Please provide an email address.', 'danger')
-            return redirect(url_for('auth.resend_verification'))
+            flash("Please provide an email address.", "danger")
+            return redirect(url_for("auth.resend_verification"))
 
         success, message = EmailVerificationService.resend_verification_email(email)
-        flash(message, 'success' if success else 'danger')
+        flash(message, "success" if success else "danger")
 
         if success:
-            session['pending_verification_email'] = email
-            return redirect(url_for('auth.pending_verification'))
+            session["pending_verification_email"] = email
+            return redirect(url_for("auth.pending_verification"))
 
-    email = request.args.get('email', '')
-    return render_template('auth/resend_verification.html', email=email)
+    email = request.args.get("email", "")
+    return render_template("auth/resend_verification.html", email=email)

@@ -18,11 +18,11 @@ load_dotenv()
 
 
 def get_connection():
-    db_url = os.getenv('DATABASE_URL')
+    db_url = os.getenv("DATABASE_URL")
     if not db_url:
         print("ERROR: DATABASE_URL not set in .env")
         sys.exit(1)
-    db_url = db_url.replace('postgresql+psycopg2://', 'postgresql://')
+    db_url = db_url.replace("postgresql+psycopg2://", "postgresql://")
     return psycopg2.connect(db_url)
 
 
@@ -59,7 +59,7 @@ def reset_password(email):
     conn.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python scripts/reset_admin_password.py <email>")
         sys.exit(1)

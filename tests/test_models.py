@@ -13,31 +13,25 @@ class TestUserModel:
     def test_user_creation(self, app):
         """Test creating a user."""
         from app import db
-        user = User(
-            name='Test User',
-            email='test@example.com',
-            password=generate_password_hash('TestPass123'),
-            is_admin=False
-        )
+
+        user = User(name="Test User", email="test@example.com", password=generate_password_hash("TestPass123"), is_admin=False)
         db.session.add(user)
         db.session.commit()
 
         assert user.id is not None
-        assert user.email == 'test@example.com'
-        assert check_password_hash(user.password, 'TestPass123')
+        assert user.email == "test@example.com"
+        assert check_password_hash(user.password, "TestPass123")
 
     def test_user_repr(self, test_user):
         """Test user string representation."""
-        assert 'test' in repr(test_user).lower()
+        assert "test" in repr(test_user).lower()
 
     def test_user_admin_flag(self, app):
         """Test admin flag on user."""
         from app import db
+
         user = User(
-            name='Admin User',
-            email='admin@example.com',
-            password=generate_password_hash('AdminPass123'),
-            is_admin=True
+            name="Admin User", email="admin@example.com", password=generate_password_hash("AdminPass123"), is_admin=True
         )
         db.session.add(user)
         db.session.commit()
@@ -56,32 +50,34 @@ class TestTourPackageModel:
     def test_package_creation(self, app):
         """Test creating a tour package."""
         from app import db
+
         package = TourPackage(
-            title='Test Tour',
-            description='A test tour',
-            destination='Test Destination',
+            title="Test Tour",
+            description="A test tour",
+            destination="Test Destination",
             duration_days=7,
             price=5000.00,
-            currency='PHP',
-            is_active=True
+            currency="PHP",
+            is_active=True,
         )
         db.session.add(package)
         db.session.commit()
 
         assert package.id is not None
-        assert package.title == 'Test Tour'
+        assert package.title == "Test Tour"
 
     def test_package_inactive(self, app):
         """Test inactive package."""
         from app import db
+
         package = TourPackage(
-            title='Inactive Tour',
-            description='An inactive tour',
-            destination='Test',
+            title="Inactive Tour",
+            description="An inactive tour",
+            destination="Test",
             duration_days=3,
             price=1000.00,
-            currency='PHP',
-            is_active=False
+            currency="PHP",
+            is_active=False,
         )
         db.session.add(package)
         db.session.commit()
@@ -90,7 +86,7 @@ class TestTourPackageModel:
 
     def test_package_currency(self, test_package):
         """Test package currency field."""
-        assert test_package.currency == 'PHP'
+        assert test_package.currency == "PHP"
 
 
 class TestAgentModel:
@@ -99,7 +95,8 @@ class TestAgentModel:
     def test_agent_creation_defaults(self, app):
         """Test creating an agent relies on the right column defaults."""
         from app import db
-        agent = Agent(name='Juan Dela Cruz', email='juan@travelworthyph.com')
+
+        agent = Agent(name="Juan Dela Cruz", email="juan@travelworthyph.com")
         db.session.add(agent)
         db.session.commit()
 
@@ -111,33 +108,35 @@ class TestAgentModel:
     def test_agent_repr(self, app):
         """Test agent string representation."""
         from app import db
-        agent = Agent(name='Juan Dela Cruz', email='juan@travelworthyph.com')
+
+        agent = Agent(name="Juan Dela Cruz", email="juan@travelworthyph.com")
         db.session.add(agent)
         db.session.commit()
 
-        assert 'Juan Dela Cruz' in repr(agent)
+        assert "Juan Dela Cruz" in repr(agent)
 
     def test_package_assigned_agent_relationship(self, app):
         """Test TourPackage.assigned_agent resolves via the relationship,
         not just the raw assigned_agent_id foreign key."""
         from app import db
-        agent = Agent(name='Juan Dela Cruz', email='juan@travelworthyph.com')
+
+        agent = Agent(name="Juan Dela Cruz", email="juan@travelworthyph.com")
         db.session.add(agent)
         db.session.commit()
 
         package = TourPackage(
-            title='Test Tour',
-            description='A test tour',
-            destination='Test Destination',
+            title="Test Tour",
+            description="A test tour",
+            destination="Test Destination",
             duration_days=7,
             price=5000.00,
-            currency='PHP',
+            currency="PHP",
             assigned_agent_id=agent.id,
         )
         db.session.add(package)
         db.session.commit()
 
-        assert package.assigned_agent.name == 'Juan Dela Cruz'
+        assert package.assigned_agent.name == "Juan Dela Cruz"
         assert package in agent.packages
 
 
@@ -150,10 +149,7 @@ class TestModelConstraints:
         from sqlalchemy.exc import IntegrityError
 
         duplicate_user = User(
-            name='Duplicate',
-            email=test_user.email,
-            password=generate_password_hash('Password123'),
-            is_admin=False
+            name="Duplicate", email=test_user.email, password=generate_password_hash("Password123"), is_admin=False
         )
         db.session.add(duplicate_user)
 
@@ -165,12 +161,7 @@ class TestModelConstraints:
         from app import db
 
         package = TourPackage(
-            title='Free Tour',
-            description='A free tour',
-            destination='Free',
-            duration_days=1,
-            price=0.00,
-            currency='PHP'
+            title="Free Tour", description="A free tour", destination="Free", duration_days=1, price=0.00, currency="PHP"
         )
         db.session.add(package)
         db.session.commit()

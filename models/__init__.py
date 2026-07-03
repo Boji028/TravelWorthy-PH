@@ -11,14 +11,14 @@ from .contact import ContactMessage
 from .email_verification import EmailVerificationToken
 
 __all__ = [
-    'User',
-    'TourPackage',
-    'Inquiry',
-    'BlogPost',
-    'Continent',
-    'Country',
-    'Testimonial',
-    'VisaCountry',
-    'ContactMessage',
-    'EmailVerificationToken',
+    "User",
+    "TourPackage",
+    "Inquiry",
+    "BlogPost",
+    "Continent",
+    "Country",
+    "Testimonial",
+    "VisaCountry",
+    "ContactMessage",
+    "EmailVerificationToken",
 ]

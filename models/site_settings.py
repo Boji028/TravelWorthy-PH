@@ -9,7 +9,8 @@ class SiteSettings(db.Model):
     There should only ever be one row in this table. Use
     SiteSettings.get_settings() to fetch it (creating it on first use).
     """
-    __tablename__ = 'site_settings'
+
+    __tablename__ = "site_settings"
 
     id = db.Column(db.Integer, primary_key=True)
 
@@ -25,8 +26,10 @@ class SiteSettings(db.Model):
     cta_image_size_kb = db.Column(db.Float, nullable=True)
     cta_image_uploaded_at = db.Column(db.DateTime, nullable=True)
 
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
-                            onupdate=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)
+    )
+
     @classmethod
     def get_settings(cls):
         """Return the single settings row, creating it on first use."""
@@ -38,4 +41,4 @@ class SiteSettings(db.Model):
         return settings
 
     def __repr__(self) -> str:
-        return '<SiteSettings>'
+        return "<SiteSettings>"

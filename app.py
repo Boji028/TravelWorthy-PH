@@ -12,107 +12,101 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-db            = SQLAlchemy()
+db = SQLAlchemy()
 login_manager = LoginManager()
-csrf          = CSRFProtect()
+csrf = CSRFProtect()
 limiter = Limiter(
     key_func=get_remote_address,
     default_limits=["300 per day", "60 per hour", "10 per minute"],
 )
-mail          = Mail()
-migrate       = Migrate()
+mail = Mail()
+migrate = Migrate()
 
 
 def create_app():
     app = Flask(__name__)
 
     # ── Config ────────────────────────────────────────────────
-    secret = os.getenv('SECRET_KEY')
+    secret = os.getenv("SECRET_KEY")
     if not secret:
         raise RuntimeError("SECRET_KEY is not set in your .env file!")
-    app.config['SECRET_KEY'] = secret
+    app.config["SECRET_KEY"] = secret
 
     # Database
-    database_url = os.getenv('DATABASE_URL', 'sqlite:///travel_agency.db')
-    if database_url and 'postgresql://' in database_url:
-        database_url = database_url.replace('postgresql://', 'postgresql+psycopg2://', 1)
-    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    if 'postgresql' in database_url:
+    database_url = os.getenv("DATABASE_URL", "sqlite:///travel_agency.db")
+    if database_url and "postgresql://" in database_url:
+        database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    if "postgresql" in database_url:
         # Recycle connections before the server's idle timeout kills them.
-        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_recycle': 280, 'pool_pre_ping': True}
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_recycle": 280, "pool_pre_ping": True}
 
-    db_type = 'PostgreSQL' if 'postgresql' in database_url else 'SQLite'
-    app.logger.info(f'Using {db_type} database')
+    db_type = "PostgreSQL" if "postgresql" in database_url else "SQLite"
+    app.logger.info(f"Using {db_type} database")
 
     # Uploads
-    app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'uploads')
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    app.config["UPLOAD_FOLDER"] = os.path.join(app.root_path, "uploads")
+    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
-    app.config['MAX_CONTENT_LENGTH'] = 27 * 1024 * 1024  # 27 MB
+    app.config["MAX_CONTENT_LENGTH"] = 27 * 1024 * 1024  # 27 MB
 
     # Flask-Mail
-    app.config['MAIL_SERVER']         = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
-    app.config['MAIL_PORT']           = int(os.getenv('MAIL_PORT', 587))
-    app.config['MAIL_USE_TLS']        = os.getenv('MAIL_USE_TLS', 'true').lower() == 'true'
-    app.config['MAIL_USERNAME']       = os.getenv('MAIL_USERNAME', '')
-    app.config['MAIL_PASSWORD']       = os.getenv('MAIL_PASSWORD', '')
-    app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', os.getenv('MAIL_USERNAME', ''))
+    app.config["MAIL_SERVER"] = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+    app.config["MAIL_PORT"] = int(os.getenv("MAIL_PORT", 587))
+    app.config["MAIL_USE_TLS"] = os.getenv("MAIL_USE_TLS", "true").lower() == "true"
+    app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME", "")
+    app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD", "")
+    app.config["MAIL_DEFAULT_SENDER"] = os.getenv("MAIL_DEFAULT_SENDER", os.getenv("MAIL_USERNAME", ""))
 
     # Site URL for email links
-    site_url = os.getenv('SITE_URL')
+    site_url = os.getenv("SITE_URL")
     if site_url:
-        app.config['SITE_URL'] = site_url
+        app.config["SITE_URL"] = site_url
 
     # Email verification
-    _verification_default = 'true' if os.getenv('FLASK_ENV') == 'production' else 'false'
-    app.config['REQUIRE_EMAIL_VERIFICATION'] = os.getenv(
-        'REQUIRE_EMAIL_VERIFICATION', _verification_default
-    ).lower() == 'true'
+    _verification_default = "true" if os.getenv("FLASK_ENV") == "production" else "false"
+    app.config["REQUIRE_EMAIL_VERIFICATION"] = os.getenv("REQUIRE_EMAIL_VERIFICATION", _verification_default).lower() == "true"
 
-    if app.config['REQUIRE_EMAIL_VERIFICATION']:
-        app.logger.info('Email verification is required before login')
-        if not app.config.get('MAIL_USERNAME'):
+    if app.config["REQUIRE_EMAIL_VERIFICATION"]:
+        app.logger.info("Email verification is required before login")
+        if not app.config.get("MAIL_USERNAME"):
             app.logger.warning(
-                'REQUIRE_EMAIL_VERIFICATION is enabled but MAIL_USERNAME is not set — '
-                'verification emails cannot be sent'
+                "REQUIRE_EMAIL_VERIFICATION is enabled but MAIL_USERNAME is not set — " "verification emails cannot be sent"
             )
     else:
-        app.logger.info('Email verification is disabled (users can log in immediately after registration)')
+        app.logger.info("Email verification is disabled (users can log in immediately after registration)")
 
     # Debug
-    app.config['DEBUG'] = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
+    app.config["DEBUG"] = os.getenv("FLASK_DEBUG", "false").lower() == "true"
 
     # Session Security
     from datetime import timedelta
-    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=24)
     # Use explicit FLASK_SECURE_COOKIES env var; FLASK_ENV is deprecated in Flask 3.x.
-    app.config['SESSION_COOKIE_SECURE'] = os.getenv('FLASK_SECURE_COOKIES', 'false').lower() == 'true'
-    app.config['SESSION_COOKIE_HTTPONLY'] = True
-    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-    app.config['SESSION_REFRESH_EACH_REQUEST'] = True
+    app.config["SESSION_COOKIE_SECURE"] = os.getenv("FLASK_SECURE_COOKIES", "false").lower() == "true"
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["SESSION_REFRESH_EACH_REQUEST"] = True
 
     # ── Init extensions ────────────────────────────────────────
     db.init_app(app)
 
-   # CSP — 'unsafe-inline' in script-src works because no nonce is generated
+    # CSP — 'unsafe-inline' in script-src works because no nonce is generated
     csp = {
-        'default-src': "'self'",
-        'script-src':  ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com"],
-        'style-src':   ["'self'", "'unsafe-inline'", "fonts.googleapis.com", "cdnjs.cloudflare.com"],
-        'font-src':    ["'self'", "fonts.gstatic.com", "cdnjs.cloudflare.com"],
-        'img-src':     ["'self'", "data:", "blob:", "res.cloudinary.com", "flagcdn.com"],
-        'connect-src': ["'self'", "https://api.cloudinary.com"],
-        'frame-src':   ["'self'", "https://www.google.com", "https://maps.google.com"],
+        "default-src": "'self'",
+        "script-src": ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com"],
+        "style-src": ["'self'", "'unsafe-inline'", "fonts.googleapis.com", "cdnjs.cloudflare.com"],
+        "font-src": ["'self'", "fonts.gstatic.com", "cdnjs.cloudflare.com"],
+        "img-src": ["'self'", "data:", "blob:", "res.cloudinary.com", "flagcdn.com"],
+        "connect-src": ["'self'", "https://api.cloudinary.com"],
+        "frame-src": ["'self'", "https://www.google.com", "https://maps.google.com"],
     }
-    force_https = os.getenv('FLASK_FORCE_HTTPS', 'false').lower() == 'true'
-    Talisman(
-        app,
-        content_security_policy=csp,
-        force_https=force_https
-    )
+    force_https = os.getenv("FLASK_FORCE_HTTPS", "false").lower() == "true"
+    Talisman(app, content_security_policy=csp, force_https=force_https)
     # csp_nonce() is still called in templates — return empty string so they don't crash
-    app.jinja_env.globals['csp_nonce'] = lambda: ''
+    app.jinja_env.globals["csp_nonce"] = lambda: ""
 
     csrf.init_app(app)
     login_manager.init_app(app)
@@ -121,36 +115,37 @@ def create_app():
     migrate.init_app(app, db)
 
     from oauth import init_oauth
+
     init_oauth(app)
 
-    login_manager.login_view = 'auth.login'
-    login_manager.login_message_category = 'info'
+    login_manager.login_view = "auth.login"
+    login_manager.login_message_category = "info"
 
     # ── Serve uploads ──────────────────────────────────────────
     # FIX 6: Use pathlib for safe path resolution
-    @app.route('/uploads/<path:filename>')
+    @app.route("/uploads/<path:filename>")
     def uploaded_file(filename):
         from flask import send_from_directory, abort
         from pathlib import Path
 
-        ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'}
+        ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp", "pdf"}
 
-        upload_root = Path(app.config['UPLOAD_FOLDER']).resolve()
-        requested   = (upload_root / filename).resolve()
+        upload_root = Path(app.config["UPLOAD_FOLDER"]).resolve()
+        requested = (upload_root / filename).resolve()
 
         if not requested.is_relative_to(upload_root):
             abort(403)
 
-        ext = requested.suffix.lstrip('.').lower()
+        ext = requested.suffix.lstrip(".").lower()
         if ext not in ALLOWED_EXTENSIONS:
             abort(404)
 
-        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+        return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
     # ── SEO files ──────────────────────────────────────────────
-    @app.route('/robots.txt')
+    @app.route("/robots.txt")
     def robots():
-        return app.send_static_file('robots.txt')
+        return app.send_static_file("robots.txt")
 
     # ── Register blueprints ────────────────────────────────────
     from routes.auth import auth_bp
@@ -161,11 +156,11 @@ def create_app():
     from routes.blog import blog_bp
 
     app.register_blueprint(main_bp)
-    app.register_blueprint(auth_bp, url_prefix='/auth')
-    app.register_blueprint(packages_bp, url_prefix='/packages')
-    app.register_blueprint(bookings_bp, url_prefix='/bookings')
-    app.register_blueprint(admin_bp, url_prefix='/admin')
-    app.register_blueprint(blog_bp, url_prefix='/blog')
+    app.register_blueprint(auth_bp, url_prefix="/auth")
+    app.register_blueprint(packages_bp, url_prefix="/packages")
+    app.register_blueprint(bookings_bp, url_prefix="/bookings")
+    app.register_blueprint(admin_bp, url_prefix="/admin")
+    app.register_blueprint(blog_bp, url_prefix="/blog")
 
     # Admin routes already require login + is_admin (@admin_required on every
     # view in routes/admin.py) — the global rate limits below exist to slow
@@ -196,55 +191,58 @@ def create_app():
         # even in dev — since that's exactly what silently raced against
         # Alembic and broke a real migration. Postgres always goes through
         # `flask db upgrade`, regardless of FLASK_ENV.
-        if 'sqlite' in database_url:
+        if "sqlite" in database_url:
             db.create_all()
 
     # ── Error handlers ─────────────────────────────────────────
     @app.errorhandler(404)
     def page_not_found(e):
-        return render_template('404.html'), 404
+        return render_template("404.html"), 404
 
     @app.errorhandler(500)
     def server_error(e):
         app.logger.error(f"500 Internal Server Error: {e}", exc_info=True)
-        return render_template('500.html'), 500
+        return render_template("500.html"), 500
 
     # ── File-based logging ─────────────────────────────────────
     try:
         from file_logging import setup_file_logging
+
         setup_file_logging(app)
     except Exception as e:
-        print(f'Warning: Could not setup file logging: {e}')
-    
+        print(f"Warning: Could not setup file logging: {e}")
+
     from cli import register_commands
+
     register_commands(app)
-    
+
     # ── Cloudinary auto-enhance filter for templates ──────────────────
-    @app.template_filter('cloudinary_card')
+    @app.template_filter("cloudinary_card")
     def cloudinary_card(url):
         """Smart-crop, auto-enhance and optimise any Cloudinary image for cards."""
-        if not url or not url.startswith('https://res.cloudinary.com'):
+        if not url or not url.startswith("https://res.cloudinary.com"):
             return url
         transforms = (
-            'f_auto,'        # serve WebP/AVIF automatically
-            'q_auto:best,'   # auto quality — prioritise sharpness
-            'w_640,'         # cap width at 640px (2× for retina)
-            'ar_4:3,'        # force 4:3 crop
-            'c_fill,'        # fill the frame (no empty space)
-            'g_center,'      # always crop from centre — consistent across all images
-            'e_improve,'     # auto brightness, contrast, colour
-            'e_sharpen:40'   # slight sharpening for clarity
+            "f_auto,"  # serve WebP/AVIF automatically
+            "q_auto:best,"  # auto quality — prioritise sharpness
+            "w_640,"  # cap width at 640px (2× for retina)
+            "ar_4:3,"  # force 4:3 crop
+            "c_fill,"  # fill the frame (no empty space)
+            "g_center,"  # always crop from centre — consistent across all images
+            "e_improve,"  # auto brightness, contrast, colour
+            "e_sharpen:40"  # slight sharpening for clarity
         )
-        return url.replace('/upload/', f'/upload/{transforms}/')
-    @app.template_filter('cloudinary_enhance')
+        return url.replace("/upload/", f"/upload/{transforms}/")
+
+    @app.template_filter("cloudinary_enhance")
     def cloudinary_enhance(url):
         """Enhance Cloudinary image without cropping — for full-size display."""
-        if not url or not url.startswith('https://res.cloudinary.com'):
+        if not url or not url.startswith("https://res.cloudinary.com"):
             return url
-        transforms = 'f_auto,q_auto:best,e_improve,e_sharpen:40'
-        return url.replace('/upload/', f'/upload/{transforms}/')
+        transforms = "f_auto,q_auto:best,e_improve,e_sharpen:40"
+        return url.replace("/upload/", f"/upload/{transforms}/")
 
-    @app.template_filter('flag_to_iso')
+    @app.template_filter("flag_to_iso")
     def flag_to_iso(emoji):
         """Convert a flag value to its 2-letter ISO code (e.g. 'jp').
 
@@ -260,38 +258,39 @@ def create_app():
             return None
         # Case 1: already plain ASCII letters (e.g. stored as "JP")
         if all(c.isalpha() and c.isascii() for c in chars):
-            return ''.join(chars).lower()
+            return "".join(chars).lower()
         # Case 2: actual regional-indicator flag emoji
         try:
-            code = ''.join(chr(ord(c) - 0x1F1E6 + 65) for c in chars)
+            code = "".join(chr(ord(c) - 0x1F1E6 + 65) for c in chars)
             return code.lower() if code.isalpha() and len(code) == 2 else None
         except (ValueError, TypeError):
             return None
+
     @app.context_processor
     def inject_notifications():
         from flask_login import current_user
         if current_user.is_authenticated:
-            from models.inquiry_notification import InquiryNotification
+
             # Fetch one extra to detect "9+" without a second COUNT query.
             recent_all = (
-                InquiryNotification.query
-                .filter_by(user_id=current_user.id, is_read=False)
+                InquiryNotification.query.filter_by(user_id=current_user.id, is_read=False)
                 .order_by(InquiryNotification.created_at.desc())
                 .limit(9)
                 .all()
             )
             unread_count = len(recent_all)
             recent = recent_all[:8]
-            return {'unread_notification_count': unread_count, 'recent_notifications': recent}
-        return {'unread_notification_count': 0, 'recent_notifications': []}
+            return {"unread_notification_count": unread_count, "recent_notifications": recent}
+        return {"unread_notification_count": 0, "recent_notifications": []}
 
-    @app.template_filter('safe_html')
+    @app.template_filter("safe_html")
     def safe_html_filter(content):
         """Sanitize HTML with allowed tags — use instead of | safe for user/admin content."""
         import bleach
         from markupsafe import Markup
-        ALLOWED = ['b', 'i', 'u', 'em', 'strong', 'p', 'br', 'ul', 'ol', 'li', 'h2', 'h3', 'a', 'blockquote']
-        ATTRS = {'a': ['href', 'title']}
-        return Markup(bleach.clean(content or '', tags=ALLOWED, attributes=ATTRS, strip=True))
-    return app   
-   
+
+        ALLOWED = ["b", "i", "u", "em", "strong", "p", "br", "ul", "ol", "li", "h2", "h3", "a", "blockquote"]
+        ATTRS = {"a": ["href", "title"]}
+        return Markup(bleach.clean(content or "", tags=ALLOWED, attributes=ATTRS, strip=True))
+
+    return app

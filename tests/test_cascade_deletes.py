@@ -32,14 +32,14 @@ from werkzeug.security import generate_password_hash
 def _make_inquiry(db, **overrides):
     today = date.today()
     defaults = dict(
-        name='Maria Santos',
-        email='maria@example.com',
-        contact_number='09171234567',
-        destination='Palawan',
+        name="Maria Santos",
+        email="maria@example.com",
+        contact_number="09171234567",
+        destination="Palawan",
         travel_date_from=today + timedelta(days=10),
         travel_date_to=today + timedelta(days=14),
         num_adults=2,
-        status='new',
+        status="new",
     )
     defaults.update(overrides)
     inquiry = Inquiry(**defaults)
@@ -50,12 +50,12 @@ def _make_inquiry(db, **overrides):
 
 def _make_package(db, **overrides):
     defaults = dict(
-        title='Test Package',
-        description='A test tour package',
-        destination='Test Destination',
+        title="Test Package",
+        description="A test tour package",
+        destination="Test Destination",
         duration_days=5,
         price=10000.00,
-        currency='PHP',
+        currency="PHP",
         is_active=True,
     )
     defaults.update(overrides)
@@ -67,9 +67,9 @@ def _make_package(db, **overrides):
 
 def _make_reviewer(db, **overrides):
     defaults = dict(
-        name='Reviewer',
-        email='reviewer@example.com',
-        password=generate_password_hash('TestPass123'),
+        name="Reviewer",
+        email="reviewer@example.com",
+        password=generate_password_hash("TestPass123"),
         is_admin=False,
         email_verified=True,
     )
@@ -86,20 +86,22 @@ class TestInquiryDeleteWithNotifications:
     instead of deleting cleanly."""
 
     def test_delete_inquiry_requires_login(self, client):
-        response = client.post('/admin/inquiries/delete/1')
+        response = client.post("/admin/inquiries/delete/1")
         assert response.status_code in (302, 401, 403)
 
     def test_delete_inquiry_rejects_non_admin(self, app, authenticated_client):
         from app import db
+
         inquiry = _make_inquiry(db)
-        response = authenticated_client.post(f'/admin/inquiries/delete/{inquiry.id}')
+        response = authenticated_client.post(f"/admin/inquiries/delete/{inquiry.id}")
         assert response.status_code in (302, 403)
 
     def test_delete_inquiry_with_no_notifications(self, app, admin_client):
         from app import db
+
         inquiry = _make_inquiry(db)
         inquiry_id = inquiry.id
-        response = admin_client.post(f'/admin/inquiries/delete/{inquiry_id}')
+        response = admin_client.post(f"/admin/inquiries/delete/{inquiry_id}")
         assert response.status_code == 302
         assert db.session.get(Inquiry, inquiry_id) is None
 
@@ -107,17 +109,17 @@ class TestInquiryDeleteWithNotifications:
         """This is the actual production crash. Before the fix this raised
         IntegrityError -> sqlalchemy.exc.IntegrityError -> Flask 500."""
         from app import db
+
         reviewer = _make_reviewer(db)
         inquiry = _make_inquiry(db, user_id=reviewer.id)
         inquiry_id = inquiry.id
         notif = InquiryNotification(
-            user_id=reviewer.id, inquiry_id=inquiry.id,
-            message="We received your inquiry. We'll be in touch soon!"
+            user_id=reviewer.id, inquiry_id=inquiry.id, message="We received your inquiry. We'll be in touch soon!"
         )
         db.session.add(notif)
         db.session.commit()
 
-        response = admin_client.post(f'/admin/inquiries/delete/{inquiry_id}')
+        response = admin_client.post(f"/admin/inquiries/delete/{inquiry_id}")
         assert response.status_code == 302
         assert db.session.get(Inquiry, inquiry_id) is None
         assert InquiryNotification.query.filter_by(inquiry_id=inquiry_id).count() == 0
@@ -126,16 +128,19 @@ class TestInquiryDeleteWithNotifications:
         """The production log showed two notification rows (ids 18, 19)
         attached to one inquiry — confirm that case specifically."""
         from app import db
+
         reviewer = _make_reviewer(db)
         inquiry = _make_inquiry(db, user_id=reviewer.id)
         inquiry_id = inquiry.id
-        db.session.add_all([
-            InquiryNotification(user_id=reviewer.id, inquiry_id=inquiry.id, message='First'),
-            InquiryNotification(user_id=reviewer.id, inquiry_id=inquiry.id, message='Second'),
-        ])
+        db.session.add_all(
+            [
+                InquiryNotification(user_id=reviewer.id, inquiry_id=inquiry.id, message="First"),
+                InquiryNotification(user_id=reviewer.id, inquiry_id=inquiry.id, message="Second"),
+            ]
+        )
         db.session.commit()
 
-        response = admin_client.post(f'/admin/inquiries/delete/{inquiry_id}')
+        response = admin_client.post(f"/admin/inquiries/delete/{inquiry_id}")
         assert response.status_code == 302
         assert InquiryNotification.query.count() == 0
 
@@ -147,33 +152,36 @@ class TestPackageDeleteWithImagesAndReviews:
 
     def test_delete_package_with_no_images_or_reviews(self, app, admin_client):
         from app import db
+
         package = _make_package(db)
         package_id = package.id
-        response = admin_client.post(f'/admin/packages/delete/{package_id}')
+        response = admin_client.post(f"/admin/packages/delete/{package_id}")
         assert response.status_code == 302
         assert db.session.get(TourPackage, package_id) is None
 
     def test_delete_package_with_gallery_image_does_not_500(self, app, admin_client):
         from app import db
+
         package = _make_package(db)
         package_id = package.id
-        db.session.add(PackageImage(package_id=package.id, path='gallery1.jpg', order=0))
+        db.session.add(PackageImage(package_id=package.id, path="gallery1.jpg", order=0))
         db.session.commit()
 
-        response = admin_client.post(f'/admin/packages/delete/{package_id}')
+        response = admin_client.post(f"/admin/packages/delete/{package_id}")
         assert response.status_code == 302
         assert db.session.get(TourPackage, package_id) is None
         assert PackageImage.query.filter_by(package_id=package_id).count() == 0
 
     def test_delete_package_with_review_does_not_500(self, app, admin_client):
         from app import db
+
         reviewer = _make_reviewer(db)
         package = _make_package(db)
         package_id = package.id
-        db.session.add(PackageReview(package_id=package.id, user_id=reviewer.id, rating=5, message='Loved it!'))
+        db.session.add(PackageReview(package_id=package.id, user_id=reviewer.id, rating=5, message="Loved it!"))
         db.session.commit()
 
-        response = admin_client.post(f'/admin/packages/delete/{package_id}')
+        response = admin_client.post(f"/admin/packages/delete/{package_id}")
         assert response.status_code == 302
         assert db.session.get(TourPackage, package_id) is None
         assert PackageReview.query.filter_by(package_id=package_id).count() == 0
@@ -187,21 +195,23 @@ class TestUserDeleteWithPackageReviews:
 
     def test_delete_user_with_no_reviews(self, app, admin_client):
         from app import db
-        user = _make_reviewer(db, email='plain@example.com')
+
+        user = _make_reviewer(db, email="plain@example.com")
         user_id = user.id
-        response = admin_client.post(f'/admin/users/delete/{user_id}')
+        response = admin_client.post(f"/admin/users/delete/{user_id}")
         assert response.status_code == 302
         assert db.session.get(User, user_id) is None
 
     def test_delete_user_with_package_review_does_not_500(self, app, admin_client):
         from app import db
-        reviewer = _make_reviewer(db, email='hasreview@example.com')
+
+        reviewer = _make_reviewer(db, email="hasreview@example.com")
         user_id = reviewer.id
         package = _make_package(db)
-        db.session.add(PackageReview(package_id=package.id, user_id=reviewer.id, rating=4, message='Pretty good'))
+        db.session.add(PackageReview(package_id=package.id, user_id=reviewer.id, rating=4, message="Pretty good"))
         db.session.commit()
 
-        response = admin_client.post(f'/admin/users/delete/{user_id}')
+        response = admin_client.post(f"/admin/users/delete/{user_id}")
         assert response.status_code == 302
         assert db.session.get(User, user_id) is None
         assert PackageReview.query.filter_by(user_id=user_id).count() == 0

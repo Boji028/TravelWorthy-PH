@@ -34,7 +34,7 @@ def get_referenced_files():
             referenced.add(post.featured_image)
 
     for package in TourPackage.query.all():
-        if package.image and package.image != 'default_tour.jpg':
+        if package.image and package.image != "default_tour.jpg":
             referenced.add(os.path.basename(package.image))
             referenced.add(package.image)
 
@@ -70,13 +70,10 @@ def scan_uploads(upload_folder, referenced, delete=False):
     for root, dirs, files in os.walk(upload_folder):
         for filename in files:
             filepath = os.path.join(root, filename)
-            relative = os.path.relpath(filepath, upload_folder).replace(os.sep, '/')
+            relative = os.path.relpath(filepath, upload_folder).replace(os.sep, "/")
             size_kb = os.path.getsize(filepath) / 1024
 
-            is_referenced = (
-                filename in referenced or
-                relative in referenced
-            )
+            is_referenced = filename in referenced or relative in referenced
 
             if not is_referenced:
                 orphaned.append((filepath, relative, size_kb))
@@ -107,7 +104,7 @@ def scan_uploads(upload_folder, referenced, delete=False):
 
 
 def main():
-    delete_mode = '--delete' in sys.argv
+    delete_mode = "--delete" in sys.argv
 
     print("=" * 60)
     print("🧹 Uploads Cleanup Tool")
@@ -120,7 +117,7 @@ def main():
 
     app = create_app()
     with app.app_context():
-        upload_folder = app.config.get('UPLOAD_FOLDER')
+        upload_folder = app.config.get("UPLOAD_FOLDER")
         if not upload_folder or not os.path.exists(upload_folder):
             print(f"❌ Upload folder not found: {upload_folder}")
             sys.exit(1)
@@ -129,5 +126,5 @@ def main():
         scan_uploads(upload_folder, referenced, delete=delete_mode)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

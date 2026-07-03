@@ -17,14 +17,14 @@ from getpass import getpass
 
 load_dotenv()
 
-TARGET_DB_NAME = os.getenv('PG_DB_NAME', 'travel_agency_db')
+TARGET_DB_NAME = os.getenv("PG_DB_NAME", "travel_agency_db")
 
 
 def create_database():
-    host = os.getenv('PG_HOST', 'localhost')
-    port = os.getenv('PG_PORT', '5432')
-    user = os.getenv('PG_ADMIN_USER') or input(f"PostgreSQL admin user [postgres]: ") or 'postgres'
-    password = os.getenv('PG_ADMIN_PASSWORD') or getpass(f"PostgreSQL password for {user}: ")
+    host = os.getenv("PG_HOST", "localhost")
+    port = os.getenv("PG_PORT", "5432")
+    user = os.getenv("PG_ADMIN_USER") or input(f"PostgreSQL admin user [postgres]: ") or "postgres"
+    password = os.getenv("PG_ADMIN_PASSWORD") or getpass(f"PostgreSQL password for {user}: ")
 
     conn = None
     try:

@@ -50,6 +50,7 @@ def notify_admins_new_inquiry(inquiry) -> None:
     the existing send_admin_new_inquiry email alert.
     """
     from models.user import User
+
     admins = User.query.filter_by(is_admin=True).all()
     for admin in admins:
         notif = InquiryNotification(

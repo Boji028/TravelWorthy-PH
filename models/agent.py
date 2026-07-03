@@ -9,7 +9,8 @@ class Agent(db.Model):
     Referenced by TourPackage.assigned_agent_id — updating an agent's
     email here automatically applies to every package they're assigned to.
     """
-    __tablename__ = 'agents'
+
+    __tablename__ = "agents"
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -20,4 +21,4 @@ class Agent(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     def __repr__(self) -> str:
-        return f'<Agent {self.name}>'
+        return f"<Agent {self.name}>"

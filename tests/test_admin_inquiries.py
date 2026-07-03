@@ -8,14 +8,14 @@ from werkzeug.security import generate_password_hash
 def _make_inquiry(db, **overrides):
     today = date.today()
     defaults = dict(
-        name='Test Customer',
-        email='customer@example.com',
-        contact_number='+639171234567',
-        destination='Palawan',
+        name="Test Customer",
+        email="customer@example.com",
+        contact_number="+639171234567",
+        destination="Palawan",
         travel_date_from=today + timedelta(days=10),
         travel_date_to=today + timedelta(days=14),
         num_adults=2,
-        status='new',
+        status="new",
     )
     defaults.update(overrides)
     inquiry = Inquiry(**defaults)
@@ -26,9 +26,9 @@ def _make_inquiry(db, **overrides):
 
 def _make_user(db, **overrides):
     defaults = dict(
-        name='Regular User',
-        email='user@example.com',
-        password=generate_password_hash('TestPass123'),
+        name="Regular User",
+        email="user@example.com",
+        password=generate_password_hash("TestPass123"),
         is_admin=False,
         email_verified=True,
     )
@@ -41,118 +41,110 @@ def _make_user(db, **overrides):
 
 class TestUpdateInquiryStatus:
     def test_requires_login(self, client):
-        response = client.post('/admin/inquiries/update/1', data={'status': 'contacted'})
+        response = client.post("/admin/inquiries/update/1", data={"status": "contacted"})
         assert response.status_code in (302, 401, 403)
 
     def test_rejects_non_admin(self, app, authenticated_client):
         from app import db
+
         inquiry = _make_inquiry(db)
-        response = authenticated_client.post(
-            f'/admin/inquiries/update/{inquiry.id}', data={'status': 'contacted'}
-        )
+        response = authenticated_client.post(f"/admin/inquiries/update/{inquiry.id}", data={"status": "contacted"})
         assert response.status_code in (302, 403)
-        assert db.session.get(Inquiry, inquiry.id).status == 'new'
+        assert db.session.get(Inquiry, inquiry.id).status == "new"
 
     def test_valid_status_update(self, app, admin_client):
         from app import db
+
         inquiry = _make_inquiry(db)
-        admin_client.post(
-            f'/admin/inquiries/update/{inquiry.id}', data={'status': 'contacted'}
-        )
-        assert db.session.get(Inquiry, inquiry.id).status == 'contacted'
+        admin_client.post(f"/admin/inquiries/update/{inquiry.id}", data={"status": "contacted"})
+        assert db.session.get(Inquiry, inquiry.id).status == "contacted"
 
     def test_all_valid_statuses_accepted(self, app, admin_client):
         from app import db
-        for status in ('new', 'contacted', 'confirmed', 'closed'):
-            inquiry = _make_inquiry(db, email=f'{status}@example.com')
-            admin_client.post(
-                f'/admin/inquiries/update/{inquiry.id}', data={'status': status}
-            )
+
+        for status in ("new", "contacted", "confirmed", "closed"):
+            inquiry = _make_inquiry(db, email=f"{status}@example.com")
+            admin_client.post(f"/admin/inquiries/update/{inquiry.id}", data={"status": status})
             assert db.session.get(Inquiry, inquiry.id).status == status
 
     def test_invalid_status_not_saved(self, app, admin_client):
         from app import db
+
         inquiry = _make_inquiry(db)
-        admin_client.post(
-            f'/admin/inquiries/update/{inquiry.id}', data={'status': 'hacked'}
-        )
-        assert db.session.get(Inquiry, inquiry.id).status == 'new'
+        admin_client.post(f"/admin/inquiries/update/{inquiry.id}", data={"status": "hacked"})
+        assert db.session.get(Inquiry, inquiry.id).status == "new"
 
     def test_redirects_to_inquiries_list(self, app, admin_client):
         from app import db
+
         inquiry = _make_inquiry(db)
         response = admin_client.post(
-            f'/admin/inquiries/update/{inquiry.id}',
-            data={'status': 'contacted'},
+            f"/admin/inquiries/update/{inquiry.id}",
+            data={"status": "contacted"},
             follow_redirects=False,
         )
         assert response.status_code == 302
-        assert '/admin/inquiries' in response.headers['Location']
+        assert "/admin/inquiries" in response.headers["Location"]
 
     def test_nonexistent_inquiry_returns_404(self, app, admin_client):
-        response = admin_client.post(
-            '/admin/inquiries/update/99999', data={'status': 'contacted'}
-        )
+        response = admin_client.post("/admin/inquiries/update/99999", data={"status": "contacted"})
         assert response.status_code == 404
 
 
 class TestReplyToInquiry:
     def test_requires_login(self, client):
-        response = client.post('/admin/inquiries/reply/1', data={'response': 'Hello'})
+        response = client.post("/admin/inquiries/reply/1", data={"response": "Hello"})
         assert response.status_code in (302, 401, 403)
 
     def test_rejects_non_admin(self, app, authenticated_client):
         from app import db
+
         inquiry = _make_inquiry(db)
-        response = authenticated_client.post(
-            f'/admin/inquiries/reply/{inquiry.id}', data={'response': 'Hello'}
-        )
+        response = authenticated_client.post(f"/admin/inquiries/reply/{inquiry.id}", data={"response": "Hello"})
         assert response.status_code in (302, 403)
 
     def test_empty_response_does_not_update(self, app, admin_client):
         from app import db
+
         inquiry = _make_inquiry(db)
-        admin_client.post(
-            f'/admin/inquiries/reply/{inquiry.id}', data={'response': ''}
-        )
+        admin_client.post(f"/admin/inquiries/reply/{inquiry.id}", data={"response": ""})
         updated = db.session.get(Inquiry, inquiry.id)
         assert updated.admin_response is None
-        assert updated.status == 'new'
+        assert updated.status == "new"
 
     def test_whitespace_response_does_not_update(self, app, admin_client):
         from app import db
+
         inquiry = _make_inquiry(db)
-        admin_client.post(
-            f'/admin/inquiries/reply/{inquiry.id}', data={'response': '   '}
-        )
+        admin_client.post(f"/admin/inquiries/reply/{inquiry.id}", data={"response": "   "})
         assert db.session.get(Inquiry, inquiry.id).admin_response is None
 
     def test_nonexistent_inquiry_returns_404(self, app, admin_client):
-        response = admin_client.post(
-            '/admin/inquiries/reply/99999', data={'response': 'Hello'}
-        )
+        response = admin_client.post("/admin/inquiries/reply/99999", data={"response": "Hello"})
         assert response.status_code == 404
 
 
 class TestDeleteInquiry:
     def test_requires_login(self, client):
-        response = client.post('/admin/inquiries/delete/1')
+        response = client.post("/admin/inquiries/delete/1")
         assert response.status_code in (302, 401, 403)
 
     def test_rejects_non_admin(self, app, authenticated_client):
         from app import db
+
         inquiry = _make_inquiry(db)
-        authenticated_client.post(f'/admin/inquiries/delete/{inquiry.id}')
+        authenticated_client.post(f"/admin/inquiries/delete/{inquiry.id}")
         assert db.session.get(Inquiry, inquiry.id) is not None
 
     def test_admin_can_delete(self, app, admin_client):
         from app import db
+
         inquiry = _make_inquiry(db)
         inquiry_id = inquiry.id
-        response = admin_client.post(f'/admin/inquiries/delete/{inquiry_id}')
+        response = admin_client.post(f"/admin/inquiries/delete/{inquiry_id}")
         assert response.status_code == 302
         assert db.session.get(Inquiry, inquiry_id) is None
 
     def test_nonexistent_inquiry_returns_404(self, app, admin_client):
-        response = admin_client.post('/admin/inquiries/delete/99999')
+        response = admin_client.post("/admin/inquiries/delete/99999")
         assert response.status_code == 404
