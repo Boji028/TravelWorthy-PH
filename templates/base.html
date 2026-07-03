@@ -113,8 +113,54 @@
         {% endif %}
       </ul>
       <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
-        <i class="fas fa-bars"></i>
+        <i class="fas fa-bars" id="navToggleIcon"></i>
       </button>
+    </div>
+
+    <!-- MOBILE MENU (hidden on desktop) -->
+    <div class="mobile-menu" id="mobileMenu">
+      {% if current_user.is_authenticated %}
+      <div class="mm-account">
+        <div class="mm-avatar">{{ current_user.name[0]|upper }}</div>
+        <a href="{{ url_for('auth.profile') }}" class="mm-account-info">
+          <span class="mm-name">{{ current_user.name }}</span>
+          <span class="mm-sub">View profile & inquiries</span>
+        </a>
+        <a href="{{ url_for('main.my_inquiries') if not current_user.is_admin else url_for('admin.inquiries') }}" class="mm-bell" aria-label="Notifications">
+          <i class="fas fa-bell"></i>
+          {% if unread_notification_count and unread_notification_count > 0 %}
+          <span class="mm-badge">{{ unread_notification_count if unread_notification_count <= 9 else '9+' }}</span>
+          {% endif %}
+        </a>
+      </div>
+      {% else %}
+      <div class="mm-account mm-guest">
+        <a href="{{ url_for('auth.login') }}" class="mm-login">Login</a>
+        <a href="{{ url_for('auth.register') }}" class="mm-signup">Sign Up</a>
+      </div>
+      {% endif %}
+
+      <div class="mm-links">
+        <a href="{{ url_for('main.home') }}" class="{% if request.endpoint=='main.home' %}mm-active{% endif %}"><i class="fas fa-house"></i>Home</a>
+        <a href="{{ url_for('packages.list_packages') }}" class="{% if request.endpoint=='packages.list_packages' %}mm-active{% endif %}"><i class="fas fa-suitcase-rolling"></i>Packages</a>
+        <a href="{{ url_for('packages.visa') }}" class="{% if request.endpoint=='packages.visa' %}mm-active{% endif %}"><i class="fas fa-passport"></i>Visa</a>
+        <a href="{{ url_for('blog.blog_list') }}" class="{% if request.endpoint and 'blog' in request.endpoint %}mm-active{% endif %}"><i class="fas fa-book-open"></i>Stories</a>
+        <a href="{{ url_for('main.about') }}" class="{% if request.endpoint=='main.about' %}mm-active{% endif %}"><i class="fas fa-umbrella-beach"></i>About</a>
+        <a href="{{ url_for('main.reviews') }}" class="{% if request.endpoint=='main.reviews' %}mm-active{% endif %}"><i class="fas fa-star"></i>Reviews</a>
+        <a href="{{ url_for('main.contact') }}" class="{% if request.endpoint=='main.contact' %}mm-active{% endif %}"><i class="fas fa-envelope"></i>Contact Us</a>
+      </div>
+
+      <div class="mm-footer">
+        <a href="{{ url_for('bookings.plan_my_trip') }}" class="mm-cta"><i class="fas fa-plane"></i> Plan My Trip</a>
+        {% if current_user.is_authenticated %}
+        <div class="mm-actions">
+          {% if current_user.is_admin %}<a href="{{ url_for('admin.dashboard') }}">Dashboard</a>{% endif %}
+          <a href="{{ url_for('main.my_inquiries') }}">My Inquiries</a>
+          <a href="{{ url_for('auth.profile') }}">Profile</a>
+          <a href="{{ url_for('auth.logout') }}" class="mm-logout">Logout</a>
+        </div>
+        {% endif %}
+      </div>
     </div>
   </nav>
 

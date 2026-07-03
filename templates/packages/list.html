@@ -176,6 +176,107 @@
     opacity: 1;
   }
 
+  /* ── MOBILE COLLAPSED FILTERS ── */
+  .mobile-filter-toggle { display: none; }
+
+  @media (max-width: 768px) {
+    .toolbar { padding: .6rem 1rem; }
+
+    .toolbar-inner { display: flex; flex-direction: column; }
+
+    /* row order: search bar first, tabs below (hidden until open) */
+    .filter-inner { order: 1; flex-wrap: wrap; gap: .5rem; }
+    .country-tabs-inner { order: 2; margin-bottom: 0; }
+
+    /* collapsed by default */
+    .country-tabs-inner,
+    .type-pills,
+    .filter-label,
+    #btn-apply,
+    #btn-clear,
+    .active-filter-pill { display: none; }
+
+    .filter-search { max-width: none; min-width: 0; flex: 1; }
+
+    .mobile-filter-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      position: relative;
+      background: var(--teal);
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      padding: .55rem 1rem;
+      font-size: .82rem;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .mft-dot {
+      position: absolute;
+      top: 2px;
+      right: 4px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--amber);
+    }
+
+    /* expanded state */
+    .toolbar.filters-open .country-tabs-inner {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .45rem;
+      padding-top: .75rem;
+      margin-top: .5rem;
+      border-top: 1px solid var(--linen);
+    }
+
+    .toolbar.filters-open .type-pills {
+      display: flex;
+      width: 100%;
+      gap: .45rem;
+      order: 3;
+    }
+
+    .toolbar.filters-open #btn-apply {
+      display: inline-flex;
+      order: 4;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .toolbar.filters-open #btn-clear {
+      order: 5;
+    }
+
+    .toolbar.filters-open .active-filter-pill.visible {
+      display: inline-flex;
+      order: 6;
+      margin-left: 0;
+    }
+
+    .toolbar.filters-open .mobile-filter-toggle {
+      background: var(--amber);
+    }
+
+    /* continent hover-dropdowns don't work on touch — show countries on tap */
+    .continent-dropdown .continent-menu {
+      position: static;
+      display: none;
+      box-shadow: none;
+      border: none;
+      padding-left: 1rem;
+      width: 100%;
+    }
+
+    .continent-dropdown.open .continent-menu {
+      display: block;
+    }
+  }
+
   /* ── PACKAGES AREA ── */
   .packages-wrap {
     max-width: 1280px;
@@ -660,6 +761,10 @@
         <button type="button" class="type-pill {% if package_type == 'domestic' %}active{% endif %}" data-type="domestic">Domestic</button>
         <button type="button" class="type-pill {% if package_type == 'international' %}active{% endif %}" data-type="international">International</button>
       </div>
+      <button type="button" class="mobile-filter-toggle" id="mobileFilterToggle">
+        <i class="fas fa-sliders"></i> Filters
+        {% if active_continent or active_country or package_type %}<span class="mft-dot"></span>{% endif %}
+      </button>
       <span class="filter-label">Filter:</span>
       <div class="filter-search">
         <i class="fas fa-search"></i>
@@ -722,6 +827,35 @@
 </div>
 
 <script nonce="{{ csp_nonce() }}">
+  // Mobile filter panel toggle
+  (function () {
+    const toggle = document.getElementById('mobileFilterToggle');
+    const toolbar = document.querySelector('.toolbar');
+    if (toggle && toolbar) {
+      toggle.addEventListener('click', function () {
+        const open = toolbar.classList.toggle('filters-open');
+        toggle.innerHTML = open
+          ? '<i class="fas fa-xmark"></i> Close'
+          : '<i class="fas fa-sliders"></i> Filters';
+      });
+    }
+    // On touch, tap a continent tab once to reveal its countries
+    if (window.matchMedia('(max-width: 768px)').matches) {
+      document.querySelectorAll('.continent-dropdown > .country-tab').forEach(function (tab) {
+        tab.addEventListener('click', function (e) {
+          const dd = tab.parentElement;
+          if (!dd.classList.contains('open')) {
+            e.preventDefault();
+            document.querySelectorAll('.continent-dropdown.open').forEach(function (o) {
+              if (o !== dd) o.classList.remove('open');
+            });
+            dd.classList.add('open');
+          }
+        });
+      });
+    }
+  })();
+
   // ── State ──
   let activeCountryId = "{{ active_country.id if active_country else '' }}";
   let activeDestination = "{{ request.args.get('destination','') }}";

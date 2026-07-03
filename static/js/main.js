@@ -13,10 +13,14 @@ setTimeout(() => {
 
 // Mobile nav toggle
 const navToggle = document.getElementById('navToggle');
-const navLinks  = document.querySelector('.nav-links');
-if (navToggle && navLinks) {
+const mobileMenu = document.getElementById('mobileMenu');
+const navToggleIcon = document.getElementById('navToggleIcon');
+if (navToggle && mobileMenu) {
   navToggle.addEventListener('click', () => {
-    navLinks.classList.toggle('nav-open');
+    const isOpen = mobileMenu.classList.toggle('mm-open');
+    if (navToggleIcon) {
+      navToggleIcon.className = isOpen ? 'fas fa-xmark' : 'fas fa-bars';
+    }
   });
 }
 // Mobile dropdown — tap to toggle

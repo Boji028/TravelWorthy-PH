@@ -619,6 +619,10 @@ select.form-control {
     padding-right: 2.5rem;
 }
 
+.mobile-menu {
+    display: none;
+}
+
 .nav-toggle {
     display: none;
     background: none;
@@ -635,49 +639,186 @@ select.form-control {
 
     .nav-links {
         display: none;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0;
+    }
+
+    .mobile-menu {
+        display: none;
         position: absolute;
         top: 68px;
         left: 0;
         right: 0;
         background: var(--white);
-        padding: .5rem 1.25rem 1.25rem;
         border-bottom: 1px solid var(--linen);
-        box-shadow: 0 12px 24px rgba(0,0,0,.08);
+        box-shadow: 0 16px 32px rgba(0,0,0,.10);
         z-index: 99;
+        max-height: calc(100vh - 68px);
+        overflow-y: auto;
     }
 
-    .nav-links.nav-open{
-        display: flex;
-    }
-
-    .nav-links li {
-        width: 100%;
-    }
-
-    .nav-links a {
+    .mobile-menu.mm-open {
         display: block;
-        width: 100%;
-        padding: .85rem .5rem;
-        border-bottom: 1px solid var(--linen);
-        text-align: left;
-        border-radius: 0;
     }
 
-    .nav-links li:last-child a {
-        border-bottom: none;
-    }
-
-    .nav-links .btn,
-    .nav-links a.btn {
+    .mm-account {
         display: flex;
+        align-items: center;
+        gap: .75rem;
+        padding: .9rem 1.1rem;
+        background: var(--linen);
+    }
+
+    .mm-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--teal);
+        color: #fff;
+        display: flex;
+        align-items: center;
         justify-content: center;
+        font-weight: 700;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .mm-account-info {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        text-decoration: none;
+    }
+
+    .mm-name {
+        font-weight: 700;
+        font-size: .95rem;
+        color: #1a1a1a;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .mm-sub {
+        font-size: .72rem;
+        color: var(--mist);
+    }
+
+    .mm-bell {
+        position: relative;
+        color: var(--teal);
+        font-size: 1.15rem;
+        padding: .4rem;
+        text-decoration: none;
+        flex-shrink: 0;
+    }
+
+    .mm-badge {
+        position: absolute;
+        top: 0;
+        right: -2px;
+        background: #D85A30;
+        color: #fff;
+        font-size: .6rem;
+        font-weight: 700;
+        border-radius: 999px;
+        padding: 1px 5px;
+    }
+
+    .mm-guest {
+        gap: .75rem;
+    }
+
+    .mm-login,
+    .mm-signup {
+        flex: 1;
         text-align: center;
-        margin-top: .75rem;
-        border-bottom: none;
-        padding: .85rem 1rem;
+        padding: .7rem;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: .9rem;
+        text-decoration: none;
+    }
+
+    .mm-login {
+        border: 1.5px solid var(--teal);
+        color: var(--teal);
+    }
+
+    .mm-signup {
+        background: var(--amber);
+        color: #fff;
+    }
+
+    .mm-links {
+        padding: .4rem .5rem;
+    }
+
+    .mm-links a {
+        display: flex;
+        align-items: center;
+        gap: .8rem;
+        padding: .8rem .85rem;
+        border-radius: 10px;
+        font-size: .95rem;
+        color: #333;
+        text-decoration: none;
+    }
+
+    .mm-links a i {
+        width: 20px;
+        text-align: center;
+        color: var(--mist);
+        font-size: .9rem;
+    }
+
+    .mm-links a.mm-active {
+        background: #eaf4f2;
+        color: var(--teal);
+        font-weight: 600;
+    }
+
+    .mm-links a.mm-active i {
+        color: var(--teal);
+    }
+
+    .mm-footer {
+        padding: .4rem 1.1rem 1.1rem;
+    }
+
+    .mm-cta {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: .5rem;
+        background: var(--amber);
+        color: #fff;
+        border-radius: 12px;
+        padding: .85rem;
+        font-weight: 700;
+        font-size: .95rem;
+        text-decoration: none;
+        box-shadow: 0 4px 12px rgba(239,130,51,.3);
+    }
+
+    .mm-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: .5rem;
+        margin-top: .9rem;
+        padding-top: .9rem;
+        border-top: 1px solid var(--linen);
+        flex-wrap: wrap;
+    }
+
+    .mm-actions a {
+        font-size: .82rem;
+        font-weight: 600;
+        color: var(--teal);
+        text-decoration: none;
+    }
+
+    .mm-actions a.mm-logout {
+        color: #b3543a;
     }
     .flash-wrap {
         left: 1rem;
