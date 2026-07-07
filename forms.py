@@ -91,7 +91,28 @@ class LoginForm(FlaskForm):
     )
     remember = BooleanField("Remember Me")
 
+class ForgotPasswordForm(FlaskForm):
+    """Request a password reset link by email."""
 
+    email = StringField(
+        "Email",
+        filters=(_strip,),
+        validators=[
+            DataRequired("Email is required"),
+            Email(message="Invalid email format", granular_message=False),
+            Length(max=150, message="Email must be 150 characters or fewer"),
+        ],
+    )
+
+
+class ResetPasswordForm(FlaskForm):
+    """Set a new password using a valid reset token."""
+
+    password = PasswordField("New Password", validators=[DataRequired("Password is required"), StrongPasswordValidator()])
+    confirm_password = PasswordField(
+        "Confirm New Password",
+        validators=[DataRequired("Password confirmation is required"), EqualTo("password", message="Passwords must match")],
+    )
 class ChangePasswordForm(FlaskForm):
     """Change password form with validation."""
 

@@ -8,8 +8,9 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from app import db, limiter
 from oauth import oauth
 from models.user import User
-from forms import RegisterForm, LoginForm, ChangePasswordForm
+from forms import RegisterForm, LoginForm, ChangePasswordForm, ForgotPasswordForm, ResetPasswordForm
 from email_verification_service import EmailVerificationService
+from password_reset_service import PasswordResetService
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -326,3 +327,44 @@ def resend_verification():
 
     email = request.args.get("email", "")
     return render_template("auth/resend_verification.html", email=email)
+
+@auth_bp.route("/forgot-password", methods=["GET", "POST"])
+@limiter.limit("3 per minute")
+@limiter.limit("5 per hour", key_func=lambda: request.form.get("email", request.remote_addr).lower())
+def forgot_password():
+    """Request a password reset link by email."""
+    if current_user.is_authenticated:
+        return redirect(url_for("main.home"))
+
+    form = ForgotPasswordForm()
+    if form.validate_on_submit():
+        success, message = PasswordResetService.request_reset(form.email.data.lower())
+        flash(message, "success" if success else "danger")
+        if success:
+            return redirect(url_for("auth.login"))
+
+    return render_template("auth/forgot_password.html", form=form)
+
+
+@auth_bp.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    """Set a new password using a valid reset token."""
+    if current_user.is_authenticated:
+        return redirect(url_for("main.home"))
+
+    from models.password_reset import PasswordResetToken
+
+    token_obj = PasswordResetToken.get_valid_token(token)
+    if not token_obj:
+        flash("This reset link is invalid or has expired. Please request a new one.", "danger")
+        return redirect(url_for("auth.forgot_password"))
+
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        success, message, user = PasswordResetService.reset_password(token, form.password.data)
+        flash(message, "success" if success else "danger")
+        if success:
+            return redirect(url_for("auth.login"))
+        return redirect(url_for("auth.forgot_password"))
+
+    return render_template("auth/reset_password.html", form=form, token=token)

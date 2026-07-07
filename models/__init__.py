@@ -9,7 +9,7 @@ from .testimonial import Testimonial
 from .visa import VisaCountry
 from .contact import ContactMessage
 from .email_verification import EmailVerificationToken
-
+from .password_reset import PasswordResetToken
 __all__ = [
     "User",
     "TourPackage",
