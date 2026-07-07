@@ -1,7 +1,74 @@
 """Tests for form validation."""
 import pytest
-from forms import RegisterForm, LoginForm, ChangePasswordForm, ContactForm, InquiryForm, StrongPasswordValidator
+from forms import RegisterForm, LoginForm, ChangePasswordForm, ContactForm, InquiryForm, StrongPasswordValidator, FullNameValidator
 from datetime import date, timedelta
+
+
+class TestFullNameValidator:
+    """Test full name validation (first + last name required)."""
+
+    def test_single_word_rejected(self):
+        """Test a single-word name is rejected."""
+        validator = FullNameValidator()
+
+        class MockField:
+            data = "AB"
+
+        class MockForm:
+            pass
+
+        with pytest.raises(Exception):  # ValidationError
+            validator(MockForm(), MockField())
+
+    def test_digits_rejected(self):
+        """Test a name containing digits is rejected."""
+        validator = FullNameValidator()
+
+        class MockField:
+            data = "John Doe2"
+
+        class MockForm:
+            pass
+
+        with pytest.raises(Exception):  # ValidationError
+            validator(MockForm(), MockField())
+
+    def test_short_name_part_rejected(self):
+        """Test a name part shorter than 2 letters is rejected."""
+        validator = FullNameValidator()
+
+        class MockField:
+            data = "J D"
+
+        class MockForm:
+            pass
+
+        with pytest.raises(Exception):  # ValidationError
+            validator(MockForm(), MockField())
+
+    def test_valid_two_word_name_accepted(self):
+        """Test a standard first + last name passes."""
+        validator = FullNameValidator()
+
+        class MockField:
+            data = "John Doe"
+
+        class MockForm:
+            pass
+
+        validator(MockForm(), MockField())  # should not raise
+
+    def test_valid_multiword_filipino_surname_accepted(self):
+        """Test a name with a two-word surname (common in PH) passes."""
+        validator = FullNameValidator()
+
+        class MockField:
+            data = "Juan Dela Cruz"
+
+        class MockForm:
+            pass
+
+        validator(MockForm(), MockField())  # should not raise
 
 
 class TestStrongPasswordValidator:

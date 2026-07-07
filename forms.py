@@ -27,12 +27,32 @@ class StrongPasswordValidator:
             raise ValidationError("Password must contain at least one digit.")
 
 
+class FullNameValidator:
+    """Custom validator requiring a first and last name (letters only, no digits/symbols)."""
+
+    NAME_PATTERN = re.compile(r"[A-Za-zÀ-ÿ.'\- ]+")
+
+    def __call__(self, form, field):
+        value = (field.data or "").strip()
+        parts = value.split()
+        if len(parts) < 2:
+            raise ValidationError("Please enter your first and last name.")
+        if not self.NAME_PATTERN.fullmatch(value):
+            raise ValidationError("Name can only contain letters.")
+        if any(len(part) < 2 for part in parts):
+            raise ValidationError("Each part of your name should be at least 2 letters.")
+
+
 class RegisterForm(FlaskForm):
     """User registration form with validation."""
 
     name = StringField(
         "Full Name",
-        validators=[DataRequired("Name is required"), Length(min=2, max=100, message="Name must be 2-100 characters")],
+        validators=[
+            DataRequired("Name is required"),
+            Length(min=2, max=100, message="Name must be 2-100 characters"),
+            FullNameValidator(),
+        ],
     )
     email = StringField(
         "Email",
