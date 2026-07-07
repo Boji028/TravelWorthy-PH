@@ -36,7 +36,7 @@ class TestContactRoute:
         client.post(
             "/contact",
             data={
-                "name": "Juan",
+                "name": "Juan Dela Cruz",
                 "email": "juan@example.com",
                 "subject": "Hello there",
                 "message": "I have a question about your tours.",

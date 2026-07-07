@@ -118,7 +118,12 @@ class ContactForm(FlaskForm):
     """Contact message form with validation."""
 
     name = StringField(
-        "Name", validators=[DataRequired("Name is required"), Length(min=2, max=100, message="Name must be 2-100 characters")]
+        "Name",
+        validators=[
+            DataRequired("Name is required"),
+            Length(min=2, max=100, message="Name must be 2-100 characters"),
+            FullNameValidator(),
+        ],
     )
     email = StringField(
         "Email",
@@ -146,7 +151,11 @@ class InquiryForm(FlaskForm):
 
     name = StringField(
         "Full Name",
-        validators=[DataRequired("Name is required"), Length(min=2, max=100, message="Name must be 2-100 characters")],
+        validators=[
+            DataRequired("Name is required"),
+            Length(min=2, max=100, message="Name must be 2-100 characters"),
+            FullNameValidator(),
+        ],
     )
     email = StringField(
         "Email", validators=[DataRequired("Email is required"), Email(message="Invalid email format", granular_message=False)]
