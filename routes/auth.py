@@ -253,6 +253,7 @@ def profile():
                     "warning",
                 )
                 return redirect(url_for("auth.profile"))
+            
             if not check_password_hash(current_user.password, form.current_password.data):
                 current_app.logger.warning(f"Failed password change attempt for user: {current_user.email}")
                 flash("Current password is incorrect.", "danger")
