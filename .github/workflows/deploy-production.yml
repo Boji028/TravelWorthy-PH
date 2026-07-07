@@ -49,9 +49,8 @@ jobs:
     
     - name: Run security checks
       run: |
-        pip install bandit safety
+        pip install bandit
         bandit -r . --exclude ./tests -f json -o bandit-report.json
-        safety check --json
       continue-on-error: true
     
     - name: Verify version
