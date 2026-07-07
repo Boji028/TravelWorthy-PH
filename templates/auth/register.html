@@ -375,7 +375,7 @@
       <div class="password-section">
         <label><i class="fas fa-lock" style="color: var(--amber); margin-right: 0.4rem;"></i>Password <span style="color: #d32f2f;">*</span></label>
         <div class="password-field-wrap">
-          <input type="password" name="password" id="password" placeholder="Create a password" required oninput="checkPasswordStrength()"/>
+          <input type="password" name="password" id="password" placeholder="Create a password" required autocomplete="new-password" oninput="checkPasswordStrength()"/>
           <button type="button" class="password-toggle" onclick="togglePassword('password', 'pwIcon1')" aria-label="Show password">
             <i class="fas fa-eye" id="pwIcon1"></i>
           </button>
@@ -399,7 +399,7 @@
       <div class="form-group">
         <label><i class="fas fa-lock" style="color: var(--amber); margin-right: 0.4rem;"></i>Confirm Password <span style="color: #d32f2f;">*</span></label>
         <div class="password-field-wrap">
-          <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm your password" required oninput="checkPasswordStrength()"/>
+          <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm your password" required autocomplete="new-password" oninput="checkPasswordStrength()"/>
           <button type="button" class="password-toggle" onclick="togglePassword('confirm_password', 'pwIcon2')" aria-label="Show password">
             <i class="fas fa-eye" id="pwIcon2"></i>
           </button>
