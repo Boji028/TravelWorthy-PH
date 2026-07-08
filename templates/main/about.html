@@ -108,6 +108,10 @@
     margin-top: 3rem;
   }
 
+  @media (max-width: 768px) {
+    .about-values { grid-template-columns: 1fr; }
+  }
+
   .value-card {
     background: var(--white);
     border-radius: var(--radius-lg);
@@ -185,6 +189,9 @@
 
   @media (max-width: 1024px) {
     .service-list { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 768px) {
+    .service-list { grid-template-columns: 1fr; }
   }
 
   /* page-scoped amber override: PDF gold for accreditations and destinations sections only */
@@ -310,6 +317,9 @@
 
   @media (max-width: 1024px) {
     .dest-grid { grid-template-columns: repeat(4, 1fr); }
+  }
+  @media (max-width: 768px) {
+    .dest-grid { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
 {% endblock %}
