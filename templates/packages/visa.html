@@ -41,10 +41,44 @@
   .visa-form-scroll {
     scrollbar-width: none;
     -ms-overflow-style: none;
+    padding: 1.5rem 2rem 1rem;
   }
 
   .visa-form-scroll::-webkit-scrollbar {
     display: none;
+  }
+
+  .visa-modal-header {
+    padding: 1.5rem 2rem;
+  }
+
+  .visa-modal-footer {
+    padding: .75rem 2rem 1.5rem;
+  }
+
+  .visa-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .75rem;
+    margin-bottom: .75rem;
+  }
+
+  @media (max-width: 768px) {
+    .visa-modal-header {
+      padding: 1.25rem 1.25rem;
+    }
+
+    .visa-form-scroll {
+      padding: 1.25rem 1.25rem 1rem;
+    }
+
+    .visa-modal-footer {
+      padding: .75rem 1.25rem 1.25rem;
+    }
+
+    .visa-form-row {
+      grid-template-columns: 1fr;
+    }
   }
   /* ── ANIMATIONS ── */
   .visa-fade { opacity: 0; animation: visaHeroFade .7s ease forwards; }
@@ -233,15 +267,15 @@
   style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:8000;align-items:center;justify-content:center;padding:1rem;">
   <div
     style="background:var(--white);border-radius:var(--radius-lg);max-width:560px;width:100%;box-shadow:0 16px 64px rgba(58,46,34,.22);overflow:hidden;display:flex;flex-direction:column;max-height:90vh;">
-    <div style="background:linear-gradient(135deg,var(--amber),#c87941);padding:1.5rem 2rem;color:white;">
+    <div class="visa-modal-header" style="background:linear-gradient(135deg,var(--amber),#c87941);color:white;">
       <div style="font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;opacity:.8;margin-bottom:.25rem;">Get Help</div>
       <h2 style="font-family:'Pogonia',serif;font-size:1.5rem;margin:0;">Request a Visa Assistant</h2>
       <p id="assistant-subtitle" style="margin:.25rem 0 0;opacity:.85;font-size:.88rem;"></p>
     </div>
-    <div class="visa-form-scroll" style="padding:1.5rem 2rem 1rem;overflow-y:auto;flex:1;">
+    <div class="visa-form-scroll" style="overflow-y:auto;flex:1;">
       <div id="visa-form-msg"
         style="display:none;padding:.75rem 1rem;border-radius:var(--radius);margin-bottom:1rem;font-size:.88rem;"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
+      <div class="visa-form-row">
         <div>
           <label style="font-size:.78rem;font-weight:600;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:.3rem;">Full Name <span style="color:var(--danger)">*</span></label>
           <input id="visa-name" type="text" class="form-control" placeholder="Your name" style="width:100%;box-sizing:border-box;" />
@@ -253,9 +287,9 @@
       </div>
       <div style="margin-bottom:.75rem;">
         <label style="font-size:.78rem;font-weight:600;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:.3rem;">Contact Number <span style="color:var(--danger)">*</span></label>
-        <input id="visa-phone" type="tel" class="form-control" placeholder="+63 9XX XXX XXXX" style="width:50%;box-sizing:border-box;" />
+        <input id="visa-phone" type="tel" class="form-control" placeholder="+63 9XX XXX XXXX" style="width:100%;box-sizing:border-box;" />
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
+      <div class="visa-form-row">
         <div>
           <label style="font-size:.78rem;font-weight:600;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:.3rem;">Travel Date From <span style="color:var(--danger)">*</span></label>
           <input id="visa-date-from" type="date" class="form-control" style="width:100%;box-sizing:border-box;" />
@@ -274,7 +308,7 @@
         <textarea id="visa-message" class="form-control" rows="3" placeholder="Any questions about the visa process..." style="width:100%;box-sizing:border-box;resize:vertical;"></textarea>
       </div>
     </div>
-    <div style="padding:.75rem 2rem 1.5rem;display:flex;gap:.75rem;justify-content:flex-end;border-top:1px solid var(--linen);">
+    <div class="visa-modal-footer" style="display:flex;gap:.75rem;justify-content:flex-end;border-top:1px solid var(--linen);">
       <button onclick="closeAssistantForm()" class="btn btn-ghost">Cancel</button>
       <button onclick="submitVisaForm()" id="visa-submit-btn" class="btn btn-amber">
         <i class="fas fa-paper-plane"></i> Send Message
