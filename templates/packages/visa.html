@@ -318,6 +318,10 @@
   // ── PDF Viewer ──
   function openPdfViewer(filename, countryName) {
     var url = '/uploads/' + filename;
+    if (window.innerWidth <= 768) {
+      window.open(url, '_blank');
+      return;
+    }
     document.getElementById('pdf-title').textContent = 'Requirements for ' + countryName;
     document.getElementById('pdf-frame').src = url;
     document.getElementById('pdf-download').href = url;
