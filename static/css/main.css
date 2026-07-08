@@ -632,7 +632,7 @@ select.form-control {
     cursor: pointer;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     .nav-toggle {
         display: block;
     }
@@ -820,6 +820,9 @@ select.form-control {
     .mm-actions a.mm-logout {
         color: #b3543a;
     }
+}
+
+@media (max-width: 768px) {
     .flash-wrap {
         left: 1rem;
         right: 1rem;

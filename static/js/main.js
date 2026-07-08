@@ -26,7 +26,7 @@ if (navToggle && mobileMenu) {
 // Mobile dropdown — tap to toggle
 document.querySelectorAll('.dropdown-toggle').forEach(function(toggle) {
   toggle.addEventListener('click', function(e) {
-    if (window.innerWidth <= 768) {
+    if (window.innerWidth <= 1024) {
       e.preventDefault();
       var menu = this.nextElementSibling;
       menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
