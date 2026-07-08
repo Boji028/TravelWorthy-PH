@@ -500,7 +500,7 @@
 <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;">
   {% for p in pagination.iter_pages() %}
   {% if p %}
-  <a href="?page={{ p }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}{% if month_param %}&month={{ month_param }}{% endif %}{% if year_param %}&year={{ year_param }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}"
+  <a href="{{ url_for('admin.inquiries', page=p, status=status_filter, type=type_filter, search=search, month=month_param, year=year_param, date_from=date_from, date_to=date_to, sort=sort) }}"
     class="btn btn-sm {% if p == pagination.page %}btn-amber{% else %}btn-outline{% endif %}">{{ p }}</a>
   {% else %}
   <span style="padding:.3rem .5rem;color:var(--mist)">…</span>
