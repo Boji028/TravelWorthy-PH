@@ -829,17 +829,13 @@ def inquiries():
     # Single query counts all statuses at once instead of one COUNT per status.
     from sqlalchemy import case
 
-    count_rows = (
-        db.session.query(
-            func.count().label("total"),
-            func.sum(case((Inquiry.status == "new", 1), else_=0)).label("new"),
-            func.sum(case((Inquiry.status == "contacted", 1), else_=0)).label("contacted"),
-            func.sum(case((Inquiry.status == "confirmed", 1), else_=0)).label("confirmed"),
-            func.sum(case((Inquiry.status == "closed", 1), else_=0)).label("closed"),
-        )
-        .filter(base_query.whereclause)
-        .one()
-    )
+    count_rows = base_query.with_entities(
+        func.count().label("total"),
+        func.sum(case((Inquiry.status == "new", 1), else_=0)).label("new"),
+        func.sum(case((Inquiry.status == "contacted", 1), else_=0)).label("contacted"),
+        func.sum(case((Inquiry.status == "confirmed", 1), else_=0)).label("confirmed"),
+        func.sum(case((Inquiry.status == "closed", 1), else_=0)).label("closed"),
+    ).one()
     status_counts = {
         "all": count_rows.total or 0,
         "new": count_rows.new or 0,

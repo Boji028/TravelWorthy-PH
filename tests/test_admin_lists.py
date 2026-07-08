@@ -194,6 +194,28 @@ class TestInquiriesList:
         _make_inquiry(db, email="closed@example.com", status="closed")
         response = admin_client.get("/admin/inquiries?status=new")
         assert response.status_code == 200
+    
+    def test_status_pill_counts_with_no_filters_active(self, app, admin_client):
+        """Regression test: selecting "All time" + "All types" (explicitly
+        empty month/year/date_from/date_to/type/search) must not zero out
+        the status pill counts.
+        """
+        from app import db
+
+        _make_inquiry(db, email="new1@example.com", status="new")
+        _make_inquiry(db, email="contacted1@example.com", status="contacted")
+        _make_inquiry(db, email="closed1@example.com", status="closed")
+        _make_inquiry(db, email="closed2@example.com", status="closed")
+
+        response = admin_client.get(
+            "/admin/inquiries?status=closed&type=&search=&month=&year=&date_from=&date_to="
+        )
+        assert response.status_code == 200
+        html = response.data.decode()
+        assert "All (4)" in html
+        assert "New (1)" in html
+        assert "Contacted (1)" in html
+        assert "Closed (2)" in html
 
 
 class TestCountriesByContinent:
