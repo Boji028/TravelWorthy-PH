@@ -195,6 +195,9 @@
     margin-top: .25rem;
     display: inline-block;
   }
+  .messages-table-wrap {
+    overflow-x: auto;
+  }
 </style>
 {% endblock %}
 
@@ -234,6 +237,7 @@
     {% if messages %}
     <form method="POST" action="{{ url_for('admin.delete_contact_messages_bulk') }}" id="bulk-form">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <div class="messages-table-wrap">
     <table class="messages-table">
       <thead>
         <tr>
@@ -293,6 +297,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
 
     </form>
     {% if pagination.pages > 1 %}

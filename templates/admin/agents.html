@@ -110,6 +110,9 @@
     background: var(--linen);
     color: var(--mist);
   }
+  .agents-table-wrap {
+    overflow-x: auto;
+  }
 
 </style>
 {% endblock %}
@@ -129,6 +132,7 @@
   </div>
 
   {% if agents %}
+  <div class="agents-table-wrap">
   <table class="agents-table">
     <thead>
       <tr>
@@ -177,6 +181,7 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
   {% else %}
   <div style="text-align:center;padding:3rem;color:var(--mist)">
     <i class="fas fa-user-tie" style="font-size:2.5rem;margin-bottom:1rem;display:block;opacity:.3"></i>

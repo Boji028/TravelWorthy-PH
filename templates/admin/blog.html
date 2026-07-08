@@ -32,6 +32,9 @@
   .status-toggle.status-published .status-dot { background: var(--success); }
   .status-toggle.status-draft { background: rgba(127,140,141,.15); color: var(--mist); }
   .status-toggle.status-draft .status-dot { background: var(--mist); }
+  .blog-table-wrap {
+    overflow-x: auto;
+  }
 </style>
 {% endblock %}
 
@@ -73,6 +76,7 @@
     </div>
 
     {% if posts %}
+      <div class="blog-table-wrap">
       <table class="blog-table">
         <thead>
           <tr>
@@ -119,6 +123,7 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
     {% else %}
       <div style="text-align:center;padding:3rem;color:var(--mist)">
         <i class="fas fa-pen-nib" style="font-size:2.5rem;margin-bottom:1rem;display:block;opacity:.3"></i>
