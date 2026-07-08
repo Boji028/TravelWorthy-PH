@@ -62,6 +62,14 @@
     grid-template-columns: 1fr 1.4fr;
     gap: 3rem;
   }
+  @media (max-width: 768px) {
+    .contact-section {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      margin: 2.5rem auto;
+      padding: 0 1rem;
+    }
+  }
 
   .contact-info h2 {
     font-family: 'Pogonia', serif;
@@ -127,6 +135,9 @@
     border-radius: var(--radius-lg);
     padding: 2rem;
     box-shadow: 0 4px 24px rgba(58, 46, 34, .09);
+  }
+  @media (max-width: 768px) {
+    .contact-form-wrap { padding: 1.25rem; }
   }
 
   .contact-form-wrap h3 {
