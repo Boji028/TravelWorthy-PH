@@ -15,6 +15,7 @@ packages_bp = Blueprint("packages", __name__)
 
 
 @packages_bp.route("/")
+@limiter.limit("60 per minute")
 def list_packages() -> Union[str, object]:
     """List tour packages with filtering options.
 
@@ -82,6 +83,7 @@ def list_packages() -> Union[str, object]:
 
 
 @packages_bp.route("/<int:package_id>")
+@limiter.limit("60 per minute")
 def package_detail(package_id: int) -> str:
     from models.package_review import PackageReview
     from flask_login import current_user
