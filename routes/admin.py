@@ -11,7 +11,7 @@ import bleach
 from sqlalchemy.orm import joinedload
 from sqlalchemy import or_, func
 import io
-from app import db, limiter
+from app import db
 from decorators import admin_required
 from utils import delete_old_image, compress_image, save_image_metadata
 from models.user import User
@@ -267,7 +267,6 @@ def bulk_package_action():
 
 @admin_bp.route("/packages/add", methods=["GET", "POST"])
 @admin_required
-@limiter.limit("10 per hour")
 def add_package():
     """Add new tour package with comprehensive error handling."""
     if request.method == "POST":
@@ -1084,7 +1083,6 @@ def toggle_blog_published(post_id):
 
 @admin_bp.route("/blog/add", methods=["GET", "POST"])
 @admin_required
-@limiter.limit("10 per hour")
 def add_blog():
     if request.method == "POST":
         try:
@@ -1155,7 +1153,6 @@ def add_blog():
 
 @admin_bp.route("/blog/edit/<int:post_id>", methods=["GET", "POST"])
 @admin_required
-@limiter.limit("10 per hour")
 def edit_blog(post_id):
     post = db.get_or_404(BlogPost, post_id)
     if request.method == "POST":
@@ -1653,7 +1650,6 @@ def toggle_visa_active(visa_id):
 
 @admin_bp.route("/visa/add", methods=["GET", "POST"])
 @admin_required
-@limiter.limit("10 per hour")
 def visa_add():
     if request.method == "POST":
         country_name = request.form.get("country_name", "").strip()
@@ -1726,7 +1722,6 @@ def visa_add():
 
 @admin_bp.route("/visa/edit/<int:visa_id>", methods=["GET", "POST"])
 @admin_required
-@limiter.limit("10 per hour")
 def visa_edit(visa_id):
     visa = db.get_or_404(VisaCountry, visa_id)
     if request.method == "POST":
