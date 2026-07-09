@@ -3,7 +3,7 @@
   <div class="pkg-img-wrap">
     {% if pkg.is_featured %}<div class="pkg-badge"><i class="fas fa-star"></i> Featured</div>{% endif %}
     {% if pkg.image and pkg.image != 'default_tour.jpg' %}
-    <img class="pkg-img" src="{{ (pkg.image | cloudinary_card) if pkg.image.startswith('http') else '/uploads/' + pkg.image }}" alt="{{ pkg.title }}" loading="lazy"/>
+    <img class="pkg-img" src="{{ (pkg.image | cloudinary_package_card) if pkg.image.startswith('http') else '/uploads/' + pkg.image }}" alt="{{ pkg.title }}" loading="lazy"/>
     {% else %}
     <div class="pkg-img-placeholder"><i class="fas fa-mountain"></i></div>
     {% endif %}

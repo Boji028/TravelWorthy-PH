@@ -233,6 +233,26 @@ def create_app():
             "e_sharpen:40"  # slight sharpening for clarity
         )
         return url.replace("/upload/", f"/upload/{transforms}/")
+    @app.template_filter("cloudinary_package_card")
+    def cloudinary_package_card(url):
+        """Same as cloudinary_card but 16:9 - for package list cards specifically,
+        since package images are cropped from 16:9 fliers with a logo/title that
+        4:3 center-cropping was clipping. Deliberately separate from
+        cloudinary_card so continent tiles, blog images, and other callers of
+        that filter are unaffected."""
+        if not url or not url.startswith("https://res.cloudinary.com"):
+            return url
+        transforms = (
+            "f_auto,"
+            "q_auto:best,"
+            "w_640,"
+            "ar_16:9,"
+            "c_fill,"
+            "g_center,"
+            "e_improve,"
+            "e_sharpen:40"
+        )
+        return url.replace("/upload/", f"/upload/{transforms}/")
 
     @app.template_filter("cloudinary_enhance")
     def cloudinary_enhance(url):
