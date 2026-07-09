@@ -178,17 +178,16 @@
 
   /* ── MOBILE COLLAPSED FILTERS ── */
   .mobile-filter-toggle { display: none; }
+  .mobile-sheet-overlay { display: none; }
 
   @media (max-width: 768px) {
     .toolbar { padding: .6rem 1rem; }
 
     .toolbar-inner { display: flex; flex-direction: column; }
 
-    /* row order: search bar first, tabs below (hidden until open) */
-    .filter-inner { order: 1; flex-wrap: wrap; gap: .5rem; }
-    .country-tabs-inner { order: 2; margin-bottom: 0; }
+    .filter-inner { flex-wrap: nowrap; gap: .5rem; }
 
-    /* collapsed by default */
+    /* the desktop tabs/pills/apply/clear/breadcrumb live inside the sheet on mobile instead */
     .country-tabs-inner,
     .filter-inner .type-pills,
     .filter-label,
@@ -224,56 +223,198 @@
       background: var(--amber);
     }
 
-    /* expanded state */
-    .toolbar.filters-open .country-tabs-inner {
+    /* ── Mobile filter sheet ── */
+    .mobile-sheet-overlay.open {
       display: flex;
-      flex-wrap: wrap;
-      gap: .45rem;
-      padding-top: .75rem;
-      margin-top: .5rem;
-      border-top: 1px solid var(--linen);
-    }
-
-    .toolbar.filters-open .type-pills {
-      display: flex;
-      width: 100%;
-      gap: .45rem;
-      order: 3;
-    }
-
-    .toolbar.filters-open #btn-apply {
-      display: inline-flex;
-      order: 4;
-      flex: 1;
+      position: fixed;
+      inset: 0;
+      background: rgba(30, 22, 16, .45);
+      z-index: 300;
+      align-items: flex-end;
       justify-content: center;
     }
 
-    .toolbar.filters-open #btn-clear {
-      order: 5;
-    }
-
-    .toolbar.filters-open .active-filter-pill.visible {
-      display: inline-flex;
-      order: 6;
-      margin-left: 0;
-    }
-
-    .toolbar.filters-open .mobile-filter-toggle {
-      background: var(--amber);
-    }
-
-    /* continent hover-dropdowns don't work on touch — show countries on tap */
-    .continent-dropdown .continent-menu {
-      position: static;
-      display: none;
-      box-shadow: none;
-      border: none;
-      padding-left: 1rem;
+    .mobile-sheet {
+      background: var(--white);
       width: 100%;
+      max-width: 480px;
+      max-height: 85vh;
+      border-radius: 20px 20px 0 0;
+      display: flex;
+      flex-direction: column;
+      animation: sheetSlideUp .25s ease;
     }
 
-    .continent-dropdown.open .continent-menu {
-      display: block;
+    @keyframes sheetSlideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .mobile-sheet-handle {
+      width: 36px;
+      height: 4px;
+      background: var(--linen);
+      border-radius: 2px;
+      margin: .6rem auto;
+      flex-shrink: 0;
+    }
+
+    .mobile-sheet-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.25rem .75rem;
+      border-bottom: 1px solid var(--linen);
+      flex-shrink: 0;
+    }
+
+    .mobile-sheet-header span {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .mobile-sheet-close {
+      font-size: 1.1rem;
+      color: var(--mist);
+      cursor: pointer;
+      padding: .25rem;
+    }
+
+    .mobile-sheet-body {
+      padding: 1rem 1.25rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .mobile-sheet-search {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      background: var(--sand);
+      border: 1px solid var(--linen);
+      border-radius: 999px;
+      padding: .6rem 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .mobile-sheet-search i { color: var(--mist); font-size: .85rem; }
+
+    .mobile-sheet-search input {
+      border: 0;
+      background: none;
+      outline: none;
+      font-size: .9rem;
+      flex: 1;
+      color: var(--ink);
+    }
+
+    .mobile-type-seg {
+      display: flex;
+      background: var(--sand);
+      border-radius: 999px;
+      padding: 3px;
+      margin-bottom: 1.25rem;
+    }
+
+    .mobile-seg {
+      flex: 1;
+      border: none;
+      background: none;
+      padding: .5rem 0;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--bark);
+      border-radius: 999px;
+      cursor: pointer;
+    }
+
+    .mobile-seg.active { background: var(--teal); color: #fff; }
+
+    .mobile-region-label {
+      font-size: .75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--mist);
+      margin-bottom: .6rem;
+    }
+
+    .mobile-region-chips {
+      display: flex;
+      gap: .5rem;
+      overflow-x: auto;
+      padding-bottom: .4rem;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .mobile-chip {
+      flex: 0 0 auto;
+      border: 1px solid var(--linen);
+      background: #fff;
+      color: var(--bark);
+      font-size: .8rem;
+      font-weight: 600;
+      padding: .5rem 1rem;
+      border-radius: 999px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .mobile-chip.active { background: var(--amber); color: #fff; border-color: var(--amber); }
+
+    .mobile-country-grid {
+      display: none;
+      grid-template-columns: 1fr 1fr;
+      gap: .5rem;
+      margin-top: .75rem;
+    }
+
+    .mobile-country-grid.open { display: grid; }
+
+    .mobile-country-chip {
+      border: 1px solid var(--linen);
+      background: #fff;
+      color: var(--bark);
+      font-size: .8rem;
+      padding: .55rem .6rem;
+      border-radius: 10px;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .mobile-country-chip.active { background: var(--teal); color: #fff; border-color: var(--teal); }
+
+    .mobile-sheet-footer {
+      display: flex;
+      gap: .6rem;
+      padding: .85rem 1.25rem;
+      border-top: 1px solid var(--linen);
+      flex-shrink: 0;
+    }
+
+    .mobile-clear-btn {
+      flex: 1;
+      background: #fff;
+      border: 1px solid var(--linen);
+      border-radius: 999px;
+      padding: .7rem;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--bark);
+      cursor: pointer;
+    }
+
+    .mobile-apply-btn {
+      flex: 2;
+      background: var(--amber);
+      border: none;
+      border-radius: 999px;
+      padding: .7rem;
+      font-size: .82rem;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
     }
   }
 
@@ -789,6 +930,58 @@
         <i class="fas fa-times" id="active-filter-clear"></i>
       </span>
     </div>
+
+    <div class="mobile-sheet-overlay" id="mobileSheetOverlay">
+      <div class="mobile-sheet">
+        <div class="mobile-sheet-handle"></div>
+        <div class="mobile-sheet-header">
+          <span>Filters</span>
+          <i class="fas fa-times mobile-sheet-close" id="mobileSheetClose"></i>
+        </div>
+        <div class="mobile-sheet-body">
+          <div class="mobile-sheet-search">
+            <i class="fas fa-search"></i>
+            <input id="filter-destination-mobile" type="text" placeholder="Destination…"
+              value="{{ request.args.get('destination','') }}" />
+          </div>
+          <div class="mobile-type-seg">
+            <button type="button" class="mobile-seg {% if not package_type %}active{% endif %}" data-type="">All types</button>
+            <button type="button" class="mobile-seg {% if package_type == 'domestic' %}active{% endif %}" data-type="domestic">Domestic</button>
+            <button type="button" class="mobile-seg {% if package_type == 'international' %}active{% endif %}" data-type="international">International</button>
+          </div>
+          {% if continents %}
+          <div class="mobile-region-label">Region</div>
+          <div class="mobile-region-chips">
+            <button type="button" class="mobile-chip {% if not active_continent %}active{% endif %}"
+              data-continent-id="" data-label="">🌐 All</button>
+            {% for continent in continents %}
+            <button type="button" class="mobile-chip {% if active_continent and active_continent.id == continent.id %}active{% endif %}"
+              data-continent-id="{{ continent.id }}" data-label="{{ continent.name }}">
+              {{ continent.flag_emoji or '' }} {{ continent.name }}
+            </button>
+            {% endfor %}
+          </div>
+          {% for continent in continents %}
+          <div class="mobile-country-grid {% if active_continent and active_continent.id == continent.id %}open{% endif %}"
+            data-continent-panel="{{ continent.id }}">
+            {% for country in continent.countries %}
+            {% if country.is_active %}
+            <button type="button" class="mobile-country-chip {% if active_country and active_country.id == country.id %}active{% endif %}"
+              data-country-id="{{ country.id }}" data-label="{{ continent.name }} → {{ country.name }}">
+              {{ country.flag_emoji or '' }} {{ country.name }}
+            </button>
+            {% endif %}
+            {% endfor %}
+          </div>
+          {% endfor %}
+          {% endif %}
+        </div>
+        <div class="mobile-sheet-footer">
+          <button type="button" class="mobile-clear-btn" id="mobileClearBtn">Clear</button>
+          <button type="button" class="mobile-apply-btn" id="mobileApplyBtn">Apply filters</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -815,37 +1008,7 @@
   <img id="lightbox-img" src="" alt="" onclick="event.stopPropagation()" />
 </div>
 
-<script nonce="{{ csp_nonce() }}">
-  // Mobile filter panel toggle
-  (function () {
-    const toggle = document.getElementById('mobileFilterToggle');
-    const toolbar = document.querySelector('.toolbar');
-    if (toggle && toolbar) {
-      toggle.addEventListener('click', function () {
-        const open = toolbar.classList.toggle('filters-open');
-        toggle.innerHTML = open
-          ? '<i class="fas fa-xmark"></i> Close'
-          : '<i class="fas fa-sliders"></i> Filters';
-      });
-    }
-    // On touch, tap a continent tab once to reveal its countries
-    if (window.matchMedia('(max-width: 768px)').matches) {
-      document.querySelectorAll('.continent-dropdown > .country-tab').forEach(function (tab) {
-        tab.addEventListener('click', function (e) {
-          const dd = tab.parentElement;
-          if (!dd.classList.contains('open')) {
-            e.preventDefault();
-            document.querySelectorAll('.continent-dropdown.open').forEach(function (o) {
-              if (o !== dd) o.classList.remove('open');
-            });
-            dd.classList.add('open');
-          }
-        });
-      });
-    }
-  })();
-
-  // ── State ──
+<script nonce="{{ csp_nonce() }}">  // ── State ──
   let activeCountryId = "{{ active_country.id if active_country else '' }}";
   let activeDestination = "{{ request.args.get('destination','') }}";
   let activePackageType = "{{ package_type or '' }}";
@@ -1155,6 +1318,120 @@
       destination: ''
     });
   });
+
+  // ── Mobile filter sheet ──
+  (function () {
+    const trigger = document.getElementById('mobileFilterToggle');
+    const overlay = document.getElementById('mobileSheetOverlay');
+    const closeBtn = document.getElementById('mobileSheetClose');
+    const clearBtn = document.getElementById('mobileClearBtn');
+    const applyBtn = document.getElementById('mobileApplyBtn');
+    const sheetInput = document.getElementById('filter-destination-mobile');
+    if (!trigger || !overlay) return;
+
+    let mobileContinentId = "{{ active_continent.id if active_continent else '' }}";
+    let mobileCountryId = "{{ active_country.id if active_country else '' }}";
+    let mobilePackageType = "{{ package_type or '' }}";
+
+    function openSheet() { overlay.classList.add('open'); }
+    function closeSheet() { overlay.classList.remove('open'); }
+
+    trigger.addEventListener('click', openSheet);
+    closeBtn.addEventListener('click', closeSheet);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeSheet(); });
+
+    document.querySelectorAll('.mobile-seg').forEach(seg => {
+      seg.addEventListener('click', () => {
+        document.querySelectorAll('.mobile-seg').forEach(s => s.classList.remove('active'));
+        seg.classList.add('active');
+        mobilePackageType = seg.dataset.type;
+      });
+    });
+
+    document.querySelectorAll('.mobile-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('.mobile-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        mobileContinentId = chip.dataset.continentId;
+        mobileCountryId = '';
+        document.querySelectorAll('.mobile-country-grid').forEach(panel => {
+          panel.classList.toggle('open', panel.dataset.continentPanel === mobileContinentId);
+          panel.querySelectorAll('.mobile-country-chip').forEach(c => c.classList.remove('active'));
+        });
+      });
+    });
+
+    document.querySelectorAll('.mobile-country-chip').forEach(cc => {
+      cc.addEventListener('click', () => {
+        cc.closest('.mobile-country-grid').querySelectorAll('.mobile-country-chip').forEach(c => c.classList.remove('active'));
+        cc.classList.add('active');
+        mobileCountryId = cc.dataset.countryId;
+      });
+    });
+
+    clearBtn.addEventListener('click', () => {
+      mobileContinentId = '';
+      mobileCountryId = '';
+      mobilePackageType = '';
+      sheetInput.value = '';
+      document.querySelectorAll('.mobile-chip').forEach(c => c.classList.remove('active'));
+      document.querySelector('.mobile-chip[data-continent-id=""]').classList.add('active');
+      document.querySelectorAll('.mobile-country-grid').forEach(panel => {
+        panel.classList.remove('open');
+        panel.querySelectorAll('.mobile-country-chip').forEach(c => c.classList.remove('active'));
+      });
+      document.querySelectorAll('.mobile-seg').forEach(s => s.classList.remove('active'));
+      document.querySelector('.mobile-seg[data-type=""]').classList.add('active');
+    });
+
+    applyBtn.addEventListener('click', () => {
+      const destination = sheetInput.value.trim();
+      const activeCountryChip = document.querySelector('.mobile-country-chip.active');
+      const activeChip = document.querySelector('.mobile-chip.active');
+      const label = activeCountryChip ? activeCountryChip.dataset.label : (activeChip ? activeChip.dataset.label : '');
+
+      const params = new URLSearchParams();
+      if (mobileContinentId) params.set('continent_id', mobileContinentId);
+      if (mobileCountryId) params.set('country_id', mobileCountryId);
+      if (destination) params.set('destination', destination);
+      if (mobilePackageType) params.set('package_type', mobilePackageType);
+      const url = `{{ url_for('packages.list_packages') }}?${params.toString()}`;
+
+      history.pushState({}, '', url);
+      closeSheet();
+      grid.classList.add('loading');
+      grid.innerHTML = skeletonHTML();
+
+      fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.text())
+        .then(html => {
+          applyAjaxResponse(html);
+          grid.classList.remove('loading');
+          grid.querySelectorAll('.pkg-card').forEach((card, i) => {
+            card.style.animationDelay = `${i * 40}ms`;
+          });
+          initGalleries();
+          const count = grid.querySelectorAll('.pkg-card').length;
+          let info = `Showing <strong>${count}</strong> package${count !== 1 ? 's' : ''}`;
+          if (destination) info += ` for <strong>${destination}</strong>`;
+          resultsInfo.innerHTML = info;
+
+          // keep the desktop toolbar's own state in sync in case the viewport is resized
+          activeCountryId = mobileCountryId;
+          activeDestination = destination;
+          activePackageType = mobilePackageType;
+          filterInput.value = destination;
+          btnClear.style.display = destination ? 'inline-flex' : 'none';
+          updateBreadcrumb(label);
+        })
+        .catch(() => {
+          grid.classList.remove('loading');
+          grid.innerHTML =
+            '<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-exclamation-circle"></i></div><h3>Something went wrong</h3><p>Please try again in a moment.</p></div>';
+          paginationWrap.innerHTML = '';
+        });
+    });
+  })();
 
 </script>
 <script src="{{ url_for('static', filename='js/packages.js') }}"></script>
