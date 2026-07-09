@@ -1949,6 +1949,12 @@ def export_inquiries():
 
     inquiries = query.all()
 
+    if inquiries:
+        Inquiry.query.filter(Inquiry.id.in_([inq.id for inq in inquiries])).update(
+            {"last_exported_at": datetime.now(timezone.utc)}, synchronize_session=False
+        )
+        db.session.commit()
+
     wb = Workbook()
     ws = wb.active
     ws.title = "Inquiries"

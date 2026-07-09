@@ -59,3 +59,24 @@ def notify_admins_new_inquiry(inquiry) -> None:
             message=f"New inquiry from {inquiry.name} — {inquiry.destination}",
         )
         db.session.add(notif)
+
+
+def notify_admins_inquiries_expiring(count: int) -> None:
+    """Queue a system-wide (inquiry_id=None) in-app notification for every
+    admin warning that `count` inquiries are about to be auto-deleted.
+
+    Does not commit — caller commits alongside other changes. Called by
+    inquiry_cleanup_service, not tied to any single inquiry, so it's
+    skipped entirely by admin.py's per-inquiry cascade delete.
+    """
+    from models.user import User
+
+    admins = User.query.filter_by(is_admin=True).all()
+    plural = "inquiry" if count == 1 else "inquiries"
+    message = (
+        f"{count} {plural} will be auto-deleted in the next 7 days. "
+        "Download them from Inquiries before they're removed."
+    )
+    for admin in admins:
+        notif = InquiryNotification(user_id=admin.id, inquiry_id=None, message=message)
+        db.session.add(notif)

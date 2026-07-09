@@ -31,6 +31,7 @@ class Inquiry(db.Model):
     admin_response: Optional[str] = db.Column(db.Text, nullable=True)
     responded_at: Optional[datetime] = db.Column(db.DateTime, nullable=True)
     created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    last_exported_at: Optional[datetime] = db.Column(db.DateTime, nullable=True, index=True)
 
     __table_args__ = (
         db.CheckConstraint("travel_date_to >= travel_date_from", name="ck_inquiry_date_range"),
