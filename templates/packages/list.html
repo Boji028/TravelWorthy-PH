@@ -987,6 +987,7 @@
 
   // ── Tab Clicks (continent tabs) ──
   document.querySelectorAll('.country-tab').forEach(tab => {
+    if (tab.closest('#packages-pagination')) return; // pagination links are handled separately below
     tab.addEventListener('click', function (e) {
       e.preventDefault();
       document.querySelectorAll('.country-tab').forEach(t => t.classList.remove('active'));
@@ -1019,6 +1020,45 @@
           paginationWrap.innerHTML = '';
         });
     });
+  });
+
+  // ── Pagination Clicks (Prev / page numbers / Next) ──
+  // Delegated on the container itself (which is never replaced, only its
+  // contents are) so this keeps working after any number of AJAX filter
+  // actions have rebuilt the pagination links inside it.
+  paginationWrap.addEventListener('click', function (e) {
+    const link = e.target.closest('a');
+    if (!link) return;
+    e.preventDefault();
+    const url = link.getAttribute('href');
+    history.pushState({}, '', url);
+    grid.classList.add('loading');
+    grid.innerHTML = skeletonHTML();
+    fetch(url, {
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(r => r.text())
+      .then(html => {
+        applyAjaxResponse(html);
+        grid.classList.remove('loading');
+        grid.querySelectorAll('.pkg-card').forEach((card, i) => {
+          card.style.animationDelay = `${i * 40}ms`;
+        });
+        initGalleries();
+        const count = grid.querySelectorAll('.pkg-card').length;
+        resultsInfo.innerHTML = `Showing <strong>${count}</strong> package${count !== 1 ? 's' : ''}`;
+        // Jump back to the top of the results so the new page is visible,
+        // matching what a real page navigation would have done.
+        document.querySelector('.packages-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      })
+      .catch(() => {
+        grid.classList.remove('loading');
+        grid.innerHTML =
+          '<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-exclamation-circle"></i></div><h3>Something went wrong</h3><p>Please try again in a moment.</p></div>';
+        paginationWrap.innerHTML = '';
+      });
   });
 
   // ── Country Dropdown Links ──

@@ -73,6 +73,37 @@ does a plain full-page navigation straight to the correct filtered page
 (no stale AJAX listener involved, since the links are freshly inserted
 each time).
 
+## Follow-up: pagination was still causing a full page reload
+After applying the fix above, clicking Prev/page-number/Next still caused
+a full browser navigation (page flash/reload) instead of the smooth AJAX
+swap used everywhere else on this page - on both desktop and mobile, since
+they share the same markup and JS.
+
+Cause: pagination links share the `.country-tab` CSS class with the
+continent tabs, and the *original* click-binding loop
+(`document.querySelectorAll('.country-tab').forEach(tab => tab.addEventListener(...))`)
+only attaches listeners once, at page load, to whatever elements exist in
+the DOM at that moment. Any pagination link inserted later - which is all
+of them, since `applyAjaxResponse()` replaces `#packages-pagination`'s
+contents on every filter action - never got a listener, so clicking it
+fell through to the browser's default anchor behavior: a real navigation.
+
+Fix: pagination now has its own delegated click handler, bound once to
+`#packages-pagination` itself (the container element, which is never
+replaced - only its children are). Delegation means it keeps working no
+matter how many times the pagination links inside it get rebuilt. The
+original continent-tab loop now explicitly skips anything inside
+`#packages-pagination` so the two handlers can't both fire on the same
+click. Pagination clicks also scroll the results section back into view,
+since a real page navigation would have jumped to the top and a silent
+AJAX swap otherwise wouldn't.
+
+This is a client-side/JS-only fix - no route or test changes, so the
+Python suite count is unchanged at 518/518. Verified by reading through
+the event flow by hand (brace/paren balance and `node --check` on the
+extracted script block both clean); this project has no browser-level JS
+test coverage yet, same as the rest of the site's existing interactions.
+
 ## Verification
 - New `tests/test_packages_pagination.py` (4 tests):
   - filtered result <= 9 items -> no pagination markup in the AJAX response
