@@ -799,26 +799,15 @@
   </div>
 
   <div class="packages-grid" id="packages-grid">
-    {% include 'packages/list_ajax.html' %}
+    {% include 'packages/_cards.html' %}
   </div>
 
-  {% if pagination.pages > 1 %}
-  <div style="display:flex;justify-content:center;gap:.5rem;margin-top:2rem;">
-    {% if pagination.has_prev %}
-    <a href="?page={{ pagination.prev_num }}" class="country-tab">← Prev</a>
-    {% endif %}
-    {% for p in pagination.iter_pages() %}
-    {% if p %}
-    <a href="?page={{ p }}" class="country-tab {% if p == pagination.page %}active{% endif %}">{{ p }}</a>
-    {% else %}
-    <span style="padding:.4rem">…</span>
-    {% endif %}
-    {% endfor %}
-    {% if pagination.has_next %}
-    <a href="?page={{ pagination.next_num }}" class="country-tab">Next →</a>
-    {% endif %}
+  <div id="packages-pagination">
+    {% set continent_id = active_continent.id if active_continent else None %}
+    {% set country_id = active_country.id if active_country else None %}
+    {% set destination = request.args.get('destination', '') or None %}
+    {% include 'packages/_pagination.html' %}
   </div>
-  {% endif %}
 </div>
 
 <div class="lightbox" id="lightbox" onclick="closeLightbox()">
@@ -869,12 +858,25 @@
   }
 
   const grid = document.getElementById('packages-grid');
+  const paginationWrap = document.getElementById('packages-pagination');
   const resultsInfo = document.getElementById('results-info');
   const filterInput = document.getElementById('filter-destination');
   const btnClear = document.getElementById('btn-clear');
   const heroSubtitle = document.getElementById('hero-subtitle');
   const activeFilterPill = document.getElementById('active-filter-pill');
   const activeFilterText = document.getElementById('active-filter-text');
+
+  // ── Split an AJAX response into its cards + pagination pieces and apply them.
+  // Pagination is rebuilt from the response every time so it always matches
+  // the currently active filter, instead of leaving stale page links behind.
+  function applyAjaxResponse(html) {
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    const cardsEl = temp.querySelector('#ajax-cards');
+    const paginationEl = temp.querySelector('#ajax-pagination');
+    grid.innerHTML = cardsEl ? cardsEl.innerHTML : html;
+    paginationWrap.innerHTML = paginationEl ? paginationEl.innerHTML : '';
+  }
 
   // ── Breadcrumb ──
   function updateBreadcrumb(label) {
@@ -960,7 +962,7 @@
       })
       .then(r => r.text())
       .then(html => {
-        grid.innerHTML = html;
+        applyAjaxResponse(html);
         grid.classList.remove('loading');
 
         // Stagger card animations
@@ -979,6 +981,7 @@
         grid.classList.remove('loading');
         grid.innerHTML =
           '<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-exclamation-circle"></i></div><h3>Something went wrong</h3><p>Please try again in a moment.</p></div>';
+        paginationWrap.innerHTML = '';
       });
   }
 
@@ -1000,7 +1003,7 @@
         })
         .then(r => r.text())
         .then(html => {
-          grid.innerHTML = html;
+          applyAjaxResponse(html);
           grid.classList.remove('loading');
           grid.querySelectorAll('.pkg-card').forEach((card, i) => {
             card.style.animationDelay = `${i * 40}ms`;
@@ -1013,6 +1016,7 @@
           grid.classList.remove('loading');
           grid.innerHTML =
             '<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-exclamation-circle"></i></div><h3>Something went wrong</h3><p>Please try again in a moment.</p></div>';
+          paginationWrap.innerHTML = '';
         });
     });
   });
@@ -1033,7 +1037,7 @@
         })
         .then(r => r.text())
         .then(html => {
-          grid.innerHTML = html;
+          applyAjaxResponse(html);
           grid.classList.remove('loading');
           grid.querySelectorAll('.pkg-card').forEach((card, i) => {
             card.style.animationDelay = `${i * 40}ms`;
@@ -1046,6 +1050,7 @@
           grid.classList.remove('loading');
           grid.innerHTML =
             '<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-exclamation-circle"></i></div><h3>Something went wrong</h3><p>Please try again in a moment.</p></div>';
+          paginationWrap.innerHTML = '';
         });
     });
   });
@@ -1069,7 +1074,7 @@
         })
         .then(r => r.text())
         .then(html => {
-          grid.innerHTML = html;
+          applyAjaxResponse(html);
           grid.classList.remove('loading');
           grid.querySelectorAll('.pkg-card').forEach((card, i) => {
             card.style.animationDelay = `${i * 40}ms`;
@@ -1082,6 +1087,7 @@
           grid.classList.remove('loading');
           grid.innerHTML =
             '<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-exclamation-circle"></i></div><h3>Something went wrong</h3><p>Please try again in a moment.</p></div>';
+          paginationWrap.innerHTML = '';
         });
     });
   });

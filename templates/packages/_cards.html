@@ -1,0 +1,29 @@
+{% for pkg in packages %}
+<div class="pkg-card" onclick="window.location='{{ url_for('packages.package_detail', package_id=pkg.id) }}'">
+  <div class="pkg-img-wrap">
+    {% if pkg.is_featured %}<div class="pkg-badge"><i class="fas fa-star"></i> Featured</div>{% endif %}
+    {% if pkg.image and pkg.image != 'default_tour.jpg' %}
+    <img class="pkg-img" src="{{ (pkg.image | cloudinary_package_card) if pkg.image.startswith('http') else '/uploads/' + pkg.image }}" alt="{{ pkg.title }}" loading="lazy"/>
+    {% else %}
+    <div class="pkg-img-placeholder"><i class="fas fa-mountain"></i></div>
+    {% endif %}
+  </div>
+  <div class="pkg-body">
+    <div class="pkg-top-row">
+      <div class="pkg-destination">{{ pkg.destination }}</div>
+    </div>
+    <div class="pkg-title">{{ pkg.title }}</div>
+    <div class="pkg-meta">
+      <span class="pkg-mi"><i class="fas fa-clock"></i> {{ pkg.duration_days }} days</span>
+    </div>
+    <div class="pkg-price-line">
+      <strong>{% if pkg.currency == 'USD' %}${% elif pkg.currency == 'EUR' %}€{% else %}₱{% endif %}{{ "{:,.0f}".format(pkg.price) }}</strong><span class="per"> / person</span>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="empty-state" style="grid-column:1/-1;text-align:center;padding:5rem 2rem;color:var(--mist);">
+  <i class="fas fa-search" style="font-size:3rem;opacity:.3;display:block;margin-bottom:1rem;"></i>
+  <p>No packages found.</p>
+</div>
+{% endfor %}

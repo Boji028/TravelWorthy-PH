@@ -60,7 +60,15 @@ def list_packages() -> Union[str, object]:
     active_country = db.session.get(Country, country_id) if country_id else None
 
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return render_template("packages/list_ajax.html", packages=packages.items)
+        return render_template(
+            "packages/list_ajax.html",
+            packages=packages.items,
+            pagination=packages,
+            continent_id=continent_id,
+            country_id=country_id,
+            destination=destination or None,
+            package_type=package_type or None,
+        )
 
     return render_template(
         "packages/list.html",
