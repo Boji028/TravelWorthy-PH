@@ -4,7 +4,7 @@
 {% block admin_styles %}
 <style>
   .form-card {
-    background: var(--surface);
+    background: var(--white);
     border-radius: var(--radius-lg);
     padding: 2rem;
     box-shadow: 0 2px 12px rgba(58, 46, 34, .07);
@@ -252,7 +252,7 @@
         <div>
           <img
             src="{{ package.flier_image if package.flier_image.startswith('http') else '/uploads/' + package.flier_image }}"
-            style="height:120px;border-radius:var(--radius);object-fit:contain;background:var(--linen);padding:4px;" />
+            style="height:120px;border-radius:var(--radius);object-fit:contain;background:#f0ebe3;padding:4px;" />
           <div style="font-size:.78rem;color:var(--mist);margin-top:.3rem;">
             Current flier
             {% if package.flier_image_size_kb %}· {{ "%.1f"|format(package.flier_image_size_kb) }} KB{% endif %}

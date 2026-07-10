@@ -4,7 +4,7 @@
 {% block admin_styles %}
 <style>
   .testimonial-card {
-    background: var(--surface);
+    background: var(--white);
     border-radius: var(--radius-lg);
     padding: 1.5rem;
     margin-bottom: 1rem;
@@ -128,7 +128,7 @@
   .testimonial-search-wrap input { padding-left: 2.2rem !important; }
 
   .rating-pills { display: flex; gap: .4rem; margin-bottom: 1.2rem; flex-wrap: wrap; max-width: 900px; margin-left: auto; margin-right: auto; }
-  .rating-pill { text-decoration: none; border-radius: 999px; padding: .4rem .8rem; font-size: .76rem; font-weight: 600; background: var(--surface); border: 1px solid var(--linen); color: var(--mist); transition: opacity .15s; }
+  .rating-pill { text-decoration: none; border-radius: 999px; padding: .4rem .8rem; font-size: .76rem; font-weight: 600; background: var(--white); border: 1px solid var(--linen); color: var(--mist); transition: opacity .15s; }
   .rating-pill:hover { opacity: .8; }
   .rating-pill.active { background: rgba(23,89,104,.08); color: var(--teal); border-color: transparent; }
   .rating-pill.all.active { background: rgba(23,89,104,.08); color: var(--teal); }
@@ -237,7 +237,7 @@
     {% endfor %}
 
     {% if pagination.pages > 1 %}
-    <div style="text-align: center; margin-top: 2rem; padding: 1.5rem; background: var(--surface); border-radius: var(--radius-lg);">
+    <div style="text-align: center; margin-top: 2rem; padding: 1.5rem; background: var(--white); border-radius: var(--radius-lg);">
       {% if pagination.has_prev %}
         <a href="{{ url_for('admin.testimonials', page=pagination.prev_num, search=search, rating=rating_filter) }}" class="btn btn-outline btn-sm">
           <i class="fas fa-chevron-left"></i> Previous
@@ -257,7 +257,7 @@
     {% endif %}
   </div>
   {% else %}
-  <div style="max-width: 900px; margin: 3rem auto; padding: 2rem; background: var(--surface); border-radius: var(--radius-lg); text-align: center;">
+  <div style="max-width: 900px; margin: 3rem auto; padding: 2rem; background: var(--white); border-radius: var(--radius-lg); text-align: center;">
     <i class="fas fa-star" style="font-size: 3rem; color: var(--mist); opacity: 0.5; display: block; margin-bottom: 1rem;"></i>
     {% if search or rating_filter %}
       <h3 style="color: var(--mist);">No reviews match your filters</h3>
