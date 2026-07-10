@@ -4,7 +4,7 @@
 {% block admin_styles %}
 <style>
   .table-card {
-    background: var(--white);
+    background: var(--surface);
     border-radius: var(--radius-lg);
     overflow: hidden;
     box-shadow: 0 2px 12px rgba(58,46,34,.07);
@@ -49,7 +49,7 @@
   }
 
   .admin-table tr:last-child td { border-bottom: none; }
-  .admin-table tr:hover td { background: #faf6f0; }
+  .admin-table tr:hover td { background: var(--linen); }
 
   .user-avatar {
     width: 36px;
@@ -135,7 +135,7 @@
     display: flex;
     align-items: center;
     gap: .5rem;
-    background: var(--white);
+    background: var(--surface);
     border: 1px solid var(--linen);
     border-radius: 999px;
     padding: .45rem .9rem;
@@ -160,7 +160,7 @@
     padding: .45rem .75rem;
     font-size: .82rem;
     color: var(--bark);
-    background: var(--white);
+    background: var(--surface);
     font-family: inherit;
   }
 </style>

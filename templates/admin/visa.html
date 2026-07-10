@@ -7,7 +7,7 @@
   .admin-table th { text-align: left; padding: 1rem 1rem; font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--mist); border-bottom: 1px solid var(--linen); font-weight: 600; }
   .admin-table td { padding: 1.1rem 1rem; border-bottom: 1px solid var(--linen); color: var(--bark); vertical-align: middle; }
   .admin-table tr:last-child td { border-bottom: none; }
-  .admin-table tr:hover td { background: #faf6f0; }
+  .admin-table tr:hover td { background: var(--linen); }
   .visa-filter-bar { display: flex; gap: .6rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
   .visa-search-wrap { flex: 1; min-width: 180px; position: relative; }
   .visa-search-wrap i { position: absolute; left: .8rem; top: 50%; transform: translateY(-50%); color: var(--mist); font-size: .8rem; }
@@ -63,7 +63,7 @@
        class="status-pill status-pill-inactive {{ 'active' if status_filter == 'inactive' }}">Inactive {{ status_counts.inactive }}</a>
   </div>
 
-  <div style="background:var(--white);border-radius:var(--radius-lg);box-shadow:0 2px 12px rgba(58,46,34,.07);overflow:hidden;">
+  <div style="background:var(--surface);border-radius:var(--radius-lg);box-shadow:0 2px 12px rgba(58,46,34,.07);overflow:hidden;">
     <div style="overflow-x:auto;">
     <table class="admin-table">
       <thead>
