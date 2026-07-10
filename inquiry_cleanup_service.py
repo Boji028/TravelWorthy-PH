@@ -11,6 +11,19 @@ Two independent steps, both called by scripts/run_inquiry_cleanup.py:
    deleted via the ORM (not a bulk query.delete()), so the existing
    cascade="all, delete-orphan" relationship on InquiryNotification
    actually fires instead of leaving orphaned notification rows behind.
+
+Every datetime comparison here is done as a SQL filter (Inquiry.created_at
+<= cutoff, etc.), never by fetching a value back and comparing it in
+Python. This matters because db.DateTime columns are TIMESTAMP WITHOUT
+TIME ZONE: if the Postgres session's `timezone` setting isn't UTC, an
+aware datetime.now(timezone.utc) gets silently converted to that session
+timezone before the naive value is stored. A SQL filter is still correct
+because the same conversion is applied consistently to both the stored
+column and the filter's bind parameter. A Python-side comparison against
+a value fetched back from the DB is NOT safe, because there's no way to
+tell from the naive datetime alone whether it's UTC or session-local
+content — see the throttle check below, which used to do exactly that
+and produced a negative "hours ago" on a non-UTC session.
 """
 from datetime import datetime, timezone, timedelta
 from app import db
@@ -37,6 +50,7 @@ def notify_admins_of_expiring_inquiries() -> int:
     cutoff = now - timedelta(days=RETENTION_DAYS)
     warning_start = now - timedelta(days=RETENTION_DAYS - WARNING_WINDOW_DAYS)
     reexport_cutoff = now - timedelta(days=REEXPORT_SUPPRESS_DAYS)
+    throttle_cutoff = now - timedelta(hours=REMINDER_THROTTLE_HOURS)
 
     at_risk = Inquiry.query.filter(
         Inquiry.created_at <= warning_start,
@@ -47,17 +61,14 @@ def notify_admins_of_expiring_inquiries() -> int:
     if at_risk == 0:
         return 0
 
-    last_reminder = (
-        InquiryNotification.query.filter(InquiryNotification.inquiry_id.is_(None))
-        .order_by(InquiryNotification.created_at.desc())
-        .first()
-    )
-    if last_reminder:
-        last_sent = last_reminder.created_at
-        if last_sent.tzinfo is None:
-            last_sent = last_sent.replace(tzinfo=timezone.utc)
-        if (now - last_sent) < timedelta(hours=REMINDER_THROTTLE_HOURS):
-            return 0
+    throttled = db.session.query(
+        InquiryNotification.query.filter(
+            InquiryNotification.inquiry_id.is_(None),
+            InquiryNotification.created_at >= throttle_cutoff,
+        ).exists()
+    ).scalar()
+    if throttled:
+        return 0
 
     notify_admins_inquiries_expiring(at_risk)
     db.session.commit()

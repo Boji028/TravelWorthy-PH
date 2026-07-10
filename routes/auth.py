@@ -21,7 +21,6 @@ def _email_verification_required() -> bool:
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])
-@limiter.limit("10 per hour")
 def register():
     """User registration route with email validation and error handling."""
     if current_user.is_authenticated:
@@ -101,7 +100,6 @@ def register():
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
-@limiter.limit("5 per minute")
 def login():
     """User login route with session management and error handling."""
     if current_user.is_authenticated:
@@ -158,7 +156,6 @@ def _oauth_login(user):
 
 
 @auth_bp.route("/google/login")
-@limiter.limit("10 per hour")
 def google_login():
     if "google" not in oauth._clients:
         flash("Google sign-in is not configured yet.", "danger")
@@ -308,7 +305,6 @@ def verify_email(token):
 
 
 @auth_bp.route("/resend-verification", methods=["GET", "POST"])
-@limiter.limit("3 per minute")
 @limiter.limit("5 per hour", key_func=lambda: request.form.get("email", request.remote_addr).lower())
 def resend_verification():
     """Resend verification email to user."""
@@ -329,7 +325,6 @@ def resend_verification():
     return render_template("auth/resend_verification.html", email=email)
 
 @auth_bp.route("/forgot-password", methods=["GET", "POST"])
-@limiter.limit("3 per minute")
 @limiter.limit("5 per hour", key_func=lambda: request.form.get("email", request.remote_addr).lower())
 def forgot_password():
     """Request a password reset link by email."""

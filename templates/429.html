@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Too Many Requests{% endblock %}
+{% block content %}
+<div style="text-align:center; padding: 6rem 2rem;">
+  <h1 style="font-size:5rem; color:var(--teal);">429</h1>
+  <p style="font-size:1.2rem; color:var(--mist); margin-top:1rem;">You're doing that a bit too quickly. Please wait a few minutes and try again.</p>
+  <a href="javascript:history.back()" class="btn btn-amber" style="margin-top:2rem; display:inline-block;">Go Back</a>
+</div>
+{% endblock %}

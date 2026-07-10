@@ -129,7 +129,6 @@ def contact():
 
 @main_bp.route("/testimonial", methods=["POST"])
 @login_required
-@limiter.limit("5 per hour")
 def add_testimonial():
     """Add a testimonial with optional image uploads."""
     message = bleach.clean(request.form.get("message", "").strip(), tags=ALLOWED_TAGS, strip=True)
@@ -240,7 +239,6 @@ def delete_testimonial(testimonial_id):
 
 
 @main_bp.route("/inquiry/<reference_number>")
-@limiter.limit("30 per minute")
 def track_inquiry(reference_number):
     """Public inquiry status tracker — no login required.
     The reference number itself is the access token, same trust model

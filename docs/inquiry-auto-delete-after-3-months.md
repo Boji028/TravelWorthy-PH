@@ -96,3 +96,51 @@ manually once and check the output before wiring up the scheduled task.
    just `flask db upgrade`.
 2. Run `scripts/setup_inquiry_cleanup_scheduler.bat` as Administrator
    once, same as you did for backups.
+
+## Follow-up: throttle showed a negative "hours ago" during testing
+While testing with dummy data, the reminder correctly fired once, but a
+second real test showed "No reminder needed" immediately and the
+diagnostic script showed the last reminder as sent "-7.7 hours ago" —
+impossible, since time doesn't go backwards.
+
+**Cause:** `db.DateTime` columns are `TIMESTAMP WITHOUT TIME ZONE`. Postgres
+converts an incoming tz-aware `datetime.now(timezone.utc)` to the
+session's `timezone` setting before storing the naive result. If that
+session timezone isn't UTC (looks like it's set to Philippine time, UTC+8,
+on this install), every write is silently shifted by 8 hours. The
+`at_risk` count and the deletion query were both fine (they filter
+entirely in SQL, so the same conversion applies consistently to both the
+stored data and the filter value). The one place this broke was the
+throttle check, which fetched the last reminder's timestamp back into
+Python and compared it against a freshly-computed `datetime.now(timezone.utc)`
+— mixing session-local content with a genuinely-UTC value.
+
+**Fix:** rewrote the throttle check as a SQL filter
+(`InquiryNotification.created_at >= throttle_cutoff`) instead of fetching
+a row and subtracting datetimes in Python, matching how the other two
+checks already worked. `inquiry_cleanup_service.py` now explains this
+reasoning in its module docstring so it doesn't get "fixed" back to the
+broken pattern later.
+
+**New script:** `scripts/reset_inquiry_reminder_throttle.py` — deletes
+existing system-wide reminder notifications (inquiry_id IS NULL only,
+never touches per-inquiry ones) so you can re-test the full cycle
+immediately instead of waiting out the real 48 hours.
+
+**Diagnostic script updated** to match: the throttle check is now the
+same SQL-level query the real code uses, and it prints Postgres's actual
+session `timezone` setting (`SHOW timezone`) so the skew is visible
+directly instead of inferred from odd-looking numbers.
+
+**Worth knowing beyond this feature:** the same pattern —
+`datetime.now(timezone.utc)` written to a naive column, later compared in
+Python via a `_aware()`-style "just assume it's UTC" helper — is also how
+`PasswordResetToken.expires_at` and `EmailVerificationToken.expires_at`
+are checked. If the session timezone really is UTC+8, those tokens are
+likely valid for about 8 hours longer than their stated expiry (an hour
+becomes roughly 9). Both of those still work correctly for their basic
+purpose (expired tokens do eventually get rejected), so nothing is broken
+today — but if you want that tightened up too, or want the Postgres
+session timezone fixed at the root (e.g. `ALTER DATABASE ... SET timezone
+TO 'UTC'`, which would fix all of this system-wide in one place), let me
+know and I'll take a look at that separately.

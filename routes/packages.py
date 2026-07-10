@@ -5,7 +5,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 
-from app import db, limiter
+from app import db
 from models.package import TourPackage
 from models.country import Country
 from models.continent import Continent
@@ -15,7 +15,6 @@ packages_bp = Blueprint("packages", __name__)
 
 
 @packages_bp.route("/")
-@limiter.limit("60 per minute")
 def list_packages() -> Union[str, object]:
     """List tour packages with filtering options.
 
@@ -83,7 +82,6 @@ def list_packages() -> Union[str, object]:
 
 
 @packages_bp.route("/<int:package_id>")
-@limiter.limit("60 per minute")
 def package_detail(package_id: int) -> str:
     from models.package_review import PackageReview
     from flask_login import current_user
@@ -187,12 +185,8 @@ def edit_review(package_id: int):
 
 
 @packages_bp.route("/autocomplete")
-@limiter.limit("60 per minute")
 def autocomplete() -> str:
-    """Autocomplete endpoint for destination and country search.
-
-    Rate limited to prevent keystroke abuse.
-    """
+    """Autocomplete endpoint for destination and country search."""
     q: str = request.args.get("q", "").strip()
     if len(q) < 2:
         return jsonify([])

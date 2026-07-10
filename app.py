@@ -204,6 +204,10 @@ def create_app():
         app.logger.error(f"500 Internal Server Error: {e}", exc_info=True)
         return render_template("500.html"), 500
 
+    @app.errorhandler(429)
+    def rate_limit_exceeded(e):
+        return render_template("429.html"), 429
+
     # ── File-based logging ─────────────────────────────────────
     try:
         from file_logging import setup_file_logging
