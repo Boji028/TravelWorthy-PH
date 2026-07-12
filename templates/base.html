@@ -78,7 +78,9 @@
             {% if recent_notifications %}
               {% for n in recent_notifications %}
               <li class="notif-item {{ 'unread' if not n.is_read }}">
-                {% if n.inquiry and n.inquiry.user_id == current_user.id %}
+                {% if n.link_url %}
+                <a href="{{ n.link_url }}" data-mark-read-url="{{ url_for('main.mark_notification_read', notification_id=n.id) }}">
+                {% elif n.inquiry and n.inquiry.user_id == current_user.id %}
                 <a href="{{ url_for('main.track_inquiry', reference_number=n.inquiry.reference_number) }}" data-mark-read-url="{{ url_for('main.mark_notification_read', notification_id=n.id) }}">
                 {% else %}
                 <a href="{{ url_for('admin.inquiries') }}" data-mark-read-url="{{ url_for('main.mark_notification_read', notification_id=n.id) }}">

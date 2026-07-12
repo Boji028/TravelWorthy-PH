@@ -80,3 +80,44 @@ def notify_admins_inquiries_expiring(count: int) -> None:
     for admin in admins:
         notif = InquiryNotification(user_id=admin.id, inquiry_id=None, message=message)
         db.session.add(notif)
+
+
+def notify_users_new_package(package) -> None:
+    """Queue a system-wide (inquiry_id=None) in-app notification for every
+    non-admin registered user announcing a newly added tour package.
+
+    Does not commit — caller commits alongside other changes. Admins are
+    excluded since they're the ones adding the package. Sets link_url to
+    the package's own detail page rather than falling back to the
+    template's default inquiry-id-based routing, which would otherwise
+    send a regular user to the admin inquiries list.
+    """
+    from flask import url_for
+    from models.user import User
+
+    users = User.query.filter_by(is_admin=False).all()
+    message = f"New tour package added: {package.title} — check it out!"
+    link_url = url_for("packages.package_detail", package_id=package.id)
+    for user in users:
+        notif = InquiryNotification(user_id=user.id, inquiry_id=None, message=message, link_url=link_url)
+        db.session.add(notif)
+
+
+def notify_users_new_visa(visa) -> None:
+    """Queue a system-wide (inquiry_id=None) in-app notification for every
+    non-admin registered user announcing a newly added visa country.
+
+    Does not commit — caller commits alongside other changes. Admins are
+    excluded since they're the ones adding the visa entry. Links to the
+    public visa list rather than a specific requirements page, since
+    that's the natural landing spot for "a new country was added".
+    """
+    from flask import url_for
+    from models.user import User
+
+    users = User.query.filter_by(is_admin=False).all()
+    message = f"New visa info added: {visa.country_name} — check it out!"
+    link_url = url_for("packages.visa")
+    for user in users:
+        notif = InquiryNotification(user_id=user.id, inquiry_id=None, message=message, link_url=link_url)
+        db.session.add(notif)

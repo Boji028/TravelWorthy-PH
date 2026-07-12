@@ -370,6 +370,15 @@ def add_package():
             db.session.add(package)
             db.session.commit()
 
+            try:
+                from notification_service import notify_users_new_package
+
+                notify_users_new_package(package)
+                db.session.commit()
+            except Exception as notif_err:
+                db.session.rollback()
+                current_app.logger.warning(f"New-package notification failed for package #{package.id}: {notif_err}", exc_info=True)
+
             if upload_result:
                 try:
                     save_image_metadata(package, upload_result, field_prefix="image")
@@ -1715,6 +1724,16 @@ def visa_add():
         )
         db.session.add(visa)
         db.session.commit()
+
+        try:
+            from notification_service import notify_users_new_visa
+
+            notify_users_new_visa(visa)
+            db.session.commit()
+        except Exception as notif_err:
+            db.session.rollback()
+            current_app.logger.warning(f"New-visa notification failed for visa #{visa.id}: {notif_err}", exc_info=True)
+
         flash(f"{country_name} visa added!", "success")
         return redirect(url_for("admin.visa_list"))
     return render_template("admin/add_visa.html")

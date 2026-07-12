@@ -186,6 +186,115 @@ class TestNotificationService:
         assert notif is not None
         assert "Test User" in notif.message
 
+    def test_notify_users_new_package_notifies_every_non_admin(self, app, test_user, admin_user, test_package):
+        from app import db
+        from notification_service import notify_users_new_package
+        from models.user import User
+        from werkzeug.security import generate_password_hash
+
+        second_user = User(
+            name="Second User",
+            email="seconduser@example.com",
+            password=generate_password_hash("TestPass123!"),
+            is_admin=False,
+            email_verified=True,
+        )
+        db.session.add(second_user)
+        db.session.commit()
+
+        notify_users_new_package(test_package)
+        db.session.commit()
+
+        notified_user_ids = {n.user_id for n in InquiryNotification.query.all()}
+        assert notified_user_ids == {test_user.id, second_user.id}
+        assert admin_user.id not in notified_user_ids
+
+    def test_notify_users_new_package_sets_message_and_link(self, app, test_user, test_package):
+        from app import db
+        from notification_service import notify_users_new_package
+
+        notify_users_new_package(test_package)
+        db.session.commit()
+
+        notif = InquiryNotification.query.filter_by(user_id=test_user.id).first()
+        assert notif is not None
+        assert test_package.title in notif.message
+        assert notif.inquiry_id is None
+        assert notif.link_url == f"/packages/{test_package.id}"
+
+    def test_notify_users_new_visa_notifies_every_non_admin(self, app, test_user, admin_user):
+        from app import db
+        from notification_service import notify_users_new_visa
+        from models.visa import VisaCountry
+
+        visa = VisaCountry(country_name="Japan", is_active=True)
+        db.session.add(visa)
+        db.session.commit()
+
+        notify_users_new_visa(visa)
+        db.session.commit()
+
+        notified_user_ids = {n.user_id for n in InquiryNotification.query.all()}
+        assert notified_user_ids == {test_user.id}
+        assert admin_user.id not in notified_user_ids
+
+    def test_notify_users_new_visa_sets_message_and_link(self, app, test_user):
+        from app import db
+        from notification_service import notify_users_new_visa
+        from models.visa import VisaCountry
+
+        visa = VisaCountry(country_name="Japan", is_active=True)
+        db.session.add(visa)
+        db.session.commit()
+
+        notify_users_new_visa(visa)
+        db.session.commit()
+
+        notif = InquiryNotification.query.filter_by(user_id=test_user.id).first()
+        assert notif is not None
+        assert "Japan" in notif.message
+        assert notif.link_url == "/packages/visa"
+
+
+class TestNewContentNotificationRoutes:
+    """Test that adding a package or visa entry through the real admin
+    routes broadcasts an in-app notification to every non-admin user."""
+
+    def test_add_package_notifies_registered_users_not_admin(self, admin_client, test_user, admin_user):
+        response = admin_client.post(
+            "/admin/packages/add",
+            data=dict(
+                title="Palawan Adventure",
+                description="Explore beautiful Palawan islands.",
+                destination="Palawan",
+                duration_days="5",
+                price="9999",
+                currency="PHP",
+            ),
+            follow_redirects=False,
+        )
+        assert response.status_code == 302
+
+        user_notif = InquiryNotification.query.filter_by(user_id=test_user.id).first()
+        assert user_notif is not None
+        assert "Palawan Adventure" in user_notif.message
+
+        admin_notif = InquiryNotification.query.filter_by(user_id=admin_user.id).first()
+        assert admin_notif is None
+
+    def test_add_visa_notifies_registered_users_not_admin(self, admin_client, test_user, admin_user):
+        response = admin_client.post(
+            "/admin/visa/add", data={"country_name": "Japan", "is_active": "on"}, follow_redirects=False
+        )
+        assert response.status_code == 302
+
+        user_notif = InquiryNotification.query.filter_by(user_id=test_user.id).first()
+        assert user_notif is not None
+        assert "Japan" in user_notif.message
+
+        admin_notif = InquiryNotification.query.filter_by(user_id=admin_user.id).first()
+        assert admin_notif is None
+
 
 class TestInquiryCreationNotifications:
     """Test that submitting an inquiry through the real routes creates the right notifications."""
@@ -353,3 +462,23 @@ class TestNotificationContextProcessor:
         assert response.status_code == 200
         page = response.get_data(as_text=True)
         assert 'class="notif-badge"' not in page
+
+    def test_link_url_notification_links_to_link_url_not_admin_fallback(self, app, authenticated_client, test_user):
+        """A system-wide, non-inquiry notification with link_url set (e.g.
+        new package announcement) should link there — not fall through to
+        the admin inquiries page, which a regular user can't even access."""
+        from app import db
+
+        notif = InquiryNotification(
+            user_id=test_user.id,
+            inquiry_id=None,
+            message="New tour package added: Palawan Adventure — check it out!",
+            link_url="/packages/1",
+        )
+        db.session.add(notif)
+        db.session.commit()
+
+        response = authenticated_client.get("/")
+        page = response.get_data(as_text=True)
+        assert 'href="/packages/1"' in page
+        assert "New tour package added" in page
