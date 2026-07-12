@@ -340,51 +340,6 @@
       margin-bottom: .6rem;
     }
 
-    .mobile-region-chips {
-      display: flex;
-      gap: .5rem;
-      overflow-x: auto;
-      padding-bottom: .4rem;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .mobile-chip {
-      flex: 0 0 auto;
-      border: 1px solid var(--linen);
-      background: #fff;
-      color: var(--bark);
-      font-size: .8rem;
-      font-weight: 600;
-      padding: .5rem 1rem;
-      border-radius: 999px;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .mobile-chip.active { background: var(--amber); color: #fff; border-color: var(--amber); }
-
-    .mobile-country-grid {
-      display: none;
-      grid-template-columns: 1fr 1fr;
-      gap: .5rem;
-      margin-top: .75rem;
-    }
-
-    .mobile-country-grid.open { display: grid; }
-
-    .mobile-country-chip {
-      border: 1px solid var(--linen);
-      background: #fff;
-      color: var(--bark);
-      font-size: .8rem;
-      padding: .55rem .6rem;
-      border-radius: 10px;
-      cursor: pointer;
-      text-align: left;
-    }
-
-    .mobile-country-chip.active { background: var(--teal); color: #fff; border-color: var(--teal); }
-
     .mobile-sheet-footer {
       display: flex;
       gap: .6rem;
@@ -951,29 +906,29 @@
           </div>
           {% if continents %}
           <div class="mobile-region-label">Region</div>
-          <div class="mobile-region-chips">
-            <button type="button" class="mobile-chip {% if not active_continent %}active{% endif %}"
-              data-continent-id="" data-label="">🌐 All</button>
+          <select id="mobileContinentSelect" class="form-control" style="margin-bottom:.6rem;">
+            <option value="" data-label="">🌐 All continents</option>
             {% for continent in continents %}
-            <button type="button" class="mobile-chip {% if active_continent and active_continent.id == continent.id %}active{% endif %}"
-              data-continent-id="{{ continent.id }}" data-label="{{ continent.name }}">
+            <option value="{{ continent.id }}" data-label="{{ continent.name }}"
+              {% if active_continent and active_continent.id == continent.id %}selected{% endif %}>
               {{ continent.flag_emoji or '' }} {{ continent.name }}
-            </button>
+            </option>
             {% endfor %}
-          </div>
-          {% for continent in continents %}
-          <div class="mobile-country-grid {% if active_continent and active_continent.id == continent.id %}open{% endif %}"
-            data-continent-panel="{{ continent.id }}">
-            {% for country in continent.countries %}
-            {% if country.is_active %}
-            <button type="button" class="mobile-country-chip {% if active_country and active_country.id == country.id %}active{% endif %}"
-              data-country-id="{{ country.id }}" data-label="{{ continent.name }} → {{ country.name }}">
-              {{ country.flag_emoji or '' }} {{ country.name }}
-            </button>
-            {% endif %}
-            {% endfor %}
-          </div>
-          {% endfor %}
+          </select>
+          <select id="mobileCountrySelect" class="form-control">
+            <option value="">All countries</option>
+          </select>
+          <script nonce="{{ csp_nonce() }}">
+            var continentCountries = {
+              {% for continent in continents %}
+              "{{ continent.id }}": [
+                {% for country in continent.countries | selectattr('is_active') | list %}
+                { id: {{ country.id }}, label: {{ (((country.flag_emoji ~ ' ') if country.flag_emoji else '') ~ country.name) | tojson }} }{{ "," if not loop.last }}
+                {% endfor %}
+              ]{{ "," if not loop.last }}
+              {% endfor %}
+            };
+          </script>
           {% endif %}
         </div>
         <div class="mobile-sheet-footer">
@@ -1327,10 +1282,10 @@
     const clearBtn = document.getElementById('mobileClearBtn');
     const applyBtn = document.getElementById('mobileApplyBtn');
     const sheetInput = document.getElementById('filter-destination-mobile');
+    const continentSelect = document.getElementById('mobileContinentSelect');
+    const countrySelect = document.getElementById('mobileCountrySelect');
     if (!trigger || !overlay) return;
 
-    let mobileContinentId = "{{ active_continent.id if active_continent else '' }}";
-    let mobileCountryId = "{{ active_country.id if active_country else '' }}";
     let mobilePackageType = "{{ package_type or '' }}";
 
     function openSheet() { overlay.classList.add('open'); }
@@ -1348,51 +1303,55 @@
       });
     });
 
-    document.querySelectorAll('.mobile-chip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        document.querySelectorAll('.mobile-chip').forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        mobileContinentId = chip.dataset.continentId;
-        mobileCountryId = '';
-        document.querySelectorAll('.mobile-country-grid').forEach(panel => {
-          panel.classList.toggle('open', panel.dataset.continentPanel === mobileContinentId);
-          panel.querySelectorAll('.mobile-country-chip').forEach(c => c.classList.remove('active'));
-        });
+    // Rebuilds the country dropdown's options from continentCountries
+    // (embedded server-side, see the <script> right after the continent
+    // select) whenever the continent changes. Disabled + reset to "All
+    // countries" when no continent is chosen, since there's nothing to
+    // cascade from.
+    function populateCountrySelect(continentId, preselectCountryId) {
+      if (!countrySelect) return;
+      countrySelect.innerHTML = '<option value="">All countries</option>';
+      const list = (continentId && window.continentCountries) ? (continentCountries[continentId] || []) : [];
+      list.forEach(function (c) {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.label;
+        if (preselectCountryId && String(c.id) === String(preselectCountryId)) opt.selected = true;
+        countrySelect.appendChild(opt);
       });
-    });
+      countrySelect.disabled = !continentId;
+    }
 
-    document.querySelectorAll('.mobile-country-chip').forEach(cc => {
-      cc.addEventListener('click', () => {
-        cc.closest('.mobile-country-grid').querySelectorAll('.mobile-country-chip').forEach(c => c.classList.remove('active'));
-        cc.classList.add('active');
-        mobileCountryId = cc.dataset.countryId;
+    if (continentSelect) {
+      populateCountrySelect(continentSelect.value, "{{ active_country.id if active_country else '' }}");
+
+      continentSelect.addEventListener('change', () => {
+        populateCountrySelect(continentSelect.value);
       });
-    });
+    }
 
     clearBtn.addEventListener('click', () => {
-      mobileContinentId = '';
-      mobileCountryId = '';
       mobilePackageType = '';
       sheetInput.value = '';
-      document.querySelectorAll('.mobile-chip').forEach(c => c.classList.remove('active'));
-      document.querySelector('.mobile-chip[data-continent-id=""]').classList.add('active');
-      document.querySelectorAll('.mobile-country-grid').forEach(panel => {
-        panel.classList.remove('open');
-        panel.querySelectorAll('.mobile-country-chip').forEach(c => c.classList.remove('active'));
-      });
+      if (continentSelect) continentSelect.value = '';
+      populateCountrySelect('');
       document.querySelectorAll('.mobile-seg').forEach(s => s.classList.remove('active'));
       document.querySelector('.mobile-seg[data-type=""]').classList.add('active');
     });
 
     applyBtn.addEventListener('click', () => {
       const destination = sheetInput.value.trim();
-      const activeCountryChip = document.querySelector('.mobile-country-chip.active');
-      const activeChip = document.querySelector('.mobile-chip.active');
-      const label = activeCountryChip ? activeCountryChip.dataset.label : (activeChip ? activeChip.dataset.label : '');
+      const continentId = continentSelect ? continentSelect.value : '';
+      const countryId = countrySelect ? countrySelect.value : '';
+      const continentOpt = continentSelect ? continentSelect.selectedOptions[0] : null;
+      const continentLabel = continentOpt ? (continentOpt.dataset.label || '') : '';
+      const countryOpt = countrySelect ? countrySelect.selectedOptions[0] : null;
+      const countryLabel = (countryId && countryOpt) ? countryOpt.textContent.trim() : '';
+      const label = countryId ? (continentLabel + ' \u2192 ' + countryLabel) : continentLabel;
 
       const params = new URLSearchParams();
-      if (mobileContinentId) params.set('continent_id', mobileContinentId);
-      if (mobileCountryId) params.set('country_id', mobileCountryId);
+      if (continentId) params.set('continent_id', continentId);
+      if (countryId) params.set('country_id', countryId);
       if (destination) params.set('destination', destination);
       if (mobilePackageType) params.set('package_type', mobilePackageType);
       const url = `{{ url_for('packages.list_packages') }}?${params.toString()}`;
@@ -1417,7 +1376,7 @@
           resultsInfo.innerHTML = info;
 
           // keep the desktop toolbar's own state in sync in case the viewport is resized
-          activeCountryId = mobileCountryId;
+          activeCountryId = countryId;
           activeDestination = destination;
           activePackageType = mobilePackageType;
           filterInput.value = destination;

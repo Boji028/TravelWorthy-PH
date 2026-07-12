@@ -63,6 +63,10 @@
     margin-bottom: .75rem;
   }
 
+  .visa-region-filter-select {
+    display: none;
+  }
+
   @media (max-width: 768px) {
     .visa-modal-header {
       padding: 1.25rem 1.25rem;
@@ -78,6 +82,14 @@
 
     .visa-form-row {
       grid-template-columns: 1fr;
+    }
+
+    .visa-region-filter-row {
+      display: none;
+    }
+
+    .visa-region-filter-select {
+      display: block;
     }
   }
   /* ── ANIMATIONS ── */
@@ -130,11 +142,19 @@
 <!-- REGION FILTER BAR -->
 {% set regions = countries | map(attribute='region') | select | unique | sort | list %}
 {% if regions %}
-<div style="background:var(--white);border-bottom:1px solid var(--linen);padding:.75rem 2rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+<div class="visa-region-filter-row" style="background:var(--white);border-bottom:1px solid var(--linen);padding:.75rem 2rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
   <button class="filter-btn active" onclick="filterVisa('all', this)">All</button>
   {% for region in regions %}
   <button class="filter-btn" onclick="filterVisa('{{ region }}', this)">{{ region }}</button>
   {% endfor %}
+</div>
+<div class="visa-region-filter-select" style="background:var(--white);border-bottom:1px solid var(--linen);padding:.75rem 2rem;">
+  <select class="form-control" onchange="filterVisa(this.value)" style="width:100%;">
+    <option value="all">All regions</option>
+    {% for region in regions %}
+    <option value="{{ region }}">{{ region }}</option>
+    {% endfor %}
+  </select>
 </div>
 {% endif %}
 
@@ -331,6 +351,17 @@
       var searchMatch = q === '' || name.indexOf(q) !== -1;
       if (regionMatch && searchMatch) {
         card.style.display = '';
+        // Replay the rise-in animation instead of just snapping into view —
+        // it already finished once on page load (animation-fill-mode:
+        // forwards locks it at opacity:1), so re-setting the property alone
+        // won't restart it. Clearing it, forcing a reflow, then reapplying
+        // does. Stagger mirrors the same (index % 12) * 0.05s formula used
+        // server-side on first render, just recomputed against the new
+        // visible order.
+        card.style.animation = 'none';
+        void card.offsetHeight;
+        card.style.animation = 'visaCardRise .6s ease forwards';
+        card.style.animationDelay = ((visible % 12) * 0.05) + 's';
         visible++;
       } else {
         card.style.display = 'none';
@@ -344,7 +375,7 @@
 
   function filterVisa(region, btn) {
     document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
-    btn.classList.add('active');
+    if (btn) { btn.classList.add('active'); }
     activeRegion = region;
     updateCards();
   }
