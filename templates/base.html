@@ -70,7 +70,7 @@
           <a href="#" class="dropdown-toggle notif-bell" id="notifBell" aria-label="Notifications">
             <i class="fas fa-bell"></i>
             {% if unread_notification_count and unread_notification_count > 0 %}
-            <span class="notif-badge">{{ unread_notification_count if unread_notification_count <= 9 else '9+' }}</span>
+            <span class="notif-badge">{{ unread_notification_count if unread_notification_count <= 8 else '9+' }}</span>
             {% endif %}
           </a>
           <ul class="dropdown-menu notif-menu" id="notifMenu">
@@ -82,8 +82,10 @@
                 <a href="{{ n.link_url }}" data-mark-read-url="{{ url_for('main.mark_notification_read', notification_id=n.id) }}">
                 {% elif n.inquiry and n.inquiry.user_id == current_user.id %}
                 <a href="{{ url_for('main.track_inquiry', reference_number=n.inquiry.reference_number) }}" data-mark-read-url="{{ url_for('main.mark_notification_read', notification_id=n.id) }}">
-                {% else %}
+                {% elif current_user.is_admin %}
                 <a href="{{ url_for('admin.inquiries') }}" data-mark-read-url="{{ url_for('main.mark_notification_read', notification_id=n.id) }}">
+                {% else %}
+                <a href="{{ url_for('main.my_inquiries') }}" data-mark-read-url="{{ url_for('main.mark_notification_read', notification_id=n.id) }}">
                 {% endif %}
                   <span class="notif-icon"><i class="fas fa-paper-plane"></i></span>
                   <span class="notif-body">
@@ -131,7 +133,7 @@
         <a href="{{ url_for('main.my_inquiries') if not current_user.is_admin else url_for('admin.inquiries') }}" class="mm-bell" aria-label="Notifications">
           <i class="fas fa-bell"></i>
           {% if unread_notification_count and unread_notification_count > 0 %}
-          <span class="mm-badge">{{ unread_notification_count if unread_notification_count <= 9 else '9+' }}</span>
+          <span class="mm-badge">{{ unread_notification_count if unread_notification_count <= 8 else '9+' }}</span>
           {% endif %}
         </a>
       </div>

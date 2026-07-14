@@ -482,3 +482,28 @@ class TestNotificationContextProcessor:
         page = response.get_data(as_text=True)
         assert 'href="/packages/1"' in page
         assert "New tour package added" in page
+
+    def test_non_admin_notification_with_no_link_and_no_inquiry_never_links_to_admin_page(
+        self, app, authenticated_client, test_user
+    ):
+        """No current code path creates a notification with both
+        inquiry_id and link_url unset for a non-admin user — every
+        producer sets one or the other. But nothing in the model enforces
+        that, so this is a defensive test: if that combination ever did
+        occur (a future bug), a regular user must never be routed to
+        /admin/inquiries, which they don't have permission to view."""
+        from app import db
+
+        notif = InquiryNotification(
+            user_id=test_user.id,
+            inquiry_id=None,
+            message="Some hypothetical system notification",
+            link_url=None,
+        )
+        db.session.add(notif)
+        db.session.commit()
+
+        response = authenticated_client.get("/")
+        page = response.get_data(as_text=True)
+        assert "/admin/inquiries" not in page
+        assert 'href="/my-inquiries"' in page

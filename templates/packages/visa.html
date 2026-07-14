@@ -475,7 +475,9 @@
       body: formData
     })
     .then(function(r) {
-      if (r.ok || r.redirected) {
+      // Success is the redirect to the tracking page - a plain 200 means the
+      // form was re-rendered with validation errors (still status 200).
+      if (r.redirected) {
         msgEl.style.display = 'block';
         msgEl.style.background = '#d4edda';
         msgEl.style.color = '#155724';
@@ -487,14 +489,16 @@
         });
         setTimeout(closeAssistantForm, 2500);
       } else {
-        throw new Error('Server error');
+        throw new Error(r.ok ? 'validation' : 'server');
       }
     })
-    .catch(function() {
+    .catch(function(err) {
       msgEl.style.display = 'block';
       msgEl.style.background = '#fde8e8';
       msgEl.style.color = 'var(--danger)';
-      msgEl.textContent = 'Something went wrong. Please try again.';
+      msgEl.textContent = err && err.message === 'validation'
+        ? 'Please double-check your details (full name and a valid email) and try again.'
+        : 'Something went wrong. Please try again.';
       btn.disabled = false;
       btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Message';
     });

@@ -188,6 +188,20 @@ class TestPasswordResetRoutes:
         assert response.status_code == 200
         assert b"If an account" in response.data
 
+    def test_forgot_password_does_not_crash_with_no_email_and_no_remote_addr(self, client):
+        """Regression test: the rate-limit key_func used to do
+        request.form.get("email", request.remote_addr).lower() with no
+        None guard. A request with no 'email' form field AND no
+        remote_addr (both fall through to the lambda's default) used to
+        crash with an uncaught AttributeError — a 500 — before the view
+        even ran, rather than reaching the route's own validation."""
+        response = client.post(
+            "/auth/forgot-password",
+            data={},
+            environ_overrides={"REMOTE_ADDR": None},
+        )
+        assert response.status_code != 500
+
     def test_reset_password_get_with_valid_token_renders_form(self, client, test_user, app):
         """Test the reset password page renders for a valid token."""
         token_obj = PasswordResetToken.generate_token(test_user.id)

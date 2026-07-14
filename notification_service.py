@@ -6,6 +6,7 @@ are skipped entirely for guest inquiries (inquiry.user_id is None) since
 there's no account to attach them to. Admin notifications always fire
 regardless of whether the inquirer is logged in or a guest.
 """
+from datetime import datetime, timezone
 from app import db
 from models.inquiry_notification import InquiryNotification
 
@@ -91,16 +92,37 @@ def notify_users_new_package(package) -> None:
     the package's own detail page rather than falling back to the
     template's default inquiry-id-based routing, which would otherwise
     send a regular user to the admin inquiries list.
+
+    Uses a single bulk INSERT rather than one InquiryNotification object
+    + session.add() per user: fine either way at hundreds of users, but
+    the per-row version means one ORM object and one pending INSERT per
+    user in the session, which turns into a slow admin request once the
+    user base reaches the thousands. A bulk insert stays a single
+    statement regardless of how many users there are.
     """
     from flask import url_for
+    from sqlalchemy import insert
     from models.user import User
 
-    users = User.query.filter_by(is_admin=False).all()
+    user_ids = [row[0] for row in db.session.query(User.id).filter_by(is_admin=False).all()]
+    if not user_ids:
+        return
+
     message = f"New tour package added: {package.title} — check it out!"
     link_url = url_for("packages.package_detail", package_id=package.id)
-    for user in users:
-        notif = InquiryNotification(user_id=user.id, inquiry_id=None, message=message, link_url=link_url)
-        db.session.add(notif)
+    now = datetime.now(timezone.utc)
+    rows = [
+        {
+            "user_id": user_id,
+            "inquiry_id": None,
+            "message": message,
+            "link_url": link_url,
+            "is_read": False,
+            "created_at": now,
+        }
+        for user_id in user_ids
+    ]
+    db.session.execute(insert(InquiryNotification), rows)
 
 
 def notify_users_new_visa(visa) -> None:
@@ -111,13 +133,30 @@ def notify_users_new_visa(visa) -> None:
     excluded since they're the ones adding the visa entry. Links to the
     public visa list rather than a specific requirements page, since
     that's the natural landing spot for "a new country was added".
+
+    Bulk INSERT for the same reason as notify_users_new_package — see
+    that docstring.
     """
     from flask import url_for
+    from sqlalchemy import insert
     from models.user import User
 
-    users = User.query.filter_by(is_admin=False).all()
+    user_ids = [row[0] for row in db.session.query(User.id).filter_by(is_admin=False).all()]
+    if not user_ids:
+        return
+
     message = f"New visa info added: {visa.country_name} — check it out!"
     link_url = url_for("packages.visa")
-    for user in users:
-        notif = InquiryNotification(user_id=user.id, inquiry_id=None, message=message, link_url=link_url)
-        db.session.add(notif)
+    now = datetime.now(timezone.utc)
+    rows = [
+        {
+            "user_id": user_id,
+            "inquiry_id": None,
+            "message": message,
+            "link_url": link_url,
+            "is_read": False,
+            "created_at": now,
+        }
+        for user_id in user_ids
+    ]
+    db.session.execute(insert(InquiryNotification), rows)

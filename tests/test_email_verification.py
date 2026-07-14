@@ -342,3 +342,15 @@ class TestEmailVerificationRoutes:
         assert response.status_code == 200
         # Should show success message (security: don't reveal if email exists)
         assert b"sent" in response.data.lower() or b"email" in response.data.lower()
+
+    def test_resend_verification_does_not_crash_with_no_email_and_no_remote_addr(self, client):
+        """Regression test — same rate-limit key_func bug as
+        forgot-password (see test_password_reset.py), same route
+        decorator pattern. A GET here also exercises the key_func since
+        the limiter applies to the whole route, not just POST."""
+        response = client.get(
+            "/auth/resend-verification",
+            environ_overrides={"REMOTE_ADDR": None},
+        )
+        assert response.status_code != 500
+

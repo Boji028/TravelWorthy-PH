@@ -305,7 +305,7 @@ def verify_email(token):
 
 
 @auth_bp.route("/resend-verification", methods=["GET", "POST"])
-@limiter.limit("5 per hour", key_func=lambda: request.form.get("email", request.remote_addr).lower())
+@limiter.limit("5 per hour", key_func=lambda: (request.form.get("email", request.remote_addr) or "unknown").lower())
 def resend_verification():
     """Resend verification email to user."""
     if request.method == "POST":
@@ -325,7 +325,7 @@ def resend_verification():
     return render_template("auth/resend_verification.html", email=email)
 
 @auth_bp.route("/forgot-password", methods=["GET", "POST"])
-@limiter.limit("5 per hour", key_func=lambda: request.form.get("email", request.remote_addr).lower())
+@limiter.limit("5 per hour", key_func=lambda: (request.form.get("email", request.remote_addr) or "unknown").lower())
 def forgot_password():
     """Request a password reset link by email."""
     if current_user.is_authenticated:

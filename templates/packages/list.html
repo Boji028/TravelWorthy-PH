@@ -187,13 +187,15 @@
 
     .filter-inner { flex-wrap: nowrap; gap: .5rem; }
 
-    /* the desktop tabs/pills/apply/clear/breadcrumb live inside the sheet on mobile instead */
+    /* the desktop tabs/pills/apply/clear/breadcrumb live inside the sheet on mobile instead.
+       !important: btn-clear gets an inline display from the filter JS and the
+       pill's .visible rule is more specific - both would otherwise win here. */
     .country-tabs-inner,
     .filter-inner .type-pills,
     .filter-label,
     #btn-apply,
     #btn-clear,
-    .active-filter-pill { display: none; }
+    .active-filter-pill { display: none !important; }
 
     .filter-search { max-width: none; min-width: 0; flex: 1; }
 
@@ -908,7 +910,7 @@
           <div class="mobile-region-label">Region</div>
           <div class="cselect" id="mobileContinentCSelect" style="margin-bottom:.6rem;">
             <button type="button" class="cselect-trigger">
-              <span class="cselect-label">All continents</span>
+              <span class="cselect-label">{% if active_continent %}{{ active_continent.flag_emoji or '' }} {{ active_continent.name }}{% else %}🌐 All continents{% endif %}</span>
               <i class="fas fa-chevron-down cselect-chevron"></i>
             </button>
             <div class="cselect-list">

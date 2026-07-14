@@ -3,6 +3,42 @@
 Reverse-chronological log of working sessions. One entry per session,
 newest first. Details for each fix live in their own kebab-case doc.
 
+## 2026-07-14 — Pre-deploy bug-hunt and production-readiness pass
+
+Baseline: 539 passed; final: 539 passed. Re-swept the two bug classes
+from the 07-12 pass, reviewed the new user-notification feature, and ran
+the production-readiness checklist ahead of this week's deploy. Fixes
+(each has its own doc):
+
+- packages-mobile-filter-hide-specificity.md — mobile media query's
+  display:none on #btn-clear / .active-filter-pill lost to an inline
+  style and a higher-specificity .visible rule; desktop controls leaked
+  into the mobile toolbar.
+- notification-badge-nine-plus-unreachable.md — badge count is capped at
+  9 by inject_notifications, so the template's '9+' branch never fired;
+  20 unread showed as an exact-looking "9".
+- visa-form-false-success-on-validation-failure.md — visa assistant
+  modal treated plan_my_trip's 200 re-render (validation failure) as
+  success; users saw "request sent" with nothing saved.
+- mobile-sheet-continent-label-stale.md — mobile sheet's continent
+  dropdown label hardcoded "All continents" even when a continent filter
+  was active on page load.
+
+Checked and clean: script-load-order class (initCustomSelect calls all
+deferred behind DOMContentLoaded; packages.js only loaded where its DOM
+exists), notification try/except isolation in add_package/visa_add
+(creation commits before notifications, failures roll back and log),
+link_url vs inquiry-based notification rendering (no collision), debug-
+flag behavior (config only; 404/500/429 handlers present), no hardcoded
+localhost/http URLs, SITE_URL consumed defensively everywhere, exactly
+one migration head (bbb3d2515fa7), flake8/mypy/pylint (no real bugs).
+
+Flagged, not fixed: per-user notification INSERT loop scales linearly
+with the user table; Flask-Limiter uses in-memory storage (per-worker
+limits under gunicorn); Dockerfile workers=4 and python:3.11 base both
+pending the Render tier decision; bandit still broken against the
+Python 3.14 venv (skipped by agreement).
+
 ## 2026-07-12 — Full bug-hunt, fix, and test pass
 
 Baseline: 537 passed. Swept the whole app for two known bug classes plus
