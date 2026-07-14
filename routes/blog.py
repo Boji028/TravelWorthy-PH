@@ -19,7 +19,9 @@ def blog_list():
         db.session.query(BlogPost.category).filter(BlogPost.category != None, BlogPost.is_published == True).distinct().all()
     )
     categories = [c[0] for c in categories if c[0]]
-    return render_template("blog/list.html", posts=posts.items, categories=categories, active_category=category)
+    return render_template(
+        "blog/list.html", posts=posts.items, pagination=posts, categories=categories, active_category=category
+    )
 
 
 @blog_bp.route("/<int:post_id>")

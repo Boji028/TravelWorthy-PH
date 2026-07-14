@@ -18,7 +18,9 @@ class PasswordResetToken(db.Model):
     used_at: Optional[datetime] = db.Column(db.DateTime, nullable=True)
     is_used: bool = db.Column(db.Boolean, default=False, index=True)
 
-    user = db.relationship("User", backref="password_reset_tokens")
+    # cascade required: user_id is NOT NULL, so deleting a User would otherwise
+    # try to null this FK and crash with IntegrityError (see test_cascade_deletes).
+    user = db.relationship("User", backref=db.backref("password_reset_tokens", cascade="all, delete-orphan"))
 
     def __repr__(self) -> str:
         return f"<PasswordResetToken user_id={self.user_id}>"

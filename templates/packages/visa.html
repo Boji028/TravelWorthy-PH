@@ -85,7 +85,7 @@
     }
 
     .visa-region-filter-row {
-      display: none;
+      display: none !important;
     }
 
     .visa-region-filter-select {
@@ -127,7 +127,7 @@
     <h1 style="font-family:'Pogonia',serif;font-size:2.75rem;font-weight:300;line-height:1.2;margin-bottom:.75rem;">
       <span class="visa-word" style="animation-delay:.15s">Travel</span> <span class="visa-word" style="animation-delay:.24s">the</span> <span class="visa-word" style="animation-delay:.33s">world,</span><br><span class="visa-word" style="animation-delay:.46s;font-weight:700;color:var(--teal-d);">paperwork-free.</span>
     </h1>
-    <p class="visa-fade" style="animation-delay:.32s;opacity:.6;font-size:.95rem;margin-bottom:2rem;max-width:420px;margin-left:auto;margin-right:auto;">
+    <p class="visa-fade" style="animation-delay:.32s;font-size:.95rem;margin-bottom:2rem;max-width:420px;margin-left:auto;margin-right:auto;">
       Expert visa guidance for 40+ countries. We handle the complexity so you can focus on the journey.
     </p>
     <div class="visa-rise" style="animation-delay:.46s;background:white;border-radius:var(--radius-lg);padding:.75rem 1.25rem;display:flex;gap:.75rem;align-items:center;max-width:480px;margin:0 auto 2rem;">
@@ -149,12 +149,18 @@
   {% endfor %}
 </div>
 <div class="visa-region-filter-select" style="background:var(--white);border-bottom:1px solid var(--linen);padding:.75rem 2rem;">
-  <select class="form-control" onchange="filterVisa(this.value)" style="width:100%;">
-    <option value="all">All regions</option>
-    {% for region in regions %}
-    <option value="{{ region }}">{{ region }}</option>
-    {% endfor %}
-  </select>
+  <div class="cselect" id="visaRegionCSelect">
+    <button type="button" class="cselect-trigger">
+      <span class="cselect-label">All regions</span>
+      <i class="fas fa-chevron-down cselect-chevron"></i>
+    </button>
+    <div class="cselect-list">
+      <div class="cselect-option selected" data-value="all" data-label="All regions">All regions<i class="fas fa-check"></i></div>
+      {% for region in regions %}
+      <div class="cselect-option" data-value="{{ region }}" data-label="{{ region }}">{{ region }}</div>
+      {% endfor %}
+    </div>
+  </div>
 </div>
 {% endif %}
 
@@ -379,6 +385,15 @@
     activeRegion = region;
     updateCards();
   }
+
+  var visaRegionCSelectEl = document.getElementById('visaRegionCSelect');
+  document.addEventListener('DOMContentLoaded', function () {
+    if (visaRegionCSelectEl) {
+      initCustomSelect(visaRegionCSelectEl, function (value) {
+        filterVisa(value);
+      });
+    }
+  });
 
   // ── PDF Viewer ──
   function openPdfViewer(filename, countryName) {

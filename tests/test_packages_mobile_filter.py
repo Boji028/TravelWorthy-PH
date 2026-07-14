@@ -1,11 +1,13 @@
 """Tests for the mobile filter sheet markup on the packages list page.
 
 The sheet replaced an inline-expanding filter bar that looked cluttered on
-small screens. Region and country selection are two cascading <select>
-dropdowns: picking a continent repopulates the country dropdown client-side
-from a continentCountries JS object embedded in the page (so switching
-regions doesn't require another request), rather than pre-rendering one
-chip grid per continent server-side.
+small screens. Region and country selection are two cascading custom
+dropdowns (.cselect, see static/js/main.js initCustomSelect() and
+static/css/main.css) rather than native <select> elements, since native
+select option lists render OS-native and can't be themed. Picking a
+continent repopulates the country dropdown client-side from a
+continentCountries JS object embedded in the page, so switching regions
+doesn't require another request.
 """
 from models.package import TourPackage
 from models.continent import Continent
@@ -59,9 +61,9 @@ class TestMobileFilterSheet:
         assert response.status_code == 200
         page = response.get_data(as_text=True)
         assert 'id="mobileSheetOverlay"' in page
-        assert 'id="mobileContinentSelect"' in page
-        assert 'id="mobileCountrySelect"' in page
-        assert '<option value="" data-label="">' in page
+        assert 'id="mobileContinentCSelect"' in page
+        assert 'id="mobileCountryCSelect"' in page
+        assert 'data-value="" data-label="🌐 All continents"' in page
 
     def test_active_continent_is_marked_selected_in_dropdown(self, app, client):
         from app import db
@@ -73,12 +75,15 @@ class TestMobileFilterSheet:
         response = client.get(f"/packages/?continent_id={oceania.id}&country_id={australia.id}")
         page = response.get_data(as_text=True)
 
-        assert f'value="{oceania.id}" data-label="Oceania"' in page
-        assert "selected" in page.split(f'value="{oceania.id}" data-label="Oceania"')[1].split(">")[0]
+        assert f'data-value="{oceania.id}" data-label="🌐 Oceania"' in page or f'data-value="{oceania.id}" data-label=" Oceania"' in page
+        # The active continent's option carries the selected class
+        opt_start = page.find(f'data-value="{oceania.id}"')
+        opt_snippet = page[max(0, opt_start - 100):opt_start]
+        assert "selected" in opt_snippet
         # The active country's id is threaded into the client-side
         # populateCountrySelect() call so it can be preselected once the
         # country dropdown is populated on load.
-        assert f'populateCountrySelect(continentSelect.value, "{australia.id}")' in page
+        assert f'populateCountrySelect(continentSelect.getValue(), "{australia.id}")' in page
 
     def test_every_continent_gets_an_entry_in_the_country_data(self, app, client):
         """Every continent's active countries are embedded in the

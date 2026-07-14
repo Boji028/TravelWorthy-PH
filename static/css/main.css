@@ -611,6 +611,105 @@ textarea.form-control {
     min-height: 100px;
 }
 
+/* ── Custom dropdown ──
+   A styled replacement for <select> where the OPEN list needs to be
+   themeable (native select option lists are OS-rendered and can't be
+   styled). See static/js/main.js: initCustomSelect(). */
+.cselect {
+    position: relative;
+}
+
+.cselect-trigger {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: .5rem;
+    padding: .7rem 1rem;
+    border: 1.5px solid var(--linen);
+    border-radius: var(--radius);
+    background: var(--white);
+    color: var(--bark);
+    font-family: 'Pogonia', sans-serif;
+    font-size: .92rem;
+    cursor: pointer;
+    transition: border-color .18s;
+}
+
+.cselect.open .cselect-trigger {
+    border-color: var(--teal);
+}
+
+.cselect-chevron {
+    font-size: .78rem;
+    color: var(--teal);
+    transition: transform .18s ease;
+    flex-shrink: 0;
+}
+
+.cselect.open .cselect-chevron {
+    transform: rotate(180deg);
+}
+
+.cselect-list {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: var(--white);
+    border: 1.5px solid var(--teal);
+    border-radius: var(--radius);
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transition: max-height .2s ease, opacity .15s ease;
+    z-index: 30;
+}
+
+.cselect.open .cselect-list {
+    max-height: 280px;
+    opacity: 1;
+    overflow-y: auto;
+    pointer-events: auto;
+}
+
+.cselect-option {
+    padding: .6rem 1rem;
+    font-size: .88rem;
+    color: var(--bark);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--linen);
+}
+
+.cselect-option:first-child {
+    border-top: none;
+}
+
+.cselect-option:hover {
+    background: var(--linen);
+}
+
+.cselect-option.selected {
+    background: rgba(23, 89, 104, .08);
+    color: var(--teal);
+    font-weight: 600;
+}
+
+.cselect-option i {
+    font-size: .78rem;
+    color: var(--teal);
+}
+
+.cselect.cselect-disabled .cselect-trigger {
+    opacity: .5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 select.form-control {
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238fa8a3' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");

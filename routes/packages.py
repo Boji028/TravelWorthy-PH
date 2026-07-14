@@ -87,7 +87,12 @@ def package_detail(package_id: int) -> str:
     from flask_login import current_user
 
     package = TourPackage.query.filter_by(id=package_id, is_active=True).first_or_404()
-    reviews = PackageReview.query.filter_by(package_id=package_id).order_by(PackageReview.created_at.desc()).all()
+    reviews = (
+        PackageReview.query.options(selectinload(PackageReview.user))
+        .filter_by(package_id=package_id)
+        .order_by(PackageReview.created_at.desc())
+        .all()
+    )
     avg_result = db.session.query(func.avg(PackageReview.rating)).filter_by(package_id=package_id).scalar()
     avg_rating = round(float(avg_result), 1) if avg_result else None
     user_review = None

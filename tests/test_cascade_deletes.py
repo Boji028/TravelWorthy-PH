@@ -215,3 +215,39 @@ class TestUserDeleteWithPackageReviews:
         assert response.status_code == 302
         assert db.session.get(User, user_id) is None
         assert PackageReview.query.filter_by(user_id=user_id).count() == 0
+
+
+class TestUserDeleteWithAuthTokens:
+    """Same NOT NULL FK + no-cascade gap on the two auth token tables.
+    PasswordResetToken was a live landmine: delete_user manually cleaned up
+    EmailVerificationToken and InquiryNotification rows but never
+    PasswordResetToken, so deleting any user who had ever requested a
+    password reset raised IntegrityError -> 500."""
+
+    def test_delete_user_with_password_reset_token_does_not_500(self, app, admin_client):
+        from app import db
+        from models.password_reset import PasswordResetToken
+
+        user = _make_reviewer(db, email="forgotpass@example.com")
+        user_id = user.id
+        db.session.add(PasswordResetToken.generate_token(user_id))
+        db.session.commit()
+
+        response = admin_client.post(f"/admin/users/delete/{user_id}")
+        assert response.status_code == 302
+        assert db.session.get(User, user_id) is None
+        assert PasswordResetToken.query.filter_by(user_id=user_id).count() == 0
+
+    def test_delete_user_with_verification_token_does_not_500(self, app, admin_client):
+        from app import db
+        from models.email_verification import EmailVerificationToken
+
+        user = _make_reviewer(db, email="unverified@example.com", email_verified=False)
+        user_id = user.id
+        db.session.add(EmailVerificationToken.generate_token(user_id, user.email))
+        db.session.commit()
+
+        response = admin_client.post(f"/admin/users/delete/{user_id}")
+        assert response.status_code == 302
+        assert db.session.get(User, user_id) is None
+        assert EmailVerificationToken.query.filter_by(user_id=user_id).count() == 0

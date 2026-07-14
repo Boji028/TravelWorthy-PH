@@ -1,0 +1,13 @@
+[bandit]
+# Exclude directories from security scanning
+exclude_dirs = ['/tests', '/venv', '/.venv', '/env', '/.env', '/migrations']
+
+
+# Severity level (LOW, MEDIUM, HIGH)
+severity_level = MEDIUM
+
+# Confidence level (LOW, MEDIUM, HIGH)
+confidence_level = MEDIUM
+
+# Exclude specific tests
+skips = []

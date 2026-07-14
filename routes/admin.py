@@ -252,6 +252,8 @@ def bulk_package_action():
                 continue
             delete_old_image(pkg.image, current_app.config["UPLOAD_FOLDER"])
             delete_old_image(pkg.flier_image, current_app.config["UPLOAD_FOLDER"])
+            for img in pkg.images:
+                delete_old_image(img.path, current_app.config["UPLOAD_FOLDER"])
             db.session.delete(pkg)
             deleted += 1
         db.session.commit()
@@ -544,12 +546,18 @@ def edit_package(package_id):
                 except Exception as e:
                     current_app.logger.error(f"Unexpected error updating flier: {e}", exc_info=True)
                     flash("Flier update error occurred.", "warning")
+            # Track order manually: package.images does not include rows added
+            # in this request until flush, so len() alone would give every new
+            # image the same order value.
+            next_order = len(package.images)
+
             # Handle direct Cloudinary upload URLs
             new_gallery_urls = request.form.getlist("new_gallery_urls")
             for url in new_gallery_urls:
                 if url and url.startswith("https://"):
-                    gallery_img = PackageImage(package_id=package.id, path=url, order=len(package.images))
+                    gallery_img = PackageImage(package_id=package.id, path=url, order=next_order)
                     db.session.add(gallery_img)
+                    next_order += 1
 
             # Handle traditional file uploads (fallback)
             gallery_files = request.files.getlist("gallery_images")
@@ -558,9 +566,10 @@ def edit_package(package_id):
                     try:
                         upload_result = ImageUploadService.upload_and_compress(gfile, "package")
                         gallery_img = PackageImage(
-                            package_id=package.id, path=upload_result["path"], order=len(package.images)
+                            package_id=package.id, path=upload_result["path"], order=next_order
                         )
                         db.session.add(gallery_img)
+                        next_order += 1
                     except ImageUploadException as e:
                         flash(f"One image failed to upload: {str(e)}", "warning")
 
@@ -605,6 +614,9 @@ def delete_package(package_id):
         )
         return redirect(url_for("admin.packages"))
     delete_old_image(package.image, current_app.config["UPLOAD_FOLDER"])
+    delete_old_image(package.flier_image, current_app.config["UPLOAD_FOLDER"])
+    for img in package.images:
+        delete_old_image(img.path, current_app.config["UPLOAD_FOLDER"])
     db.session.delete(package)
     db.session.commit()
     flash("Package deleted.", "info")
@@ -1749,7 +1761,26 @@ def visa_edit(visa_id):
             flash("Country name is required.", "danger")
             return redirect(url_for("admin.visa_edit", visa_id=visa_id))
 
-        # Validate PDF before mutating any model fields so early returns leave the session clean.
+        # Validate numerics before mutating any model fields or touching files.
+        try:
+            new_price = float(request.form.get("price")) if request.form.get("price") else None
+        except ValueError:
+            new_price = None
+        if new_price is not None and new_price < 0:
+            flash("Price cannot be negative.", "danger")
+            return redirect(url_for("admin.visa_edit", visa_id=visa_id))
+
+        try:
+            new_docs = int(request.form.get("documents_count")) if request.form.get("documents_count") else None
+        except ValueError:
+            new_docs = None
+        if new_docs is not None and new_docs < 0:
+            flash("Documents count cannot be negative.", "danger")
+            return redirect(url_for("admin.visa_edit", visa_id=visa_id))
+
+        # PDF replacement runs last: it deletes the old file from storage, so any
+        # validation failure after this point would leave the DB pointing at a
+        # file that no longer exists.
         pdf_file = request.files.get("requirements_pdf")
         if pdf_file and pdf_file.filename:
             if not pdf_file.filename.lower().endswith(".pdf"):
@@ -1772,23 +1803,6 @@ def visa_edit(visa_id):
             except Exception as e:
                 flash(f"PDF upload failed: {str(e)}", "danger")
                 return redirect(url_for("admin.visa_edit", visa_id=visa_id))
-
-        # Validate numerics before mutating any model fields.
-        try:
-            new_price = float(request.form.get("price")) if request.form.get("price") else None
-        except ValueError:
-            new_price = None
-        if new_price is not None and new_price < 0:
-            flash("Price cannot be negative.", "danger")
-            return redirect(url_for("admin.visa_edit", visa_id=visa_id))
-
-        try:
-            new_docs = int(request.form.get("documents_count")) if request.form.get("documents_count") else None
-        except ValueError:
-            new_docs = None
-        if new_docs is not None and new_docs < 0:
-            flash("Documents count cannot be negative.", "danger")
-            return redirect(url_for("admin.visa_edit", visa_id=visa_id))
 
         # All validation passed — now mutate the model.
         visa.country_name = country_name

@@ -42,3 +42,92 @@ document.addEventListener('click', function(e) {
     });
   }
 });
+
+// ── Custom dropdown (.cselect) ──
+// A styled replacement for <select> for cases where the open list needs
+// to be themeable — see static/css/main.css for the .cselect* rules.
+// Expects markup:
+//   <div class="cselect">
+//     <button type="button" class="cselect-trigger">
+//       <span class="cselect-label">...</span>
+//       <i class="fas fa-chevron-down cselect-chevron"></i>
+//     </button>
+//     <div class="cselect-list">
+//       <div class="cselect-option selected" data-value="...">Label<i class="fas fa-check"></i></div>
+//       ...
+//     </div>
+//   </div>
+// onChange(value, label) fires whenever an option is picked.
+function initCustomSelect(root, onChange) {
+  var trigger = root.querySelector('.cselect-trigger');
+  var label = root.querySelector('.cselect-label');
+  var list = root.querySelector('.cselect-list');
+
+  function close() { root.classList.remove('open'); }
+  function toggle() {
+    if (root.classList.contains('cselect-disabled')) return;
+    root.classList.toggle('open');
+  }
+
+  trigger.addEventListener('click', function (e) {
+    e.stopPropagation();
+    toggle();
+  });
+
+  trigger.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+    if (e.key === 'Escape') close();
+  });
+
+  list.addEventListener('click', function (e) {
+    var opt = e.target.closest('.cselect-option');
+    if (!opt) return;
+    list.querySelectorAll('.cselect-option').forEach(function (o) {
+      o.classList.remove('selected');
+      var check = o.querySelector('i.fas.fa-check');
+      if (check) check.remove();
+    });
+    opt.classList.add('selected');
+    var check = document.createElement('i');
+    check.className = 'fas fa-check';
+    opt.appendChild(check);
+    label.textContent = opt.dataset.label || opt.firstChild.textContent.trim();
+    close();
+    if (onChange) onChange(opt.dataset.value, label.textContent);
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!root.contains(e.target)) close();
+  });
+
+  return {
+    // Rebuilds the option list. options: [{value, label}, ...].
+    // selectedValue picks which one starts checked/shown in the trigger.
+    setOptions: function (options, selectedValue) {
+      list.innerHTML = '';
+      options.forEach(function (opt) {
+        var isSelected = String(opt.value) === String(selectedValue);
+        var div = document.createElement('div');
+        div.className = 'cselect-option' + (isSelected ? ' selected' : '');
+        div.dataset.value = opt.value;
+        div.dataset.label = opt.label;
+        div.textContent = opt.label;
+        if (isSelected) {
+          var check = document.createElement('i');
+          check.className = 'fas fa-check';
+          div.appendChild(check);
+        }
+        list.appendChild(div);
+      });
+      var selectedOpt = options.filter(function (o) { return String(o.value) === String(selectedValue); })[0];
+      label.textContent = selectedOpt ? selectedOpt.label : (options[0] ? options[0].label : '');
+    },
+    getValue: function () {
+      var sel = list.querySelector('.cselect-option.selected');
+      return sel ? sel.dataset.value : '';
+    },
+    setDisabled: function (disabled) {
+      root.classList.toggle('cselect-disabled', !!disabled);
+    }
+  };
+}

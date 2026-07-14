@@ -19,8 +19,9 @@ class EmailVerificationToken(db.Model):
     verified_at: Optional[datetime] = db.Column(db.DateTime, nullable=True)
     is_used: bool = db.Column(db.Boolean, default=False, index=True)
 
-    # Relationships
-    user = db.relationship("User", backref="verification_tokens")
+    # cascade required: user_id is NOT NULL, so deleting a User would otherwise
+    # try to null this FK and crash with IntegrityError (see test_cascade_deletes).
+    user = db.relationship("User", backref=db.backref("verification_tokens", cascade="all, delete-orphan"))
 
     def __repr__(self) -> str:
         return f"<EmailVerificationToken {self.email}>"

@@ -472,6 +472,24 @@
   </div>
   {% endif %}
 
+  {% if pagination.pages > 1 %}
+  <div class="category-bar" style="justify-content:center;margin-top:2.5rem;margin-bottom:0;">
+    {% if pagination.has_prev %}
+    <a href="{{ url_for('blog.blog_list', category=active_category or none, page=pagination.prev_num) }}">&larr; Prev</a>
+    {% endif %}
+    {% for p in pagination.iter_pages() %}
+    {% if p %}
+    <a href="{{ url_for('blog.blog_list', category=active_category or none, page=p) }}" class="{% if p == pagination.page %}active{% endif %}">{{ p }}</a>
+    {% else %}
+    <span style="padding:.4rem">&hellip;</span>
+    {% endif %}
+    {% endfor %}
+    {% if pagination.has_next %}
+    <a href="{{ url_for('blog.blog_list', category=active_category or none, page=pagination.next_num) }}">Next &rarr;</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
   {% else %}
   <div class="empty-blog">
     <i class="fas fa-pen-nib"></i>

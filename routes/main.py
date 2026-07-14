@@ -41,7 +41,9 @@ def home():
     from models.continent import Continent
     from models.site_settings import SiteSettings
 
-    testimonials = Testimonial.query.order_by(Testimonial.created_at.desc()).limit(5).all()
+    testimonials = (
+        Testimonial.query.options(selectinload(Testimonial.user)).order_by(Testimonial.created_at.desc()).limit(5).all()
+    )
     posts = BlogPost.query.filter_by(is_published=True).order_by(BlogPost.created_at.desc()).limit(3).all()
     continents = Continent.query.filter_by(is_active=True).order_by(Continent.name).all()
     site_settings = SiteSettings.get_settings()
@@ -65,7 +67,11 @@ def about():
 def reviews():
     """Reviews/testimonials page with pagination."""
     page = request.args.get("page", 1, type=int)
-    pagination = Testimonial.query.order_by(Testimonial.created_at.desc()).paginate(page=page, per_page=12, error_out=False)
+    pagination = (
+        Testimonial.query.options(selectinload(Testimonial.user), selectinload(Testimonial.images))
+        .order_by(Testimonial.created_at.desc())
+        .paginate(page=page, per_page=12, error_out=False)
+    )
     from sqlalchemy import func
 
     stats = db.session.query(

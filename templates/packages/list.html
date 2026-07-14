@@ -906,18 +906,32 @@
           </div>
           {% if continents %}
           <div class="mobile-region-label">Region</div>
-          <select id="mobileContinentSelect" class="form-control" style="margin-bottom:.6rem;">
-            <option value="" data-label="">🌐 All continents</option>
-            {% for continent in continents %}
-            <option value="{{ continent.id }}" data-label="{{ continent.name }}"
-              {% if active_continent and active_continent.id == continent.id %}selected{% endif %}>
-              {{ continent.flag_emoji or '' }} {{ continent.name }}
-            </option>
-            {% endfor %}
-          </select>
-          <select id="mobileCountrySelect" class="form-control">
-            <option value="">All countries</option>
-          </select>
+          <div class="cselect" id="mobileContinentCSelect" style="margin-bottom:.6rem;">
+            <button type="button" class="cselect-trigger">
+              <span class="cselect-label">All continents</span>
+              <i class="fas fa-chevron-down cselect-chevron"></i>
+            </button>
+            <div class="cselect-list">
+              <div class="cselect-option {% if not active_continent %}selected{% endif %}" data-value="" data-label="🌐 All continents">
+                🌐 All continents{% if not active_continent %}<i class="fas fa-check"></i>{% endif %}
+              </div>
+              {% for continent in continents %}
+              <div class="cselect-option {% if active_continent and active_continent.id == continent.id %}selected{% endif %}"
+                data-value="{{ continent.id }}" data-label="{{ continent.flag_emoji or '' }} {{ continent.name }}">
+                {{ continent.flag_emoji or '' }} {{ continent.name }}{% if active_continent and active_continent.id == continent.id %}<i class="fas fa-check"></i>{% endif %}
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="cselect" id="mobileCountryCSelect">
+            <button type="button" class="cselect-trigger">
+              <span class="cselect-label">All countries</span>
+              <i class="fas fa-chevron-down cselect-chevron"></i>
+            </button>
+            <div class="cselect-list">
+              <div class="cselect-option selected" data-value="" data-label="All countries">All countries<i class="fas fa-check"></i></div>
+            </div>
+          </div>
           <script nonce="{{ csp_nonce() }}">
             var continentCountries = {
               {% for continent in continents %}
@@ -1275,15 +1289,15 @@
   });
 
   // ── Mobile filter sheet ──
-  (function () {
+  document.addEventListener('DOMContentLoaded', function () {
     const trigger = document.getElementById('mobileFilterToggle');
     const overlay = document.getElementById('mobileSheetOverlay');
     const closeBtn = document.getElementById('mobileSheetClose');
     const clearBtn = document.getElementById('mobileClearBtn');
     const applyBtn = document.getElementById('mobileApplyBtn');
     const sheetInput = document.getElementById('filter-destination-mobile');
-    const continentSelect = document.getElementById('mobileContinentSelect');
-    const countrySelect = document.getElementById('mobileCountrySelect');
+    const continentSelectEl = document.getElementById('mobileContinentCSelect');
+    const countrySelectEl = document.getElementById('mobileCountryCSelect');
     if (!trigger || !overlay) return;
 
     let mobilePackageType = "{{ package_type or '' }}";
@@ -1310,30 +1324,41 @@
     // cascade from.
     function populateCountrySelect(continentId, preselectCountryId) {
       if (!countrySelect) return;
-      countrySelect.innerHTML = '<option value="">All countries</option>';
       const list = (continentId && window.continentCountries) ? (continentCountries[continentId] || []) : [];
-      list.forEach(function (c) {
-        const opt = document.createElement('option');
-        opt.value = c.id;
-        opt.textContent = c.label;
-        if (preselectCountryId && String(c.id) === String(preselectCountryId)) opt.selected = true;
-        countrySelect.appendChild(opt);
-      });
-      countrySelect.disabled = !continentId;
+      const options = [{ value: '', label: 'All countries' }].concat(
+        list.map(function (c) { return { value: c.id, label: c.label }; })
+      );
+      countrySelect.setOptions(options, preselectCountryId || '');
+      countrySelect.setDisabled(!continentId);
     }
 
-    if (continentSelect) {
-      populateCountrySelect(continentSelect.value, "{{ active_country.id if active_country else '' }}");
+    const continentSelect = continentSelectEl ? initCustomSelect(continentSelectEl, function (value) {
+      populateCountrySelect(value);
+    }) : null;
+    const countrySelect = countrySelectEl ? initCustomSelect(countrySelectEl) : null;
 
-      continentSelect.addEventListener('change', () => {
-        populateCountrySelect(continentSelect.value);
-      });
+    if (continentSelect) {
+      populateCountrySelect(continentSelect.getValue(), "{{ active_country.id if active_country else '' }}");
     }
 
     clearBtn.addEventListener('click', () => {
       mobilePackageType = '';
       sheetInput.value = '';
-      if (continentSelect) continentSelect.value = '';
+      if (continentSelect && continentSelectEl) {
+        continentSelectEl.querySelectorAll('.cselect-option').forEach(function (o, i) {
+          o.classList.toggle('selected', i === 0);
+          const check = o.querySelector('i.fas.fa-check');
+          if (i === 0 && !check) {
+            const c = document.createElement('i');
+            c.className = 'fas fa-check';
+            o.appendChild(c);
+          } else if (i !== 0 && check) {
+            check.remove();
+          }
+        });
+        continentSelectEl.querySelector('.cselect-label').textContent =
+          continentSelectEl.querySelector('.cselect-option').dataset.label;
+      }
       populateCountrySelect('');
       document.querySelectorAll('.mobile-seg').forEach(s => s.classList.remove('active'));
       document.querySelector('.mobile-seg[data-type=""]').classList.add('active');
@@ -1341,12 +1366,10 @@
 
     applyBtn.addEventListener('click', () => {
       const destination = sheetInput.value.trim();
-      const continentId = continentSelect ? continentSelect.value : '';
-      const countryId = countrySelect ? countrySelect.value : '';
-      const continentOpt = continentSelect ? continentSelect.selectedOptions[0] : null;
-      const continentLabel = continentOpt ? (continentOpt.dataset.label || '') : '';
-      const countryOpt = countrySelect ? countrySelect.selectedOptions[0] : null;
-      const countryLabel = (countryId && countryOpt) ? countryOpt.textContent.trim() : '';
+      const continentId = continentSelect ? continentSelect.getValue() : '';
+      const countryId = countrySelect ? countrySelect.getValue() : '';
+      const continentLabel = continentSelectEl ? continentSelectEl.querySelector('.cselect-label').textContent.trim() : '';
+      const countryLabel = countrySelectEl ? countrySelectEl.querySelector('.cselect-label').textContent.trim() : '';
       const label = countryId ? (continentLabel + ' \u2192 ' + countryLabel) : continentLabel;
 
       const params = new URLSearchParams();
@@ -1390,7 +1413,7 @@
           paginationWrap.innerHTML = '';
         });
     });
-  })();
+  });
 
 </script>
 <script src="{{ url_for('static', filename='js/packages.js') }}"></script>
