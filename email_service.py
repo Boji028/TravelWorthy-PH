@@ -329,7 +329,10 @@ def send_inquiry_confirmed(inquiry) -> None:
         if is_visa
         else f"Your {inquiry.destination} inquiry has been confirmed! — {inquiry.reference_number}"
     )
-    base_url = current_app.config.get("SITE_URL", request.host_url).rstrip("/")
+    # `or` form, not .get(key, default): the default arg evaluates
+    # request.host_url even when SITE_URL is set, which raises if this is
+    # ever called outside a request context (as the other senders here can be).
+    base_url = (current_app.config.get("SITE_URL") or request.host_url).rstrip("/")
     tracking_url = f"{base_url}/inquiry/{inquiry.reference_number}"
     body = (
         f"Hi {inquiry.name},\n\n"

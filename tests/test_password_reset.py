@@ -202,6 +202,15 @@ class TestPasswordResetRoutes:
         )
         assert response.status_code != 500
 
+    def test_forgot_password_page_views_are_not_rate_limited(self, client):
+        """Regression test — the 5/hour limit used to apply to the whole
+        route, so five GET page views from one IP consumed the quota and
+        the sixth visitor got a 429 without ever submitting anything.
+        The limit is meant to throttle email-sending POSTs only."""
+        for _ in range(7):
+            response = client.get("/auth/forgot-password")
+            assert response.status_code == 200
+
     def test_proxyfix_builds_https_reset_link_behind_forwarded_proto_header(self, app, test_user, client, monkeypatch):
         """Regression test for ProxyFix. Render (and any PaaS) terminates
         HTTPS at a reverse proxy in front of the container — the app

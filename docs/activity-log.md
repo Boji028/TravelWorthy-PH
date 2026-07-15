@@ -66,3 +66,37 @@ timezone handling (app code consistently uses datetime.now(timezone.utc)),
 flake8/mypy/pylint (no runtime bugs; pylint func.count E1102s are false
 positives). Note: bandit is listed in requirements but not installed in
 the venv.
+
+## 2026-07-15 — Fresh-eyes sweep of the post-journey-pass work
+
+Baseline: 561 passed. Focus: the mechanisms added since the last full
+sweep (ProxyFix, session_token, review gate, confirmation_email_failed,
+notifications) plus a general routes/models/services read-through.
+
+Fixes (each has its own doc):
+
+- auth-rate-limit-scoped-to-post.md — forgot-password / resend-
+  verification 5/hour limits applied to GET page views (keyed by IP on
+  GET); five page loads locked out a shared IP. Scoped to POST.
+- inquiry-list-export-package-n-plus-one.md — inq.package.title lazy-
+  loaded per row on the admin inquiries list (bounded) and xlsx export
+  (unbounded). joinedload added to both.
+- geo-edit-blank-name-validation.md — edit_continent/edit_country
+  accepted a blank name that add_* rejects; saved an empty string.
+- inquiry-confirmed-email-eager-host-url.md — send_inquiry_confirmed
+  evaluated request.host_url eagerly as a .get() default; latent crash
+  if ever called off-request. Switched to the guarded `or` form.
+
+Checked and clean: migration heads (one: 3cee47dfc5ac); the three
+templates touched this week introduced no new inline scripts and no
+inline styles competing with media queries; _external=True still only
+the three known call sites (template og:image uses go through url_for,
+ProxyFix-covered); every login path goes through login_user() so
+session_token coverage is complete; review eligibility has a single
+enforcement point (_can_review_package; the /reviews page is the
+separate Testimonial feature); flake8 F82x/E9 clean, pylint/mypy only
+the known false-positive patterns.
+
+Flagged, not implemented (design call): the inquiry xlsx export does
+not include confirmation_email_failed, so a failed confirmation isn't
+visible in the exported follow-up record.

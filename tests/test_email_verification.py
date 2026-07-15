@@ -346,11 +346,22 @@ class TestEmailVerificationRoutes:
     def test_resend_verification_does_not_crash_with_no_email_and_no_remote_addr(self, client):
         """Regression test — same rate-limit key_func bug as
         forgot-password (see test_password_reset.py), same route
-        decorator pattern. A GET here also exercises the key_func since
-        the limiter applies to the whole route, not just POST."""
-        response = client.get(
+        decorator pattern. POST with no email field and no remote_addr
+        exercises the key_func's None-guard (the limiter is scoped to
+        POST, so a GET no longer runs the key_func at all)."""
+        response = client.post(
             "/auth/resend-verification",
+            data={},
             environ_overrides={"REMOTE_ADDR": None},
         )
         assert response.status_code != 500
+
+    def test_resend_verification_page_views_are_not_rate_limited(self, client):
+        """Regression test — the 5/hour limit used to apply to the whole
+        route, so five GET page views from one IP consumed the quota and
+        the sixth visitor got a 429 without ever submitting anything.
+        The limit is meant to throttle email-sending POSTs only."""
+        for _ in range(7):
+            response = client.get("/auth/resend-verification")
+            assert response.status_code == 200
 

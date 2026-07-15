@@ -641,7 +641,8 @@ def users():
     page = request.args.get("page", 1, type=int)
     all_users = query.order_by(User.created_at.desc()).paginate(page=page, per_page=20, error_out=False)
 
-    # Inquiry has no user_id FK (guests can submit inquiries too) — match by email instead
+    # Match by email rather than user_id: guest inquiries have user_id=None,
+    # so email is the only link that counts a user's pre-registration inquiries too.
     emails = [u.email for u in all_users.items]
     inquiry_counts_by_email = {}
     if emails:
@@ -864,7 +865,9 @@ def inquiries():
         "closed": count_rows.closed or 0,
     }
 
-    query = base_query
+    # joinedload: the template renders inq.package.title per row, which
+    # otherwise lazy-loads one package query per inquiry on the page.
+    query = base_query.options(joinedload(Inquiry.package))
     if status_filter:
         query = query.filter_by(status=status_filter)
     query = query.order_by(Inquiry.created_at.asc() if sort == "asc" else Inquiry.created_at.desc())
@@ -1314,7 +1317,11 @@ def add_continent():
 def edit_continent(continent_id):
     continent = db.get_or_404(Continent, continent_id)
     if request.method == "POST":
-        continent.name = request.form.get("name", "").strip()
+        name = request.form.get("name", "").strip()
+        if not name:
+            flash("Continent name is required.", "danger")
+            return redirect(url_for("admin.edit_continent", continent_id=continent_id))
+        continent.name = name
         continent.flag_emoji = request.form.get("flag_emoji", "").strip()
         continent.description = request.form.get("description", "").strip()
         continent.is_active = request.form.get("is_active") == "on"
@@ -1470,7 +1477,11 @@ def add_country():
 def edit_country(country_id):
     country = db.get_or_404(Country, country_id)
     if request.method == "POST":
-        country.name = request.form.get("name", "").strip()
+        name = request.form.get("name", "").strip()
+        if not name:
+            flash("Country name is required.", "danger")
+            return redirect(url_for("admin.edit_country", country_id=country_id))
+        country.name = name
         country.flag_emoji = request.form.get("flag_emoji", "").strip()
         country.description = request.form.get("description", "").strip()
         country.is_active = request.form.get("is_active") == "on"
@@ -1975,7 +1986,9 @@ def export_inquiries():
     from openpyxl.utils import get_column_letter
 
     params = _get_inquiry_filter_params()
-    query = _apply_inquiry_filters(Inquiry.query, params)
+    # joinedload: each row writes inq.package.title, and the export set is
+    # unbounded — without this, exporting N inquiries fires N lazy-load queries.
+    query = _apply_inquiry_filters(Inquiry.query.options(joinedload(Inquiry.package)), params)
     if params["status"]:
         query = query.filter_by(status=params["status"])
     query = query.order_by(Inquiry.created_at.asc() if params["sort"] == "asc" else Inquiry.created_at.desc())

@@ -110,6 +110,13 @@ class TestEditContinent:
         admin_client.post(f"/admin/continents/edit/{continent.id}", data={"name": "East Asia"})
         assert db.session.get(Continent, continent.id).name == "East Asia"
 
+    def test_blank_name_does_not_update(self, app, admin_client):
+        from app import db
+
+        continent = _make_continent(db)
+        admin_client.post(f"/admin/continents/edit/{continent.id}", data={"name": "   "})
+        assert db.session.get(Continent, continent.id).name == "Asia"
+
     def test_nonexistent_continent_returns_404(self, app, admin_client):
         response = admin_client.get("/admin/continents/edit/99999")
         assert response.status_code == 404
@@ -196,6 +203,13 @@ class TestEditCountry:
         updated = db.session.get(Country, country.id)
         assert updated.name == "Updated PH"
         assert updated.is_active is True
+
+    def test_blank_name_does_not_update(self, app, admin_client):
+        from app import db
+
+        country = _make_country(db)
+        admin_client.post(f"/admin/countries/edit/{country.id}", data={"name": "   "})
+        assert db.session.get(Country, country.id).name == "Philippines"
 
     def test_nonexistent_country_returns_404(self, app, admin_client):
         response = admin_client.get("/admin/countries/edit/99999")
