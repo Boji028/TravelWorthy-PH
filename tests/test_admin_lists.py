@@ -285,6 +285,35 @@ class TestExportInquiries:
         response = admin_client.get("/admin/inquiries/export")
         assert "Boracay" in _xlsx_strings(response.data)
 
+    def test_confirmation_email_failed_column_present_and_correct_per_row(self, app, admin_client):
+        """Regression test for the export column added alongside the
+        admin-list badge and tracking-page notice — same
+        confirmation_email_failed flag, now visible in the one place
+        someone doing a batch follow-up would actually be working from.
+        Checks the flag lands on the *correct* row, not just that "Yes"
+        appears somewhere in the sheet — inserting a new column shifted
+        every column after it, which is exactly the kind of change a
+        presence-only check wouldn't catch if the shift went wrong."""
+        from app import db
+        from openpyxl import load_workbook
+        import io as _io
+
+        _make_inquiry(db, destination="Failed Send", email="failed@example.com", confirmation_email_failed=True)
+        _make_inquiry(db, destination="Normal Send", email="normal@example.com", confirmation_email_failed=False)
+
+        response = admin_client.get("/admin/inquiries/export")
+        wb = load_workbook(_io.BytesIO(response.data))
+        ws = wb.active
+
+        headers = [c.value for c in ws[1]]
+        assert "Confirmation Email Failed" in headers
+        col_idx = headers.index("Confirmation Email Failed")
+
+        dest_idx = headers.index("Destination")
+        rows_by_destination = {row[dest_idx].value: row for row in ws.iter_rows(min_row=2)}
+        assert rows_by_destination["Failed Send"][col_idx].value == "Yes"
+        assert rows_by_destination["Normal Send"][col_idx].value in (None, "")
+
     def test_status_filter_applied(self, app, admin_client):
         from app import db
 

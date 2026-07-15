@@ -2009,6 +2009,7 @@ def export_inquiries():
         "Reference",
         "Name",
         "Email",
+        "Confirmation Email Failed",
         "Contact",
         "Destination",
         "Package",
@@ -2038,6 +2039,7 @@ def export_inquiries():
                 inq.reference_number,
                 inq.name,
                 inq.email,
+                "Yes" if inq.confirmation_email_failed else "",
                 inq.contact_number,
                 inq.destination,
                 inq.package.title if inq.package else "",
@@ -2055,15 +2057,17 @@ def export_inquiries():
         )
 
     # Excel date columns: dates as yyyy-mm-dd, timestamps with time included.
+    # Column indices below account for "Confirmation Email Failed" being
+    # inserted at position 4 — everything after it shifted by one.
     last_row = ws.max_row
-    for col_idx in (7, 8):
+    for col_idx in (8, 9):
         for r in range(2, last_row + 1):
             ws.cell(row=r, column=col_idx).number_format = "yyyy-mm-dd"
-    for col_idx in (15, 16):
+    for col_idx in (16, 17):
         for r in range(2, last_row + 1):
             ws.cell(row=r, column=col_idx).number_format = "yyyy-mm-dd hh:mm"
 
-    widths = [12, 20, 26, 14, 20, 22, 12, 12, 8, 9, 8, 30, 12, 30, 16, 16]
+    widths = [12, 20, 26, 16, 14, 20, 22, 12, 12, 8, 9, 8, 30, 12, 30, 16, 16]
     for i, w in enumerate(widths, start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
 
