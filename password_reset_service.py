@@ -134,6 +134,11 @@ Travel Worthy PH Team"""
                 return False, "User not found.", None
 
             user.password = generate_password_hash(new_password)
+            # Invalidate every other active session — if the reset was
+            # prompted by a compromised account, leaving an already-open
+            # session (the attacker's) logged in right through the reset
+            # would defeat the point of resetting in the first place.
+            user.rotate_session_token()
             token_obj.consume()
 
             db.session.commit()

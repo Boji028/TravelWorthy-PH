@@ -202,6 +202,31 @@ class TestPasswordResetRoutes:
         )
         assert response.status_code != 500
 
+    def test_proxyfix_builds_https_reset_link_behind_forwarded_proto_header(self, app, test_user, client, monkeypatch):
+        """Regression test for ProxyFix. Render (and any PaaS) terminates
+        HTTPS at a reverse proxy in front of the container — the app
+        itself only ever sees plain HTTP internally unless something
+        reads the X-Forwarded-Proto header the proxy sets. Without
+        ProxyFix, url_for(_external=True) — used here for the reset link,
+        and the same way for the Google OAuth redirect_uri — would build
+        an http:// URL even for a visitor on https://, which is exactly
+        what causes Google's redirect_uri_mismatch error even when the
+        console's configured URI is correct."""
+        from app import mail as app_mail
+
+        app.config["MAIL_USERNAME"] = "test@example.com"
+        sent_messages = []
+        monkeypatch.setattr(app_mail, "send", lambda msg: sent_messages.append(msg))
+
+        client.post(
+            "/auth/forgot-password",
+            data={"email": test_user.email},
+            headers={"X-Forwarded-Proto": "https", "X-Forwarded-Host": "travelworthyph.com"},
+        )
+
+        assert len(sent_messages) == 1
+        assert "https://travelworthyph.com/auth/reset-password/" in sent_messages[0].body
+
     def test_reset_password_get_with_valid_token_renders_form(self, client, test_user, app):
         """Test the reset password page renders for a valid token."""
         token_obj = PasswordResetToken.generate_token(test_user.id)
@@ -255,6 +280,75 @@ class TestPasswordResetRoutes:
 
         user = db.session.get(User, test_user.id)
         assert check_password_hash(user.password, "TestPass123!")
+
+    def test_password_reset_invalidates_other_active_sessions(self, app, test_user):
+        """The core session-invalidation fix: a session already logged in
+        before a password reset must stop working once the reset
+        completes. Without this, resetting your password because you
+        suspect your account is compromised leaves an already-open
+        session (the attacker's) logged in right through the reset —
+        defeating the entire point of doing it.
+
+        Flask-Login caches the loaded user into flask.g, which is scoped
+        to the *app context* rather than the request — the `app` fixture
+        deliberately keeps one app context open for the whole test (see
+        its docstring, to avoid a DetachedInstanceError elsewhere), so
+        without clearing g between each simulated "device" here, the
+        first device's cached user would leak into checks against the
+        second device's genuinely separate session cookie. This isn't a
+        real bug: in an actual deployment, every incoming request gets
+        its own fresh context naturally.
+        """
+        from flask import g
+        from app import db
+
+        # "Device A": log in for real through the actual route so this
+        # session cookie carries the token-based get_id() format — the
+        # authenticated_client fixture bypasses get_id() entirely by
+        # setting the session key directly, which wouldn't exercise this
+        # code path at all.
+        device_a = app.test_client()
+        device_a.post("/auth/login", data={"email": test_user.email, "password": "TestPass123!"})
+        g.pop("_login_user", None)
+        assert device_a.get("/my-inquiries").status_code == 200  # confirms actually logged in
+        g.pop("_login_user", None)
+
+        # Reset the password from an entirely separate session/device.
+        token_obj = PasswordResetToken.generate_token(test_user.id)
+        db.session.add(token_obj)
+        db.session.commit()
+        device_b = app.test_client()
+        device_b.post(
+            f"/auth/reset-password/{token_obj.token}",
+            data={"password": "BrandNewPass123", "confirm_password": "BrandNewPass123"},
+        )
+        g.pop("_login_user", None)
+
+        # Device A's original session must now be dead — redirected to
+        # login (Flask-Login's default for an unauthenticated request to
+        # a @login_required route), not still authenticated.
+        response = device_a.get("/my-inquiries")
+        assert response.status_code == 302
+        assert "/auth/login" in response.headers["Location"]
+
+    def test_password_reset_does_not_invalidate_the_new_login_itself(self, app, test_user):
+        """Sanity check the fix isn't overly broad: logging in *after* the
+        reset, with the new password, must work normally — only sessions
+        that predate the reset should be affected."""
+        token_obj = PasswordResetToken.generate_token(test_user.id)
+        from app import db
+
+        db.session.add(token_obj)
+        db.session.commit()
+
+        client = app.test_client()
+        client.post(
+            f"/auth/reset-password/{token_obj.token}",
+            data={"password": "BrandNewPass123", "confirm_password": "BrandNewPass123"},
+        )
+        client.post("/auth/login", data={"email": test_user.email, "password": "BrandNewPass123"})
+
+        assert client.get("/my-inquiries").status_code == 200
 
     def test_login_page_links_to_forgot_password(self, client):
         """Test the login page's Forgot password link points at the real route, not a placeholder."""

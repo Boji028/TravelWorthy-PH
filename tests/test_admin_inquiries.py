@@ -148,3 +148,26 @@ class TestDeleteInquiry:
     def test_nonexistent_inquiry_returns_404(self, app, admin_client):
         response = admin_client.post("/admin/inquiries/delete/99999")
         assert response.status_code == 404
+
+
+class TestConfirmationEmailFailedBadge:
+    """The admin-facing half of the email-failure fix: a small warning
+    icon next to the customer's email on the inquiries list, so staff
+    have a way to notice and follow up manually — the only real
+    mitigation possible here, since the confirmation email sends
+    asynchronously, after the customer's own response has already
+    been returned."""
+
+    def test_failed_email_shows_warning_icon(self, app, admin_client):
+        from app import db
+
+        inquiry = _make_inquiry(db, confirmation_email_failed=True)
+        response = admin_client.get("/admin/inquiries")
+        assert b"Confirmation email failed to send" in response.data
+
+    def test_successful_email_shows_no_warning_icon(self, app, admin_client):
+        from app import db
+
+        inquiry = _make_inquiry(db, confirmation_email_failed=False)
+        response = admin_client.get("/admin/inquiries")
+        assert b"Confirmation email failed to send" not in response.data

@@ -15,15 +15,25 @@ from flask_mail import Message
 from app import mail
 
 
-def _send(subject: str, recipients: list, body: str, html: str = None, cc: list = None) -> None:
-    """Send an email, silently failing if mail is not configured."""
+def _send(subject: str, recipients: list, body: str, html: str = None, cc: list = None) -> bool:
+    """Send an email, silently failing if mail is not configured.
+
+    Returns True if the send succeeded, False otherwise (mail not
+    configured, or the actual send raised). Never raises itself -
+    existing callers that don't check the return value keep their
+    original fire-and-forget behavior unchanged; send_inquiry_receipt()
+    is the one caller that does check it, to surface a failed customer
+    confirmation rather than leaving it silent.
+    """
     if not current_app.config.get("MAIL_USERNAME"):
-        return  # Mail not configured — skip silently
+        return False  # Mail not configured — skip silently
     try:
         msg = Message(subject=subject, recipients=recipients, body=body, html=html, cc=cc or None)
         mail.send(msg)
+        return True
     except Exception as e:
         current_app.logger.error(f"Email send error: {e}")
+        return False
 
 
 def send_contact_autoreply(name: str, to_email: str, subject: str) -> None:
@@ -485,7 +495,7 @@ def send_inquiry_confirmed(inquiry) -> None:
         _send(admin_subject, [admin_email], admin_body, html=admin_html, cc=cc_list)
 
 
-def send_inquiry_receipt(inquiry, base_url: str = None) -> None:
+def send_inquiry_receipt(inquiry, base_url: str = None) -> bool:
     """Send immediate receipt confirmation to customer after inquiry submission.
 
     Includes:
@@ -499,6 +509,11 @@ def send_inquiry_receipt(inquiry, base_url: str = None) -> None:
         base_url: Site base URL for the tracking link. Pass this explicitly
             when calling from outside a request context (e.g. a background
             thread) — `request.host_url` is only available during a request.
+
+    Returns:
+        True if the email actually sent, False otherwise (mail not
+        configured, or the send failed) — send_inquiry_emails_async uses
+        this to flag Inquiry.confirmation_email_failed.
     """
     is_visa = bool(not inquiry.package_id and inquiry.special_requests and inquiry.special_requests.startswith("[FOR VISA]"))
 
@@ -709,7 +724,7 @@ def send_inquiry_receipt(inquiry, base_url: str = None) -> None:
     </body></html>
     """
 
-    _send(subject, [inquiry.email], body, html=html)
+    return _send(subject, [inquiry.email], body, html=html)
 
 
 def send_inquiry_emails_async(inquiry_id: int, base_url: str) -> None:
@@ -735,12 +750,31 @@ def send_inquiry_emails_async(inquiry_id: int, base_url: str) -> None:
             inquiry = db.session.get(Inquiry, inquiry_id)
             if not inquiry:
                 return
+
+            # Independent try/excepts: these used to share one try block,
+            # so a customer-receipt failure meant send_admin_new_inquiry
+            # never even ran — the admin wouldn't hear about a new
+            # inquiry at all just because the customer's email bounced.
+            # Checking the return value (not just catching an exception)
+            # matters here: _send(), the low-level helper underneath
+            # send_inquiry_receipt, already catches and logs every send
+            # failure itself and never re-raises — an except block around
+            # the call alone would never actually fire.
             try:
-                send_inquiry_receipt(inquiry, base_url=base_url)
-                admin_email = os.getenv("ADMIN_EMAIL", "")
-                if admin_email:
-                    send_admin_new_inquiry(admin_email, inquiry, base_url=base_url)
+                sent = send_inquiry_receipt(inquiry, base_url=base_url)
+                if not sent:
+                    inquiry.confirmation_email_failed = True
+                    db.session.commit()
             except Exception as e:
-                app.logger.warning(f"Email notification failed for inquiry #{inquiry_id}: {e}", exc_info=True)
+                app.logger.warning(f"Customer receipt email failed for inquiry #{inquiry_id}: {e}", exc_info=True)
+                inquiry.confirmation_email_failed = True
+                db.session.commit()
+
+            admin_email = os.getenv("ADMIN_EMAIL", "")
+            if admin_email:
+                try:
+                    send_admin_new_inquiry(admin_email, inquiry, base_url=base_url)
+                except Exception as e:
+                    app.logger.warning(f"Admin alert email failed for inquiry #{inquiry_id}: {e}", exc_info=True)
 
     Thread(target=_worker, daemon=True).start()

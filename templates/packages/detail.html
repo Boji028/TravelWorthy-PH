@@ -1214,6 +1214,11 @@
               <i class="fas fa-lock" style="color:var(--teal)"></i> Reviews are tied to your account
             </div>
           </form>
+          {% elif not can_review %}
+          <div
+            style="background:var(--sand);border-radius:var(--radius);padding:1rem;font-size:.88rem;color:var(--mist)">
+            <i class="fas fa-info-circle" style="color:var(--teal)"></i> You can review this package once you have a confirmed booking for it.
+          </div>
           {% else %}
           <form method="POST" action="{{ url_for('packages.submit_review', package_id=package.id) }}"
             autocomplete="off">

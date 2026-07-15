@@ -136,6 +136,26 @@ class TestTrackInquiry:
         response = client.get(f"/inquiry/{lower_ref}")
         assert response.status_code == 200
 
+    def test_failed_confirmation_email_shows_a_notice(self, app, client):
+        """The customer-facing half of the email-failure fix: since the
+        confirmation email is sent asynchronously (after the initial
+        response has already been returned), the tracking page - which
+        the customer is given a link to regardless - is the one place
+        that can accurately reflect whether it actually sent, by the
+        time they check it."""
+        from app import db
+
+        inquiry = _make_inquiry(db, confirmation_email_failed=True)
+        response = client.get(f"/inquiry/{inquiry.reference_number}")
+        assert b"weren't able to send a confirmation email" in response.data
+
+    def test_successful_confirmation_email_shows_no_notice(self, app, client):
+        from app import db
+
+        inquiry = _make_inquiry(db, confirmation_email_failed=False)
+        response = client.get(f"/inquiry/{inquiry.reference_number}")
+        assert b"weren't able to send a confirmation email" not in response.data
+
 
 class TestMyInquiries:
     def test_requires_login(self, client):

@@ -32,6 +32,15 @@ class Inquiry(db.Model):
     responded_at: Optional[datetime] = db.Column(db.DateTime, nullable=True)
     created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
     last_exported_at: Optional[datetime] = db.Column(db.DateTime, nullable=True, index=True)
+    # Set when the async customer confirmation email fails to send (see
+    # email_service.send_inquiry_emails_async). Surfaced on both the
+    # admin inquiries list (so staff can follow up manually) and the
+    # public tracking page (so the customer isn't left thinking a
+    # confirmation is on its way when it never sent) — this is the
+    # closest thing to an honest "email failed" signal that's possible
+    # for an async send, since by the time this fires the original
+    # request/response has already completed.
+    confirmation_email_failed: bool = db.Column(db.Boolean, default=False, nullable=False, server_default="false")
 
     __table_args__ = (
         db.CheckConstraint("travel_date_to >= travel_date_from", name="ck_inquiry_date_range"),

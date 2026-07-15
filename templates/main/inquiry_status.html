@@ -289,6 +289,12 @@
   {% if inquiry %}
   <h1>{{ inquiry.destination }}</h1>
   <p class="track-ref">Reference: <strong>{{ inquiry.reference_number }}</strong></p>
+  {% if inquiry.confirmation_email_failed %}
+  <p style="background:var(--sand);border-radius:var(--radius);padding:.75rem 1rem;font-size:.85rem;color:var(--bark);margin-top:.75rem;display:flex;align-items:center;gap:.5rem">
+    <i class="fas fa-exclamation-triangle" style="color:var(--warning)"></i>
+    We received your inquiry, but weren't able to send a confirmation email. Please save this reference number — you can check back on this page for updates anytime.
+  </p>
+  {% endif %}
   {% else %}
   <h1>We couldn't find that inquiry</h1>
   <p class="track-ref">Reference checked: <strong>{{ reference_number }}</strong></p>

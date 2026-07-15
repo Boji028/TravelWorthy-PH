@@ -172,6 +172,25 @@ class TestPasswordChange:
 
         assert b"changed successfully" in response.data
 
+    def test_change_password_does_not_log_out_the_current_session(self, authenticated_client, test_user):
+        """Regression test: rotating the session token on password change
+        (to invalidate any *other* active session, same reasoning as the
+        forgot-password reset) must not also kill the session used to
+        make the change itself — that would log someone out of their own
+        account the moment they changed their own password. Checks a
+        separate @login_required route afterward rather than trusting the
+        flash message on the redirect target, since a flashed message can
+        render on a login page too and wouldn't catch this on its own."""
+        authenticated_client.post(
+            "/auth/profile",
+            data={
+                "current_password": "TestPass123!",
+                "new_password": "NewSecurePass123",
+                "confirm_password": "NewSecurePass123",
+            },
+        )
+        assert authenticated_client.get("/my-inquiries").status_code == 200
+
     def test_change_password_wrong_current(self, authenticated_client):
         """Test password change with wrong current password."""
         response = authenticated_client.post(

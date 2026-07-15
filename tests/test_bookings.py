@@ -63,6 +63,52 @@ class TestInquiryEmailIsAsync:
         assert elapsed < 0.3  # well under the simulated 0.5s-per-email send time
         time.sleep(0.6)  # let the background thread finish before teardown drops the DB
 
+    @pytest.mark.real_async_email
+    def test_customer_receipt_failure_is_tracked_and_does_not_skip_admin_alert(self, app, client, monkeypatch):
+        """Regression test for two things at once: (1) confirmation_email_failed
+        gets set when the customer's receipt fails to send, so it's visible
+        on the admin inquiries list and the public tracking page instead
+        of being silent; (2) that failure must not skip the admin alert
+        email — the old code shared one try/except around both sends, so
+        a customer-receipt failure meant send_admin_new_inquiry never even
+        ran, and the admin wouldn't hear about the new inquiry either."""
+        import time
+        import email_service
+        from app import db
+
+        app.config["MAIL_USERNAME"] = "fake@gmail.com"
+        app.config["ADMIN_EMAIL"] = "admin@travelworthy.test"
+
+        call_count = {"n": 0}
+
+        def _send(msg):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                raise ConnectionError("SMTP connection refused")
+            # second call (the admin alert) succeeds
+
+        monkeypatch.setattr(email_service.mail, "send", _send)
+        client.post("/bookings/plan-my-trip", data=_valid_form())
+        time.sleep(0.3)
+
+        assert call_count["n"] == 2  # both sends were attempted, not just the first
+        inquiry = Inquiry.query.first()
+        assert inquiry.confirmation_email_failed is True
+
+    @pytest.mark.real_async_email
+    def test_successful_email_leaves_confirmation_email_failed_false(self, app, client, monkeypatch):
+        import time
+        import email_service
+
+        app.config["MAIL_USERNAME"] = "fake@gmail.com"
+        monkeypatch.setattr(email_service.mail, "send", lambda msg: None)
+
+        client.post("/bookings/plan-my-trip", data=_valid_form())
+        time.sleep(0.3)
+
+        inquiry = Inquiry.query.first()
+        assert inquiry.confirmation_email_failed is False
+
 
 class TestPlanMyTrip:
     def test_get_renders_form(self, client):

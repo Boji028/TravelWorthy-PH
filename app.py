@@ -8,6 +8,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_mail import Mail
 from flask_migrate import Migrate
+from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -26,11 +27,27 @@ migrate = Migrate()
 def create_app():
     app = Flask(__name__)
 
+    # Render (and most PaaS platforms) terminate HTTPS at a reverse proxy
+    # in front of the container - the app itself only ever sees plain
+    # HTTP internally, even though the visitor is on https://. Without
+    # this, url_for(_external=True) (used for the Google OAuth redirect
+    # URI, password reset links, and email verification links) can build
+    # an http:// URL, which Google rejects with redirect_uri_mismatch
+    # even when the console's configured redirect URI is correct.
+    # x_for/x_proto=1: trust exactly one proxy hop, matching Render's
+    # architecture (client -> Render's edge proxy -> this container).
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
     # ── Config ────────────────────────────────────────────────
     secret = os.getenv("SECRET_KEY")
     if not secret:
         raise RuntimeError("SECRET_KEY is not set in your .env file!")
     app.config["SECRET_KEY"] = secret
+    # Belt-and-suspenders for any external URL built outside a request
+    # context (none currently exist, but cheap to set): without a
+    # request to read the scheme from, Flask falls back to this.
+    if os.getenv("FLASK_FORCE_HTTPS", "false").lower() == "true":
+        app.config["PREFERRED_URL_SCHEME"] = "https"
 
     # Database
     database_url = os.getenv("DATABASE_URL", "sqlite:///travel_agency.db")

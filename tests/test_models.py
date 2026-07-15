@@ -43,6 +43,77 @@ class TestUserModel:
         assert test_user.created_at is not None
         assert isinstance(test_user.created_at, datetime)
 
+    def test_get_id_lazily_generates_a_session_token(self, test_user):
+        """New/existing users have no session_token until get_id() is
+        first called (login time) - generated and persisted on demand
+        rather than backfilled by migration, since every user logs in at
+        some point regardless."""
+        assert test_user.session_token is None
+        composite_id = test_user.get_id()
+        assert test_user.session_token is not None
+        assert composite_id == f"{test_user.id}:{test_user.session_token}"
+
+    def test_get_id_reuses_existing_token_on_subsequent_calls(self, test_user):
+        """Calling get_id() twice must not rotate the token each time -
+        only rotate_session_token() should change it, otherwise every
+        request would invalidate the session that made it."""
+        first = test_user.get_id()
+        second = test_user.get_id()
+        assert first == second
+
+    def test_rotate_session_token_changes_the_value(self, test_user):
+        test_user.get_id()  # establish an initial token
+        original = test_user.session_token
+        test_user.rotate_session_token()
+        assert test_user.session_token != original
+        assert test_user.session_token is not None
+
+    def test_load_user_accepts_matching_token(self, app, test_user):
+        from models.user import load_user
+        from app import db
+
+        composite_id = test_user.get_id()
+        db.session.commit()
+
+        loaded = load_user(composite_id)
+        assert loaded is not None
+        assert loaded.id == test_user.id
+
+    def test_load_user_rejects_stale_token(self, app, test_user):
+        """The actual mechanism behind the session-invalidation fix: once
+        session_token is rotated, a session ID built from the *old* token
+        must be rejected — this is what makes a password reset kill other
+        sessions."""
+        from models.user import load_user
+        from app import db
+
+        stale_composite_id = test_user.get_id()  # "device A" logs in
+        db.session.commit()
+
+        test_user.rotate_session_token()  # password reset elsewhere
+        db.session.commit()
+
+        assert load_user(stale_composite_id) is None
+
+    def test_load_user_grandfathers_in_bare_numeric_id(self, app, test_user):
+        """A session cookie issued before this feature existed (or by
+        code that sets the session key directly rather than through
+        get_id(), like this test suite's authenticated_client fixture)
+        is a bare numeric ID with no ':' - honored once rather than
+        force-logging out every already-signed-in user the moment this
+        ships, by design (see load_user()'s docstring)."""
+        from models.user import load_user
+
+        loaded = load_user(str(test_user.id))
+        assert loaded is not None
+        assert loaded.id == test_user.id
+
+    def test_load_user_rejects_garbage_id(self, app):
+        from models.user import load_user
+
+        assert load_user("not-a-real-id") is None
+        assert load_user("99999:sometoken") is None
+
 
 class TestTourPackageModel:
     """Test TourPackage model."""

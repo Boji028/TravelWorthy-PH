@@ -262,7 +262,18 @@ def profile():
                 return redirect(url_for("auth.profile"))
 
             current_user.password = generate_password_hash(form.new_password.data)
+            # Same reasoning as the forgot-password reset flow: rotate to
+            # invalidate any other active session for this account. Then
+            # immediately re-login so *this* session (the one used to
+            # make the change) stays valid — otherwise the person who
+            # just changed their own password would find themselves
+            # logged out by their own action. login_user() needs the
+            # real User object, not the current_user LocalProxy — passing
+            # the proxy itself causes infinite recursion inside
+            # flask_login's internals.
+            current_user.rotate_session_token()
             db.session.commit()
+            login_user(current_user._get_current_object(), remember=True)
             current_app.logger.info(f"Password changed for user: {current_user.email}")
             flash("Password changed successfully!", "success")
             return redirect(url_for("auth.profile"))

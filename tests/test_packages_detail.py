@@ -1,6 +1,9 @@
 """Tests for public package detail and autocomplete routes."""
+from datetime import date, timedelta
 from models.package import TourPackage
 from models.package_image import PackageImage
+from models.inquiry import Inquiry
+from constants import InquiryStatus
 
 
 def _make_package(db, **overrides):
@@ -19,6 +22,30 @@ def _make_package(db, **overrides):
     db.session.add(pkg)
     db.session.commit()
     return pkg
+
+
+def _make_inquiry(db, user_id, package_id, status=InquiryStatus.CONFIRMED.value):
+    """Create a confirmed-booking Inquiry linking a user to a package —
+    the eligibility check package_detail/submit_review both enforce for
+    reviews."""
+    inquiry = Inquiry(
+        name="Test User",
+        email="testuser@example.com",
+        contact_number="+639171234567",
+        destination="Coron",
+        travel_date_from=date.today() + timedelta(days=30),
+        travel_date_to=date.today() + timedelta(days=37),
+        num_adults=2,
+        num_children=0,
+        num_infants=0,
+        special_requests="",
+        status=status,
+        user_id=user_id,
+        package_id=package_id,
+    )
+    db.session.add(inquiry)
+    db.session.commit()
+    return inquiry
 
 
 class TestPackageDetail:
@@ -67,13 +94,14 @@ class TestPackageDetail:
         response = client.get(f"/packages/{pkg.id}")
         assert response.status_code == 200
 
-    def test_review_form_posts_to_submit_review(self, app, authenticated_client):
+    def test_review_form_posts_to_submit_review(self, app, authenticated_client, test_user):
         """Regression test: the review form must post to packages.submit_review,
         not bookings.inquire_package — a copy-paste bug once made review
         submission silently impossible through the UI."""
         from app import db
 
         pkg = _make_package(db)
+        _make_inquiry(db, user_id=test_user.id, package_id=pkg.id)
         response = authenticated_client.get(f"/packages/{pkg.id}")
         review_action = f'/packages/{pkg.id}/review"'.encode()
         assert review_action in response.data
@@ -88,6 +116,33 @@ class TestPackageDetail:
         response = authenticated_client.get(f"/packages/{pkg.id}")
         assert f"/packages/{pkg.id}/review/edit".encode() in response.data
         assert b"Pretty good trip." in response.data
+
+    def test_review_form_hidden_without_confirmed_booking(self, app, authenticated_client, test_user):
+        """Regression test: the review form used to render for any logged-in
+        user regardless of booking status — the confirmed-booking
+        requirement only ever surfaced after they wrote a review and hit
+        submit. package_detail() now computes the same eligibility check
+        submit_review() enforces, so the form itself is gated, not just
+        the submission."""
+        from app import db
+
+        pkg = _make_package(db)
+        # test_user has no Inquiry for this package at all — not eligible.
+        response = authenticated_client.get(f"/packages/{pkg.id}")
+        review_action = f'/packages/{pkg.id}/review"'.encode()
+        assert review_action not in response.data
+        assert b"confirmed booking" in response.data
+
+    def test_review_form_hidden_with_unconfirmed_inquiry(self, app, authenticated_client, test_user):
+        """A pending/contacted inquiry (not yet confirmed or closed) does
+        not unlock the review form — same rule as submit_review()."""
+        from app import db
+
+        pkg = _make_package(db)
+        _make_inquiry(db, user_id=test_user.id, package_id=pkg.id, status=InquiryStatus.CONTACTED.value)
+        response = authenticated_client.get(f"/packages/{pkg.id}")
+        review_action = f'/packages/{pkg.id}/review"'.encode()
+        assert review_action not in response.data
 
 
 class TestAutocomplete:

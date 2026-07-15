@@ -425,7 +425,13 @@
           <td>{{ inq.created_at.strftime('%b %d, %Y') }}</td>
           <td>
             <div class="cust-name">{{ inq.name }}</div>
-            <div class="cust-email">{{ inq.email }}</div>
+            <div class="cust-email">
+              {{ inq.email }}
+              {% if inq.confirmation_email_failed %}
+              <i class="fas fa-exclamation-triangle" style="color:var(--danger);margin-left:.35rem"
+                title="Confirmation email failed to send — consider following up manually"></i>
+              {% endif %}
+            </div>
           </td>
           <td>
             {% if inq.package_id %}

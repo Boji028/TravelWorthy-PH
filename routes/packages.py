@@ -14,6 +14,27 @@ from models.visa import VisaCountry
 packages_bp = Blueprint("packages", __name__)
 
 
+def _can_review_package(user_id: int, package_id: int) -> bool:
+    """A user can review a package once they have a confirmed or closed
+    booking (Inquiry) for it. Shared by package_detail() (to decide
+    whether to render the review form at all) and submit_review() (to
+    enforce it server-side) so the rule can't drift out of sync between
+    the two — the earlier bug was exactly this: submit_review() enforced
+    it, package_detail() didn't know about it at all.
+    """
+    from models.inquiry import Inquiry
+    from constants import InquiryStatus
+
+    return (
+        Inquiry.query.filter(
+            Inquiry.user_id == user_id,
+            Inquiry.package_id == package_id,
+            Inquiry.status.in_([InquiryStatus.CONFIRMED.value, InquiryStatus.CLOSED.value]),
+        ).first()
+        is not None
+    )
+
+
 @packages_bp.route("/")
 def list_packages() -> Union[str, object]:
     """List tour packages with filtering options.
@@ -96,8 +117,14 @@ def package_detail(package_id: int) -> str:
     avg_result = db.session.query(func.avg(PackageReview.rating)).filter_by(package_id=package_id).scalar()
     avg_rating = round(float(avg_result), 1) if avg_result else None
     user_review = None
+    can_review = False
     if current_user.is_authenticated:
         user_review = PackageReview.query.filter_by(package_id=package_id, user_id=current_user.id).first()
+        # Same eligibility check submit_review() enforces server-side —
+        # computed here too so the template can show the right state
+        # (form vs. "book this trip first" message) instead of only
+        # finding out on submit, after already writing a review.
+        can_review = _can_review_package(current_user.id, package_id)
     # Build image list for the full-screen photo viewer
     all_images = []
     if package.image and package.image != "default_tour.jpg":
@@ -112,6 +139,7 @@ def package_detail(package_id: int) -> str:
         avg_rating=avg_rating,
         user_reviewed=user_review is not None,
         user_review=user_review,
+        can_review=can_review,
         all_images=all_images,
     )
 
@@ -120,18 +148,11 @@ def package_detail(package_id: int) -> str:
 @login_required
 def submit_review(package_id: int):
     from models.package_review import PackageReview
-    from models.inquiry import Inquiry
-    from constants import InquiryStatus
     from app import db
 
     package = TourPackage.query.filter_by(id=package_id, is_active=True).first_or_404()
 
-    has_booking = Inquiry.query.filter(
-        Inquiry.user_id == current_user.id,
-        Inquiry.package_id == package_id,
-        Inquiry.status.in_([InquiryStatus.CONFIRMED.value, InquiryStatus.CLOSED.value]),
-    ).first()
-    if not has_booking:
+    if not _can_review_package(current_user.id, package_id):
         flash("You can only review packages you have a confirmed booking for.", "warning")
         return redirect(url_for("packages.package_detail", package_id=package_id) + "#s-reviews")
 
