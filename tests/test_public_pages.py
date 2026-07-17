@@ -149,6 +149,31 @@ class TestContactRoute:
         assert b"Question about a package" in response.data
         assert b"A question about the Palawan tour." in response.data
 
+    def test_admin_alert_reply_link_prefills_subject(self, app, client, monkeypatch):
+        """Regression test - the 'Reply to sender' mailto: link in the
+        admin alert email used to be bare (no subject), so replying from
+        Gmail always started with a blank subject line."""
+        from app import db, mail as app_mail
+
+        app.config["MAIL_USERNAME"] = "test@example.com"
+        monkeypatch.setenv("ADMIN_EMAIL", "admin@travelworthyph.com")
+        sent_messages = []
+        monkeypatch.setattr(app_mail, "send", lambda m: sent_messages.append(m))
+
+        client.post(
+            "/contact",
+            data={
+                "name": "Juan Dela Cruz",
+                "email": "juan@example.com",
+                "subject": "Question about a package",
+                "message": "A question about the Palawan tour.",
+            },
+        )
+
+        admin_alerts = [m for m in sent_messages if m.subject.startswith("[Admin]")]
+        assert len(admin_alerts) == 1
+        assert "mailto:juan@example.com?subject=Re%3A%20Question%20about%20a%20package" in admin_alerts[0].html
+
 
 class TestTrackInquiry:
     def test_valid_reference_renders_page(self, app, client):

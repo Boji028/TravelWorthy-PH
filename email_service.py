@@ -2,7 +2,7 @@
 import os
 import re
 from html import escape as html_escape
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, quote
 
 
 def _strip_headers(value: str) -> str:
@@ -100,13 +100,17 @@ def send_contact_autoreply(name: str, to_email: str, subject: str) -> None:
     _send(reply_subject, [to_email], body, html=html)
 
 
-def send_contact_reply(name: str, to_email: str, original_subject: str, admin_response: str) -> bool:
+def send_contact_reply(name: str, to_email: str, original_subject: str, admin_response: str, cc: list = None) -> bool:
     """Send a branded reply to a contact message. Returns True if sent.
 
     Unlike send_contact_autoreply (the instant "we got your message"
     acknowledgement) this carries the actual staff response, so it uses
     the same visual template for consistency instead of the plain-text
     mailto: reply that used to be the only option.
+
+    cc: optional list of extra recipients, free-typed by the admin in
+    the reply modal (same idea as Gmail's Cc field — not tied to the
+    Agent model, since ContactMessage isn't linked to a package/agent).
     """
     name = _strip_headers(name)
     original_subject = _strip_headers(original_subject)
@@ -160,7 +164,7 @@ def send_contact_reply(name: str, to_email: str, original_subject: str, admin_re
     </table>
     </body></html>
     """
-    return _send(reply_subject, [to_email], body, html=html)
+    return _send(reply_subject, [to_email], body, html=html, cc=cc)
 
 
 def send_contact_admin_alert(admin_email: str, name: str, email: str, subject: str, message: str) -> None:
@@ -197,7 +201,7 @@ def send_contact_admin_alert(admin_email: str, name: str, email: str, subject: s
         <div style="background:#ede5d8;border-radius:6px;padding:10px 14px;font-size:13px;color:#424142;margin-bottom:18px;line-height:1.6;">
           {safe_message}
         </div>
-        <a href="mailto:{safe_email}" style="display:inline-block;background:#EF8233;color:#ffffff;font-size:13px;font-weight:bold;padding:10px 20px;border-radius:6px;text-decoration:none;">Reply to sender &rarr;</a>
+        <a href="mailto:{safe_email}?subject={quote('Re: ' + subject)}" style="display:inline-block;background:#EF8233;color:#ffffff;font-size:13px;font-weight:bold;padding:10px 20px;border-radius:6px;text-decoration:none;">Reply to sender &rarr;</a>
       </td></tr>
     </table>
     </body></html>
