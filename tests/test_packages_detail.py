@@ -94,6 +94,18 @@ class TestPackageDetail:
         response = client.get(f"/packages/{pkg.id}")
         assert response.status_code == 200
 
+    def test_guest_sees_inquire_button_not_login_gate(self, app, client):
+        """Regression test — package detail pages used to hide the inquiry
+        form behind a login wall, inconsistent with the Visa page and Plan
+        My Trip, which both let guests inquire directly. The button should
+        always be 'Inquire Now', never 'Login to Inquire'."""
+        from app import db
+
+        pkg = _make_package(db)
+        response = client.get(f"/packages/{pkg.id}")
+        assert b"Inquire Now" in response.data
+        assert b"Login to Inquire" not in response.data
+
     def test_review_form_posts_to_submit_review(self, app, authenticated_client, test_user):
         """Regression test: the review form must post to packages.submit_review,
         not bookings.inquire_package — a copy-paste bug once made review
