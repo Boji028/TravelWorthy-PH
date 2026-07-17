@@ -244,6 +244,21 @@ class TestInquirePackage:
         response = client.get(f"/bookings/inquire/{pkg.id}")
         assert response.status_code == 200
 
+    def test_cloudinary_image_thumbnail_not_prefixed_with_uploads(self, app, client):
+        """Regression test - the package preview thumbnail always prefixed
+        package.image with '/uploads/', which made sense for legacy local
+        uploads but broke every Cloudinary-hosted image (a full https://
+        URL got mangled into '/uploads/https://...'). Cloudinary URLs must
+        be used as-is (through the cloudinary_card filter); only bare
+        filenames get the '/uploads/' prefix."""
+        from app import db
+
+        pkg = _make_package(db, image="https://res.cloudinary.com/demo/image/upload/v1/palau.jpg")
+        response = client.get(f"/bookings/inquire/{pkg.id}")
+        assert response.status_code == 200
+        assert b"/uploads/https://" not in response.data
+        assert b"res.cloudinary.com/demo/image/upload/" in response.data
+
     def test_nonexistent_package_redirects(self, client):
         response = client.get("/bookings/inquire/99999", follow_redirects=False)
         assert response.status_code in (302, 404)

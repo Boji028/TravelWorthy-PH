@@ -158,7 +158,9 @@
   <!-- Package Preview -->
   <div class="pkg-preview">
     {% if package.image and package.image != 'default_tour.jpg' %}
-      <img class="pkg-preview-img" src="/uploads/{{ package.image }}" alt="{{ package.title }}" />
+      <img class="pkg-preview-img"
+        src="{{ (package.image | cloudinary_card) if package.image.startswith('http') else '/uploads/' + package.image }}"
+        alt="{{ package.title }}" />
     {% else %}
       <div class="pkg-preview-img-placeholder"><i class="fas fa-mountain"></i></div>
     {% endif %}
