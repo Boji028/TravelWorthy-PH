@@ -100,6 +100,69 @@ def send_contact_autoreply(name: str, to_email: str, subject: str) -> None:
     _send(reply_subject, [to_email], body, html=html)
 
 
+def send_contact_reply(name: str, to_email: str, original_subject: str, admin_response: str) -> bool:
+    """Send a branded reply to a contact message. Returns True if sent.
+
+    Unlike send_contact_autoreply (the instant "we got your message"
+    acknowledgement) this carries the actual staff response, so it uses
+    the same visual template for consistency instead of the plain-text
+    mailto: reply that used to be the only option.
+    """
+    name = _strip_headers(name)
+    original_subject = _strip_headers(original_subject)
+    reply_subject = f"Re: {original_subject}"
+    safe_name = html_escape(name)
+    safe_subject = html_escape(original_subject)
+    safe_response = html_escape(admin_response).replace("\n", "<br>")
+    logo_url = "https://res.cloudinary.com/dbcjxuxhl/image/upload/brand_logo_ip0yv0.png"
+    body = (
+        f"Dear {name},\n\n"
+        f"Thank you for reaching out about \"{original_subject}\". Here's our response:\n\n"
+        f"{admin_response}\n\n"
+        "If you have any further questions, feel free to reply to this email.\n\n"
+        "Sincerely,\nTravel Worthy PH Team"
+    )
+    html = f"""
+    <html><body style="margin:0;padding:0;background:#ffffff;font-family:Arial,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="height:4px;background:#175968;line-height:4px;font-size:0;">&nbsp;</td></tr>
+      <tr><td style="padding:22px 26px;background:#fdfaf6;">
+
+        <img src="{logo_url}" width="110" style="display:block;margin-bottom:18px;" alt="Travel Worthy PH" />
+
+        <p style="font-size:15px;color:#222222;margin:0 0 4px;">Dear <strong>{safe_name}</strong>,</p>
+        <p style="font-size:14px;color:#444444;line-height:1.6;margin:0 0 14px;">
+          Thank you for reaching out about <em>"{safe_subject}"</em>. Here's our response:
+        </p>
+
+        <table width="100%" cellpadding="0" cellspacing="0"
+          style="background:#ffffff;border-left:3px solid #175968;border-radius:4px;margin-bottom:18px;">
+          <tr><td style="padding:14px 16px;font-size:14px;color:#333333;line-height:1.6;">
+            {safe_response}
+          </td></tr>
+        </table>
+
+        <p style="font-size:14px;color:#444444;line-height:1.6;margin:0 0 22px;">
+          If you have any further questions, feel free to reply directly to this email.
+        </p>
+
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-top:2px solid #f5a623;padding-top:14px;">
+          <tr>
+            <td>
+              <p style="font-size:13px;color:#444444;margin:0 0 2px;">Sincerely,</p>
+              <p style="font-size:13px;font-weight:bold;color:#222222;margin:0;">Travel Worthy PH Team</p>
+              <p style="font-size:12px;color:#8fa8a3;margin:4px 0 0;">Making Your Travel Dreams Real</p>
+            </td>
+          </tr>
+        </table>
+
+      </td></tr>
+    </table>
+    </body></html>
+    """
+    return _send(reply_subject, [to_email], body, html=html)
+
+
 def send_contact_admin_alert(admin_email: str, name: str, email: str, subject: str, message: str) -> None:
     name = _strip_headers(name)
     subject = _strip_headers(subject)

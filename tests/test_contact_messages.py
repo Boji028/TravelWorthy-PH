@@ -47,6 +47,20 @@ class TestContactMessagesAccess:
         response = client.post(f"/admin/contact-messages/delete/{msg.id}")
         assert response.status_code in (302, 401, 403)
 
+    def test_reply_requires_login(self, app, client):
+        from app import db
+
+        msg = _make_contact_message(db)
+        response = client.post(f"/admin/contact-messages/reply/{msg.id}", data={"response": "Hello"})
+        assert response.status_code in (302, 401, 403)
+
+    def test_reply_rejects_non_admin(self, app, authenticated_client):
+        from app import db
+
+        msg = _make_contact_message(db)
+        response = authenticated_client.post(f"/admin/contact-messages/reply/{msg.id}", data={"response": "Hello"})
+        assert response.status_code in (302, 403)
+
 
 class TestContactMessagesFiltering:
     def test_search_filters_by_name(self, app, admin_client):
@@ -180,3 +194,86 @@ class TestContactMessageBulkDelete:
         response = admin_client.post("/admin/contact-messages/delete-bulk", data={})
         assert response.status_code == 302
         assert db.session.get(ContactMessage, msg_id) is not None
+
+
+class TestContactMessageReply:
+    def test_empty_response_does_not_update(self, app, admin_client):
+        from app import db
+
+        msg = _make_contact_message(db)
+        admin_client.post(f"/admin/contact-messages/reply/{msg.id}", data={"response": ""})
+        updated = db.session.get(ContactMessage, msg.id)
+        assert updated.admin_response is None
+        assert updated.responded_at is None
+
+    def test_whitespace_response_does_not_update(self, app, admin_client):
+        from app import db
+
+        msg = _make_contact_message(db)
+        admin_client.post(f"/admin/contact-messages/reply/{msg.id}", data={"response": "   "})
+        assert db.session.get(ContactMessage, msg.id).admin_response is None
+
+    def test_nonexistent_message_returns_404(self, app, admin_client):
+        response = admin_client.post("/admin/contact-messages/reply/99999", data={"response": "Hello"})
+        assert response.status_code == 404
+
+    def test_mail_not_configured_does_not_save_response(self, app, admin_client):
+        """Regression test - the old mailto: 'Reply to sender' link had no
+        way to fail visibly. This route sends first and only persists on
+        success, so an unconfigured mail setup must not silently record a
+        reply that was never actually sent."""
+        from app import db
+
+        msg = _make_contact_message(db)
+        response = admin_client.post(
+            f"/admin/contact-messages/reply/{msg.id}", data={"response": "Thanks for reaching out!"}
+        )
+        assert response.status_code == 302
+        updated = db.session.get(ContactMessage, msg.id)
+        assert updated.admin_response is None
+        assert updated.responded_at is None
+
+    def test_successful_reply_saves_response_and_sends_branded_email(self, app, admin_client, monkeypatch):
+        """The whole point of this feature - unlike the plain mailto: reply,
+        this must actually go out through the app with the branded HTML
+        template, and be recorded on the message."""
+        from app import db, mail as app_mail
+
+        app.config["MAIL_USERNAME"] = "test@example.com"
+        sent_messages = []
+        monkeypatch.setattr(app_mail, "send", lambda m: sent_messages.append(m))
+
+        msg = _make_contact_message(db, name="Maria Santos", subject="Palawan package", is_read=False)
+        response = admin_client.post(
+            f"/admin/contact-messages/reply/{msg.id}",
+            data={"response": "Thanks for reaching out! Here are the details you asked for."},
+        )
+        assert response.status_code == 302
+
+        updated = db.session.get(ContactMessage, msg.id)
+        assert updated.admin_response == "Thanks for reaching out! Here are the details you asked for."
+        assert updated.responded_at is not None
+        assert updated.is_read is True
+
+        assert len(sent_messages) == 1
+        sent = sent_messages[0]
+        assert sent.subject == "Re: Palawan package"
+        assert sent.recipients == [msg.email]
+        assert "Thanks for reaching out!" in sent.body
+        assert sent.html is not None and "Thanks for reaching out!" in sent.html
+
+    def test_replied_message_shows_badge_on_list_page(self, app, admin_client, monkeypatch):
+        """Regression test for the template render itself - the 'Replied'
+        badge reads msg.responded_at.strftime(...), which would crash the
+        whole page if responded_at were ever left unset."""
+        from app import db, mail as app_mail
+
+        app.config["MAIL_USERNAME"] = "test@example.com"
+        monkeypatch.setattr(app_mail, "send", lambda m: None)
+
+        msg = _make_contact_message(db, name="Maria Santos")
+        admin_client.post(f"/admin/contact-messages/reply/{msg.id}", data={"response": "Thanks!"})
+
+        response = admin_client.get("/admin/contact-messages")
+        assert response.status_code == 200
+        assert b"Replied" in response.data
