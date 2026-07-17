@@ -115,6 +115,40 @@ class TestContactRoute:
         assert msg is not None
         assert msg.user_id == test_user.id
 
+    def test_single_word_name_shows_error_message(self, app, client):
+        """Regression test - contact.html only ever displayed errors for
+        the message field; name/email/subject failures used to just
+        redisplay a blank form with no explanation, identical to the bug
+        already fixed on the inquiry forms."""
+        response = client.post(
+            "/contact",
+            data={
+                "name": "Juan",
+                "email": "juan@example.com",
+                "subject": "Question about a package",
+                "message": "A question.",
+            },
+        )
+        assert response.status_code == 200
+        assert b"Please enter your first and last name" in response.data
+
+    def test_invalid_submission_preserves_entered_values(self, app, client):
+        """Regression test - previously entered values used to be wiped on
+        a failed submission."""
+        response = client.post(
+            "/contact",
+            data={
+                "name": "Juan",
+                "email": "juan@example.com",
+                "subject": "Question about a package",
+                "message": "A question about the Palawan tour.",
+            },
+        )
+        assert response.status_code == 200
+        assert b"juan@example.com" in response.data
+        assert b"Question about a package" in response.data
+        assert b"A question about the Palawan tour." in response.data
+
 
 class TestTrackInquiry:
     def test_valid_reference_renders_page(self, app, client):
