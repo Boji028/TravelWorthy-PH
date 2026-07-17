@@ -181,6 +181,32 @@ class TestPlanMyTrip:
         client.post("/bookings/plan-my-trip", data=_valid_form(num_adults=0))
         assert Inquiry.query.count() == 0
 
+    def test_past_departure_date_shows_error_message(self, app, client):
+        """Regression test - the form used to silently re-render on
+        validation failure with zero indication of what went wrong.
+        The specific field error must now appear in the response."""
+        yesterday = (date.today() - timedelta(days=1)).isoformat()
+        response = client.post(
+            "/bookings/plan-my-trip",
+            data=_valid_form(travel_date_from=yesterday, travel_date_to=_future(5)),
+        )
+        assert response.status_code == 200
+        assert b"Departure date must be in the future" in response.data
+
+    def test_single_word_name_shows_error_message(self, app, client):
+        """Regression test for the FullNameValidator - same silent-failure
+        bug, different trigger (single-word name instead of a full name)."""
+        response = client.post("/bookings/plan-my-trip", data=_valid_form(name="Juan"))
+        assert response.status_code == 200
+        assert b"Please enter your first and last name" in response.data
+
+    def test_invalid_submission_preserves_entered_name(self, app, client):
+        """Regression test - previously entered values used to be wiped on
+        a failed submission, forcing the user to retype everything."""
+        response = client.post("/bookings/plan-my-trip", data=_valid_form(email="not-an-email"))
+        assert response.status_code == 200
+        assert b"Juan dela Cruz" in response.data
+
     def test_optional_children_and_infants_default_to_zero(self, app, client):
         from app import db
 
@@ -237,6 +263,18 @@ class TestInquirePackage:
         pkg = _make_package(db)
         client.post(f"/bookings/inquire/{pkg.id}", data=_valid_form(name=""))
         assert Inquiry.query.count() == 0
+
+    def test_invalid_submission_shows_error_and_preserves_values(self, app, client):
+        """Regression test - inquire_package.html had the identical
+        silent-failure bug as plan_my_trip.html: no error display, no
+        value repopulation on a failed submission."""
+        from app import db
+
+        pkg = _make_package(db)
+        response = client.post(f"/bookings/inquire/{pkg.id}", data=_valid_form(name="Juan"))
+        assert response.status_code == 200
+        assert b"Please enter your first and last name" in response.data
+        assert b"juan@example.com" in response.data
 
     def test_email_lowercased_on_save(self, app, client):
         from app import db

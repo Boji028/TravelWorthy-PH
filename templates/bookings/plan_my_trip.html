@@ -248,18 +248,30 @@
         <div class="form-row">
           <div class="form-group">
             <label>Full Name <span style="color:var(--danger)">*</span></label>
-            <input type="text" name="name" class="form-control" required placeholder="Juan dela Cruz" />
+            <input type="text" name="name" class="form-control" required placeholder="Juan dela Cruz"
+              value="{{ form.name.data or '' }}" />
+            {% if form.name.errors %}
+            <div style="color:var(--danger);font-size:.82rem;margin-top:.3rem;">{{ form.name.errors[0] }}</div>
+            {% endif %}
           </div>
           <div class="form-group">
             <label>Email Address <span style="color:var(--danger)">*</span></label>
-            <input type="email" name="email" class="form-control" required placeholder="juan@email.com" />
+            <input type="email" name="email" class="form-control" required placeholder="juan@email.com"
+              value="{{ form.email.data or '' }}" />
+            {% if form.email.errors %}
+            <div style="color:var(--danger);font-size:.82rem;margin-top:.3rem;">{{ form.email.errors[0] }}</div>
+            {% endif %}
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label>Contact Number <span style="color:var(--danger)">*</span></label>
-            <input type="tel" name="contact_number" class="form-control" required placeholder="09171234567" />
+            <input type="tel" name="contact_number" class="form-control" required placeholder="09171234567"
+              value="{{ form.contact_number.data or '' }}" />
+            {% if form.contact_number.errors %}
+            <div style="color:var(--danger);font-size:.82rem;margin-top:.3rem;">{{ form.contact_number.errors[0] }}</div>
+            {% endif %}
           </div>
           <div class="form-group">
             <label>Number of Pax <span style="color:var(--danger)">*</span></label>
@@ -268,31 +280,40 @@
                 <label style="font-size:.78rem; color:var(--mist); display:block; margin-bottom:.35rem;">
                   Adults
                 </label>
-                <input type="number" name="num_adults" class="form-control" value="1" min="1" max="20" required
-                  style="text-align:center;" />
+                <input type="number" name="num_adults" class="form-control" value="{{ form.num_adults.data or 1 }}"
+                  min="1" max="20" required style="text-align:center;" />
               </div>
               <div class="form-group" style="margin-bottom:0;">
                 <label style="font-size:.78rem; color:var(--mist); display:block; margin-bottom:.35rem;">
                   Children
                 </label>
-                <input type="number" name="num_children" class="form-control" value="0" min="0" max="20"
-                  style="text-align:center;" />
+                <input type="number" name="num_children" class="form-control" value="{{ form.num_children.data or 0 }}"
+                  min="0" max="20" style="text-align:center;" />
               </div>
               <div class="form-group" style="margin-bottom:0;">
                 <label style="font-size:.78rem; color:var(--mist); display:block; margin-bottom:.35rem;">
                   Infants
                 </label>
-                <input type="number" name="num_infants" class="form-control" value="0" min="0" max="10"
-                  style="text-align:center;" />
+                <input type="number" name="num_infants" class="form-control" value="{{ form.num_infants.data or 0 }}"
+                  min="0" max="10" style="text-align:center;" />
               </div>
             </div>
+            {% if form.num_adults.errors or form.num_children.errors or form.num_infants.errors %}
+            <div style="color:var(--danger);font-size:.82rem;margin-top:.3rem;">
+              {{ (form.num_adults.errors + form.num_children.errors + form.num_infants.errors)[0] }}
+            </div>
+            {% endif %}
           </div>
         </div>
 
         <div class="form-group">
           <label>Travel Destination <span style="color:var(--danger)">*</span></label>
           <input type="text" name="destination" class="form-control" required
-            placeholder="Where do you want to go? e.g. Palawan, Siargao, Batanes…" />
+            placeholder="Where do you want to go? e.g. Palawan, Siargao, Batanes…"
+            value="{{ form.destination.data or '' }}" />
+          {% if form.destination.errors %}
+          <div style="color:var(--danger);font-size:.82rem;margin-top:.3rem;">{{ form.destination.errors[0] }}</div>
+          {% endif %}
         </div>
         <div class="form-group">
           <label>With or Without Airfare? <span style="color:var(--danger)">*</span></label>
@@ -315,11 +336,19 @@
           <div class="form-row">
             <div class="form-group">
               <label style="font-size:.82rem;color:var(--mist);">From</label>
-              <input type="date" name="travel_date_from" class="form-control" required style="color-scheme:light;" />
+              <input type="date" name="travel_date_from" class="form-control" required style="color-scheme:light;"
+                value="{{ form.travel_date_from.data or '' }}" />
+              {% if form.travel_date_from.errors %}
+              <div style="color:var(--danger);font-size:.82rem;margin-top:.3rem;">{{ form.travel_date_from.errors[0] }}</div>
+              {% endif %}
             </div>
             <div class="form-group">
               <label style="font-size:.82rem;color:var(--mist);">To</label>
-              <input type="date" name="travel_date_to" class="form-control" required style="color-scheme:light;" />
+              <input type="date" name="travel_date_to" class="form-control" required style="color-scheme:light;"
+                value="{{ form.travel_date_to.data or '' }}" />
+              {% if form.travel_date_to.errors %}
+              <div style="color:var(--danger);font-size:.82rem;margin-top:.3rem;">{{ form.travel_date_to.errors[0] }}</div>
+              {% endif %}
             </div>
           </div>
         </div>
@@ -327,7 +356,7 @@
         <div class="form-group">
           <label>Special Requests <span style="font-size:.8rem;color:var(--mist)">(optional)</span></label>
           <textarea name="special_requests" class="form-control" rows="3"
-            placeholder="Honeymoon setup, dietary restrictions, preferred hotel type, activities you want to include…"></textarea>
+            placeholder="Honeymoon setup, dietary restrictions, preferred hotel type, activities you want to include…">{{ form.special_requests.data or '' }}</textarea>
         </div>
 
         <button type="submit" class="btn btn-amber"
