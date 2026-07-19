@@ -4,7 +4,8 @@
 {% block extra_styles %}
 <style>
   .page-hero {
-    background: linear-gradient(135deg, var(--teal-d), var(--teal));
+    background: linear-gradient(135deg, rgba(59, 185, 182, .82), rgba(23, 89, 104, .88)),
+      url("{{ url_for('static', filename='images/beach.jpg') }}") center / cover no-repeat;
     color: var(--white);
     padding: 4rem 2rem 4.5rem;
     text-align: center;
