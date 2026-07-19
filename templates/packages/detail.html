@@ -885,6 +885,12 @@
       grid-template-columns: 1fr;
     }
 
+    /* form-row's 1rem gap is meant as horizontal spacing between the
+       two desktop columns. Once collapsed to a single column here, that
+       same gap becomes an extra vertical gap stacked on top of
+       #inquireModal .form-group's own margin-bottom - doubling up the
+       space between fields. Zero it out for this modal specifically so
+       margin-bottom is the only thing controlling the vertical rhythm. */
     #inquireModal .form-row {
       gap: 0;
     }
