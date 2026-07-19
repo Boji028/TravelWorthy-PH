@@ -100,6 +100,11 @@ def register():
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
+@limiter.limit(
+    "5 per minute; 20 per hour",
+    methods=["POST"],
+    key_func=lambda: (request.form.get("email", request.remote_addr) or "unknown").lower(),
+)
 def login():
     """User login route with session management and error handling."""
     if current_user.is_authenticated:
