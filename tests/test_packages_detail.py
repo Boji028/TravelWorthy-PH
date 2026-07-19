@@ -156,6 +156,46 @@ class TestPackageDetail:
         review_action = f'/packages/{pkg.id}/review"'.encode()
         assert review_action not in response.data
 
+    def test_amenities_count_excludes_blank_lines(self, app, client):
+        """Regression test - the count used to come from
+        `selectattr('strip')`, which tests whether each line's `.strip`
+        *method* is truthy (always true, since it's just testing that the
+        method exists) rather than calling it and checking the result.
+        Blank lines were never actually filtered out, so a package with a
+        few stray blank lines in its amenities field showed a "Show all
+        N" count far higher than the number of amenities actually
+        displayed - 11 shown for only 6 real amenities (4 visible + 2
+        hidden behind the button) in the reported case."""
+        from app import db
+
+        pkg = _make_package(
+            db,
+            amenities="Day 1 Manila - Palau\nDay 2 Palau\n\n\n\nDay 3 Koror Island\nDay 4 New South Rock Island\n\nDay 5 Free day\nDay 6 Departure\n",
+        )
+        response = client.get(f"/packages/{pkg.id}")
+        assert response.status_code == 200
+        # Only 6 real amenities - all fit within the first-8 display, so
+        # no "Show all" button should appear at all, and the old inflated
+        # count must not show up anywhere.
+        assert b"Show all" not in response.data
+        assert b"Day 6 Departure" in response.data
+
+    def test_amenities_show_all_count_is_accurate_with_blank_lines(self, app, client):
+        """Same bug, but with enough real amenities to actually trigger
+        the 'Show all N' button - the N must reflect only the real
+        amenities, not the raw line count including blanks."""
+        from app import db
+
+        real_amenities = [f"Day {i} Activity" for i in range(1, 11)]  # 10 real
+        amenities_field = "\n\n".join(real_amenities) + "\n\n\n"  # + 12 blank lines
+        pkg = _make_package(db, amenities=amenities_field)
+
+        response = client.get(f"/packages/{pkg.id}")
+        assert response.status_code == 200
+        assert b"Show all 10" in response.data
+        assert b"Show all 21" not in response.data
+        assert b"Show all 22" not in response.data
+
 
 class TestAutocomplete:
     def test_returns_json(self, app, client):

@@ -1070,18 +1070,18 @@
     {% if package.amenities %}
     <div class="detail-section" id="s-amenities">
       <h3>What this package offers</h3>
-      {% set amenity_list = package.amenities.split('\n') | selectattr('strip') | list %}
+      {% set amenity_list = package.amenities.split('\n') | map('trim') | select | list %}
       <div class="amenities-grid" id="amenities-grid">
-        {% for item in amenity_list[:8] %}{% if item.strip() %}
-        <div class="am-item"><i class="fas fa-check-circle"></i> {{ item.strip() }}</div>
-        {% endif %}{% endfor %}
+        {% for item in amenity_list[:8] %}
+        <div class="am-item"><i class="fas fa-check-circle"></i> {{ item }}</div>
+        {% endfor %}
       </div>
       {% if amenity_list|length > 8 %}
       <div id="extra-amenities" style="display:none;">
         <div class="amenities-grid" style="margin-top:.4rem">
-          {% for item in amenity_list[8:] %}{% if item.strip() %}
-          <div class="am-item"><i class="fas fa-check-circle"></i> {{ item.strip() }}</div>
-          {% endif %}{% endfor %}
+          {% for item in amenity_list[8:] %}
+          <div class="am-item"><i class="fas fa-check-circle"></i> {{ item }}</div>
+          {% endfor %}
         </div>
       </div>
       <button class="show-more-btn" id="amenities-btn" onclick="toggleAmenities()">Show all {{ amenity_list|length }}
