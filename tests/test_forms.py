@@ -1,6 +1,6 @@
 """Tests for form validation."""
 import pytest
-from forms import RegisterForm, LoginForm, ChangePasswordForm, ContactForm, InquiryForm, StrongPasswordValidator, FullNameValidator
+from forms import RegisterForm, LoginForm, ChangePasswordForm, InquiryForm, StrongPasswordValidator, FullNameValidator
 from datetime import date, timedelta
 
 
@@ -197,25 +197,3 @@ class TestInquiryForm:
                     "num_adults": 2,
                 }
             )
-
-
-class TestContactForm:
-    """Test contact form validation."""
-
-    def test_contact_form_valid(self, app):
-        """Test valid contact form."""
-        with app.test_request_context():
-            form = ContactForm(
-                data={
-                    "name": "John Doe",
-                    "email": "john@example.com",
-                    "subject": "Inquiry about packages",
-                    "message": "I would like to know more about your tour packages.",
-                }
-            )
-            assert form.name.data == "John Doe"
-
-    def test_contact_form_short_message(self, app):
-        """Test contact form with message too short."""
-        with app.test_request_context():
-            form = ContactForm(data={"name": "John", "email": "john@example.com", "subject": "Hi", "message": "Short"})

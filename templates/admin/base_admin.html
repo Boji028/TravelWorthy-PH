@@ -257,10 +257,6 @@
       class="sidebar-link {% if request.endpoint == 'admin.inquiries' %}active{% endif %}">
       <i class="fas fa-envelope-open-text"></i> Inquiries
     </a>
-    <a href="{{ url_for('admin.contact_messages') }}"
-      class="sidebar-link {% if 'contact_messages' in request.endpoint %}active{% endif %}">
-      <i class="fas fa-inbox"></i> Messages
-    </a>
     <a href="{{ url_for('admin.blog') }}" class="sidebar-link {% if 'blog' in request.endpoint %}active{% endif %}">
       <i class="fas fa-pen-nib"></i> Stories
     </a>

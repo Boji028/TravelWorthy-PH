@@ -1,7 +1,6 @@
 """Tests for public-facing pages and user routes."""
 from datetime import date, timedelta
 from models.inquiry import Inquiry
-from models.contact import ContactMessage
 from models.testimonial import Testimonial
 
 
@@ -25,154 +24,25 @@ def _make_inquiry(db, user_id=None, **overrides):
     return inquiry
 
 
-class TestContactRoute:
-    def test_get_renders_form(self, client):
+class TestContactPage:
+    """Contact Us is now a plain reach-us-details page — the message
+    form, ContactMessage model, and admin Contact Messages panel were
+    all removed at the boss's request."""
+
+    def test_contact_page_renders_with_details(self, client):
         response = client.get("/contact")
         assert response.status_code == 200
+        assert b"+639178247128" in response.data
+        assert b"travelworthyph@gmail.com" in response.data
 
-    def test_valid_post_saves_message(self, app, client):
-        from app import db
+    def test_contact_page_has_no_message_form(self, client):
+        response = client.get("/contact")
+        assert b"Send Us a Message" not in response.data
+        assert b'name="message"' not in response.data
 
-        client.post(
-            "/contact",
-            data={
-                "name": "Juan Dela Cruz",
-                "email": "juan@example.com",
-                "subject": "Hello there",
-                "message": "I have a question about your tours.",
-            },
-        )
-        assert ContactMessage.query.count() == 1
-
-    def test_missing_name_does_not_save(self, app, client):
-        from app import db
-
-        client.post(
-            "/contact",
-            data={
-                "name": "",
-                "email": "juan@example.com",
-                "subject": "Hello",
-                "message": "A question.",
-            },
-        )
-        assert ContactMessage.query.count() == 0
-
-    def test_missing_email_does_not_save(self, app, client):
-        from app import db
-
-        client.post(
-            "/contact",
-            data={
-                "name": "Juan",
-                "email": "",
-                "subject": "Hello",
-                "message": "A question.",
-            },
-        )
-        assert ContactMessage.query.count() == 0
-
-    def test_short_subject_does_not_save(self, app, client):
-        from app import db
-
-        client.post(
-            "/contact",
-            data={
-                "name": "Juan",
-                "email": "juan@example.com",
-                "subject": "H",
-                "message": "A question.",
-            },
-        )
-        assert ContactMessage.query.count() == 0
-
-    def test_valid_post_redirects(self, app, client):
-        response = client.post(
-            "/contact",
-            data={
-                "name": "Juan Dela Cruz",
-                "email": "juan@example.com",
-                "subject": "Hello there",
-                "message": "I have a question about your tours.",
-            },
-            follow_redirects=False,
-        )
-        assert response.status_code == 302
-
-    def test_logged_in_user_linked_to_message(self, app, authenticated_client, test_user):
-        from app import db
-
-        authenticated_client.post(
-            "/contact",
-            data={
-                "name": "Juan Dela Cruz",
-                "email": "juan@example.com",
-                "subject": "Hello there",
-                "message": "I have a question about your tours.",
-            },
-        )
-        msg = ContactMessage.query.first()
-        assert msg is not None
-        assert msg.user_id == test_user.id
-
-    def test_single_word_name_shows_error_message(self, app, client):
-        """Regression test - contact.html only ever displayed errors for
-        the message field; name/email/subject failures used to just
-        redisplay a blank form with no explanation, identical to the bug
-        already fixed on the inquiry forms."""
-        response = client.post(
-            "/contact",
-            data={
-                "name": "Juan",
-                "email": "juan@example.com",
-                "subject": "Question about a package",
-                "message": "A question.",
-            },
-        )
-        assert response.status_code == 200
-        assert b"Please enter your first and last name" in response.data
-
-    def test_invalid_submission_preserves_entered_values(self, app, client):
-        """Regression test - previously entered values used to be wiped on
-        a failed submission."""
-        response = client.post(
-            "/contact",
-            data={
-                "name": "Juan",
-                "email": "juan@example.com",
-                "subject": "Question about a package",
-                "message": "A question about the Palawan tour.",
-            },
-        )
-        assert response.status_code == 200
-        assert b"juan@example.com" in response.data
-        assert b"Question about a package" in response.data
-        assert b"A question about the Palawan tour." in response.data
-
-    def test_admin_alert_reply_link_prefills_subject(self, app, client, monkeypatch):
-        """Regression test - the 'Reply to sender' mailto: link in the
-        admin alert email used to be bare (no subject), so replying from
-        Gmail always started with a blank subject line."""
-        from app import db, mail as app_mail
-
-        app.config["MAIL_USERNAME"] = "test@example.com"
-        monkeypatch.setenv("ADMIN_EMAIL", "admin@travelworthyph.com")
-        sent_messages = []
-        monkeypatch.setattr(app_mail, "send", lambda m: sent_messages.append(m))
-
-        client.post(
-            "/contact",
-            data={
-                "name": "Juan Dela Cruz",
-                "email": "juan@example.com",
-                "subject": "Question about a package",
-                "message": "A question about the Palawan tour.",
-            },
-        )
-
-        admin_alerts = [m for m in sent_messages if m.subject.startswith("[Admin]")]
-        assert len(admin_alerts) == 1
-        assert "mailto:juan@example.com?subject=Re%3A%20Question%20about%20a%20package" in admin_alerts[0].html
+    def test_contact_page_only_accepts_get(self, client):
+        response = client.post("/contact", data={"name": "Juan"})
+        assert response.status_code == 405
 
 
 class TestTrackInquiry:

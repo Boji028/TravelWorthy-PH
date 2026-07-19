@@ -1,17 +1,14 @@
 """Main routes for public pages and contact functionality."""
 from typing import Union
-import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 from flask_login import current_user, login_required
 from sqlalchemy.orm import selectinload
 import bleach
-from app import db, limiter
+from app import db
 from models.testimonial import Testimonial
 from models.package import TourPackage
-from models.contact import ContactMessage
 from image_service import ImageUploadService, ImageUploadException
 from utils import save_image_metadata, delete_old_image
-from forms import ContactForm
 from models.blog import BlogPost
 
 main_bp = Blueprint("main", __name__)
@@ -94,43 +91,10 @@ def reviews():
     )
 
 
-@main_bp.route("/contact", methods=["GET", "POST"])
-@limiter.limit("10 per hour", methods=["POST"])
+@main_bp.route("/contact")
 def contact():
-    """Contact form page with email notifications."""
-    form = ContactForm()
-    if form.validate_on_submit():
-        try:
-            contact_msg = ContactMessage(
-                name=form.name.data,
-                email=form.email.data,
-                subject=form.subject.data,
-                message=form.message.data,
-                user_id=current_user.id if current_user.is_authenticated else None,
-            )
-            db.session.add(contact_msg)
-            db.session.commit()
-
-            try:
-                from email_service import send_contact_autoreply, send_contact_admin_alert
-
-                send_contact_autoreply(form.name.data, form.email.data, form.subject.data)
-                admin_email = os.getenv("ADMIN_EMAIL", "")
-                if admin_email:
-                    send_contact_admin_alert(
-                        admin_email, form.name.data, form.email.data, form.subject.data, form.message.data
-                    )
-            except Exception as e:
-                current_app.logger.warning(f"Email notification failed for contact message: {e}")
-
-            flash("Message sent! We will get back to you soon.", "success")
-            return redirect(url_for("main.contact"))
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(f"Contact message creation failed: {e}", exc_info=True)
-            flash("Could not send your message. Please try again later.", "danger")
-
-    return render_template("main/contact.html", form=form)
+    """Contact page — displays reach-us details only (phone, email, office, hours)."""
+    return render_template("main/contact.html")
 
 
 @main_bp.route("/testimonial", methods=["POST"])

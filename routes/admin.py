@@ -24,7 +24,6 @@ from image_service import ImageUploadService, ImageUploadException
 from models.continent import Continent
 from models.country import Country
 from models.visa import VisaCountry
-from models.contact import ContactMessage
 from models.testimonial import Testimonial
 from models.inquiry_notification import InquiryNotification
 from models.site_settings import SiteSettings
@@ -710,9 +709,6 @@ def delete_user(user_id):
         )
         return redirect(url_for("admin.users"))
 
-    # Contact messages can exist without an author (nullable FK) — unlink rather than block,
-    # so a customer's contact history isn't lost just because their account is removed.
-    ContactMessage.query.filter_by(user_id=user.id).update({"user_id": None})
     # Verification tokens are purely functional with no content worth preserving.
     EmailVerificationToken.query.filter_by(user_id=user.id).delete()
     # PackageReview.user now has cascade='all, delete-orphan' configured, so
@@ -1544,118 +1540,6 @@ def delete_country(country_id):
     db.session.commit()
     flash("Country deleted.", "info")
     return redirect(url_for("admin.countries", continent_id=continent_id))
-
-
-# ── Contact Messages ──────────────────────────────────────
-@admin_bp.route("/contact-messages")
-@admin_required
-def contact_messages():
-    page = request.args.get("page", 1, type=int)
-    search = request.args.get("search", "").strip()
-    status_filter = request.args.get("status", "").strip()
-
-    base_query = ContactMessage.query
-    if search:
-        base_query = base_query.filter(
-            or_(
-                ContactMessage.name.ilike(f"%{search}%"),
-                ContactMessage.email.ilike(f"%{search}%"),
-                ContactMessage.subject.ilike(f"%{search}%"),
-            )
-        )
-
-    status_counts = {
-        "all": base_query.count(),
-        "unread": base_query.filter_by(is_read=False).count(),
-        "read": base_query.filter_by(is_read=True).count(),
-    }
-
-    query = base_query
-    if status_filter == "unread":
-        query = query.filter_by(is_read=False)
-    elif status_filter == "read":
-        query = query.filter_by(is_read=True)
-
-    messages = query.order_by(ContactMessage.created_at.desc()).paginate(page=page, per_page=20, error_out=False)
-    return render_template(
-        "admin/contact_messages.html",
-        messages=messages.items,
-        pagination=messages,
-        search=search,
-        status_filter=status_filter,
-        status_counts=status_counts,
-    )
-
-
-@admin_bp.route("/contact-messages/mark-read/<int:message_id>", methods=["POST"])
-@admin_required
-def mark_message_read(message_id):
-    msg = db.get_or_404(ContactMessage, message_id)
-    msg.is_read = True
-    db.session.commit()
-    return jsonify(success=True)
-
-
-@admin_bp.route("/contact-messages/reply/<int:message_id>", methods=["POST"])
-@admin_required
-def reply_to_contact_message(message_id):
-    msg = db.get_or_404(ContactMessage, message_id)
-    admin_response = request.form.get("response", "").strip()
-
-    if not admin_response:
-        flash("Please provide a response message.", "danger")
-        return redirect(url_for("admin.contact_messages"))
-
-    try:
-        from email_service import send_contact_reply
-
-        # Send email FIRST — only persist once we know it actually went out.
-        sent = send_contact_reply(msg.name, msg.email, msg.subject, admin_response)
-
-        if not sent:
-            flash("Reply not sent — mail is not configured. Nothing was saved.", "danger")
-            return redirect(url_for("admin.contact_messages"))
-
-        msg.admin_response = admin_response
-        msg.responded_at = datetime.now(timezone.utc)
-        msg.is_read = True
-        db.session.commit()
-
-        flash(f"Reply sent to {msg.email}!", "success")
-
-    except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f"Reply to contact message {message_id} failed: {e}", exc_info=True)
-        flash("Failed to send reply. Check logs for details.", "danger")
-    return redirect(url_for("admin.contact_messages"))
-
-
-@admin_bp.route("/contact-messages/delete-bulk", methods=["POST"])
-@admin_required
-def delete_contact_messages_bulk():
-    ids = request.form.getlist("message_ids")
-    if ids:
-        try:
-            ContactMessage.query.filter(ContactMessage.id.in_([int(i) for i in ids])).delete(synchronize_session=False)
-            db.session.commit()
-            flash(f"{len(ids)} message(s) deleted.", "success")
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(f"Bulk delete error: {e}", exc_info=True)
-            flash("Failed to delete messages.", "danger")
-    else:
-        flash("No messages selected.", "warning")
-    return redirect(url_for("admin.contact_messages"))
-
-
-@admin_bp.route("/contact-messages/delete/<int:message_id>", methods=["POST"])
-@admin_required
-def delete_contact_message(message_id):
-    msg = db.get_or_404(ContactMessage, message_id)
-    db.session.delete(msg)
-    db.session.commit()
-    flash("Message deleted.", "info")
-    return redirect(url_for("admin.contact_messages"))
 
 
 # ── Visa ──────────────────────────────────────────────────

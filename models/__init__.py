@@ -7,7 +7,6 @@ from .continent import Continent
 from .country import Country
 from .testimonial import Testimonial
 from .visa import VisaCountry
-from .contact import ContactMessage
 from .email_verification import EmailVerificationToken
 from .password_reset import PasswordResetToken
 __all__ = [
@@ -19,6 +18,5 @@ __all__ = [
     "Country",
     "Testimonial",
     "VisaCountry",
-    "ContactMessage",
     "EmailVerificationToken",
 ]

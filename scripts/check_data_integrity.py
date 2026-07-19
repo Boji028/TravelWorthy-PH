@@ -270,7 +270,7 @@ def run_checks(app):
     for table in [
         "users", "tour_packages", "inquiries", "countries", "continents",
         "agents", "blog_posts", "visa_countries", "testimonials",
-        "package_reviews", "contact_messages", "inquiry_notifications",
+        "package_reviews", "inquiry_notifications",
     ]:
         count = q(f"SELECT COUNT(*) FROM {table}")[0][0]
         print(f"          {table:25} {count}")

@@ -135,37 +135,6 @@ class ChangePasswordForm(FlaskForm):
     )
 
 
-class ContactForm(FlaskForm):
-    """Contact message form with validation."""
-
-    name = StringField(
-        "Name",
-        validators=[
-            DataRequired("Name is required"),
-            Length(min=2, max=100, message="Name must be 2-100 characters"),
-            FullNameValidator(),
-        ],
-    )
-    email = StringField(
-        "Email",
-        filters=(_strip,),
-        validators=[
-            DataRequired("Email is required"),
-            Email(message="Invalid email format", granular_message=False),
-        ],
-    )
-    subject = StringField(
-        "Subject",
-        validators=[DataRequired("Subject is required"), Length(min=2, max=200, message="Subject must be 2-200 characters")],
-    )
-    message = TextAreaField(
-        "Message",
-        validators=[
-            DataRequired("Message is required"),
-            Length(min=1, max=5000, message="Message must be under 5000 characters"),
-        ],
-    )
-
 
 class InquiryForm(FlaskForm):
     """Trip inquiry form with validation."""
