@@ -611,6 +611,19 @@ textarea.form-control {
     min-height: 100px;
 }
 
+/* Native date/time pickers are OS-rendered widgets, not something CSS
+   can fully restyle - iOS Safari in particular uses the input's font
+   metrics to size its internal segmented control, so a decorative
+   display font (Pogonia) inflates it to an oddly tall, oversized box.
+   Reset these specific input types back to the system font stack,
+   which the native control is actually designed around. */
+input[type="date"].form-control,
+input[type="time"].form-control,
+input[type="datetime-local"].form-control {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: normal;
+}
+
 /* ── Custom dropdown ──
    A styled replacement for <select> where the OPEN list needs to be
    themeable (native select option lists are OS-rendered and can't be
