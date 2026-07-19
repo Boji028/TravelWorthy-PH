@@ -123,7 +123,7 @@
   .tw-d3 { transition-delay: .34s; } .tw-d4 { transition-delay: .46s; }
 
   /* ── DESTINATION TILES ── */
-  .tw-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); grid-auto-rows: 210px; gap: 14px; }
+  .tw-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); grid-auto-rows: 210px; gap: 14px; }
   .tw-tile { position: relative; border-radius: 14px; overflow: hidden; cursor: pointer; color: #fff; }
   .tw-tile .ph { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 1s ease; }
   .tw-tile:hover .ph { transform: scale(1.07); }
@@ -133,7 +133,7 @@
   .tw-tile .lbl small { font-size: 12px; opacity: .85; }
 
   /* ── PACKAGE CARDS (GRID) ── */
-  .tw-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+  .tw-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 24px; }
   .tw-card { background: var(--white); border: 1px solid var(--linen); border-radius: 16px;
     overflow: hidden; box-shadow: 0 8px 24px rgba(23,89,104,.06); cursor: pointer;
     transition: transform .3s ease, box-shadow .3s ease; }

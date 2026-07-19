@@ -167,7 +167,7 @@
 <!-- COUNTRIES GRID -->
 <div style="max-width:1280px;margin:2.5rem auto;padding:0 2rem;">
   {% if countries %}
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1.5rem;" id="visa-grid">
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:1.5rem;" id="visa-grid">
     {% for country in countries %}
 
     <div class="visa-card"
