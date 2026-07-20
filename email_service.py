@@ -28,7 +28,7 @@ def _send(subject: str, recipients: list, body: str, html: str = None, cc: list 
     if not current_app.config.get("MAIL_USERNAME"):
         return False  # Mail not configured — skip silently
     try:
-        msg = Message(subject=subject, recipients=recipients, body=body, html=html, cc=cc or None)
+        msg = Message(subject=_strip_headers(subject), recipients=recipients, body=body, html=html, cc=cc or None)
         mail.send(msg)
         return True
     except Exception as e:
