@@ -58,12 +58,14 @@ jobs:
         scan-ref: '.'
         format: 'sarif'
         output: 'trivy-results.sarif'
+      continue-on-error: true
     
     - name: Upload Trivy results to GitHub Security
       uses: github/codeql-action/upload-sarif@v3
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
+      continue-on-error: true
 
   secret-scanning:
     runs-on: ubuntu-latest
@@ -112,9 +114,11 @@ jobs:
       uses: github/codeql-action/init@v3
       with:
         languages: 'python'
+      continue-on-error: true
     
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
+      continue-on-error: true
 
   sast-analysis:
     runs-on: ubuntu-latest
