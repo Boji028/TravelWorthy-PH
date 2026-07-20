@@ -652,6 +652,7 @@ input[type="datetime-local"].form-control {
 
 .doverlay {
     position: absolute;
+    z-index: 1;
     inset: 0;
     display: flex;
     align-items: center;
