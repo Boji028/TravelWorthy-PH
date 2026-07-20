@@ -622,7 +622,23 @@ input[type="time"].form-control,
 input[type="datetime-local"].form-control {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     line-height: normal;
-    padding: .5rem 1rem;
+    padding: .5rem 1rem;/* iOS Safari keeps its own intrinsic sizing on date/time inputs even with
+   the font-family reset above. Strip the native shell on iOS specifically
+   and rebuild sizing ourselves — desktop Safari, Chrome, and Android
+   already render correctly and are untouched by this block. */
+@supports (-webkit-touch-callout: none) {
+  input[type="date"].form-control,
+  input[type="time"].form-control,
+  input[type="datetime-local"].form-control {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 44px;
+    line-height: 44px;
+    padding: 0 1rem;
+    background: var(--white);
+    border-radius: var(--radius);
+  }
+}
     height: auto;
 }
 
