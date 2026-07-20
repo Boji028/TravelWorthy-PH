@@ -245,6 +245,33 @@ class TestTestimonialsAdminFiltering:
         assert "Five star review" in page
         assert "One star review" not in page
 
+    def test_user_and_images_are_eager_loaded(self, app, admin_client, test_user):
+        """Regression test: testimonial.user and testimonial.images must be
+        eager-loaded, not lazy-loaded once per row. Without eager loading,
+        query count grows with the number of testimonials on the page;
+        with it, query count is constant regardless of row count."""
+        from app import db
+        from sqlalchemy import event
+
+        for i in range(8):
+            _make_testimonial(db, test_user.id, message=f"Review {i}")
+
+        queries = []
+
+        def _record(conn, cursor, statement, parameters, context, executemany):
+            queries.append(statement)
+
+        event.listen(db.engine, "before_cursor_execute", _record)
+        try:
+            response = admin_client.get("/admin/testimonials")
+        finally:
+            event.remove(db.engine, "before_cursor_execute", _record)
+
+        assert response.status_code == 200
+        # 8 testimonials would add 8+ extra per-row SELECTs if either
+        # relationship fell back to lazy loading; well under that either way.
+        assert len(queries) < 15, f"expected a bounded query count, got {len(queries)}:\n" + "\n".join(queries)
+
 
 class TestTestimonialImagesDisplay:
     """Regression test for the template bug we found: the admin page used

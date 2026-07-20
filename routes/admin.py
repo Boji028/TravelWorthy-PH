@@ -8,7 +8,7 @@ from flask_login import current_user
 from werkzeug.utils import secure_filename
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 import bleach
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy import or_, func
 import io
 from app import db
@@ -1781,7 +1781,14 @@ def testimonials():
     if rating_filter in ("1", "2", "3", "4", "5"):
         query = query.filter(Testimonial.rating == int(rating_filter))
 
-    testimonials_data = query.order_by(Testimonial.created_at.desc()).paginate(page=page, per_page=20, error_out=False)
+    # selectinload: the template renders testimonial.user.name/.email and
+    # testimonial.images per row (same pattern as main.reviews — see
+    # docs/testimonial-review-selectinload-n-plus-one.md).
+    testimonials_data = (
+        query.options(selectinload(Testimonial.user), selectinload(Testimonial.images))
+        .order_by(Testimonial.created_at.desc())
+        .paginate(page=page, per_page=20, error_out=False)
+    )
     return render_template(
         "admin/testimonials.html",
         testimonials=testimonials_data.items,
