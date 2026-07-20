@@ -319,11 +319,17 @@
       <div class="visa-form-row">
         <div>
           <label style="font-size:.78rem;font-weight:600;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:.3rem;">Travel Date From <span style="color:var(--danger)">*</span></label>
-          <input id="visa-date-from" type="date" class="form-control" style="width:100%;box-sizing:border-box;" />
+          <div class="dstack">
+            <div class="doverlay form-control" id="visaDateFromOverlay" aria-hidden="true">Select date</div>
+            <input id="visa-date-from" type="date" class="dstack-input" />
+          </div>
         </div>
         <div>
           <label style="font-size:.78rem;font-weight:600;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:.3rem;">Travel Date To <span style="color:var(--danger)">*</span></label>
-          <input id="visa-date-to" type="date" class="form-control" style="width:100%;box-sizing:border-box;" />
+          <div class="dstack">
+            <div class="doverlay form-control" id="visaDateToOverlay" aria-hidden="true">Select date</div>
+            <input id="visa-date-to" type="date" class="dstack-input" />
+          </div>
         </div>
       </div>
       <div style="margin-bottom:.75rem;">
@@ -394,6 +400,8 @@
         filterVisa(value);
       });
     }
+    initDateDisplay(document.getElementById('visa-date-from'), document.getElementById('visaDateFromOverlay'), 'Select date');
+    initDateDisplay(document.getElementById('visa-date-to'), document.getElementById('visaDateToOverlay'), 'Select date');
   });
 
   // ── PDF Viewer ──
@@ -486,7 +494,9 @@
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Message';
         ['visa-name','visa-email','visa-phone','visa-message','visa-date-from','visa-date-to'].forEach(function(id) {
-          document.getElementById(id).value = '';
+          var el = document.getElementById(id);
+          el.value = '';
+          if (el.type === 'date') el.dispatchEvent(new Event('change'));
         });
         setTimeout(closeAssistantForm, 2500);
       } else {
