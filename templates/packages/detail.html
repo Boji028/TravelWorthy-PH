@@ -1443,11 +1443,17 @@
         <div class="form-row">
           <div class="form-group">
             <label style="font-size:.78rem;color:var(--mist)">From</label>
-            <input type="date" name="travel_date_from" class="form-control" required style="color-scheme:light" />
+            <div class="dstack">
+              <input type="date" id="detailDateFrom" name="travel_date_from" class="form-control" required style="color-scheme:light" />
+              <div class="doverlay" id="detailDateFromOverlay" aria-hidden="true">Select date</div>
+            </div>
           </div>
           <div class="form-group">
             <label style="font-size:.78rem;color:var(--mist)">To</label>
-            <input type="date" name="travel_date_to" class="form-control" required style="color-scheme:light" />
+            <div class="dstack">
+              <input type="date" id="detailDateTo" name="travel_date_to" class="form-control" required style="color-scheme:light" />
+              <div class="doverlay" id="detailDateToOverlay" aria-hidden="true">Select date</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1626,6 +1632,13 @@
   }
   updateReviewChar();
 
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    initDateDisplay(document.getElementById('detailDateFrom'), document.getElementById('detailDateFromOverlay'), 'Select date');
+    initDateDisplay(document.getElementById('detailDateTo'), document.getElementById('detailDateToOverlay'), 'Select date');
+  });
 </script>
 
 <script type="application/ld+json">
