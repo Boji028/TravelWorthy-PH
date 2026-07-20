@@ -36,6 +36,26 @@
     font-size: 0.9rem;
   }
 
+  .visa-row-name,
+  .visa-row-2,
+  .visa-row-3 {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .visa-row-name { grid-template-columns: 1fr auto; }
+  .visa-row-2 { grid-template-columns: 1fr 1fr; }
+  .visa-row-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  @media (max-width: 768px) {
+    .visa-row-name,
+    .visa-row-2,
+    .visa-row-3 {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+  }
+
 </style>
 {% endblock %}
 
@@ -52,7 +72,7 @@
   <form method="POST" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
-    <div style="display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:end;margin-bottom:1rem;">
+    <div class="visa-row-name" style="align-items:end;margin-bottom:1rem;">
       <div class="form-group">
         <label>Country Name <span style="color:var(--danger)">*</span></label>
         <input type="text" name="country_name" class="form-control" required placeholder="e.g. Japan" />
@@ -77,7 +97,7 @@
       <small style="color:var(--mist);">Upload a PDF file containing the visa requirements.</small>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+    <div class="visa-row-2" style="margin-bottom:1rem;">
       <div class="form-group">
         <label>Region</label>
         <input type="text" name="region" class="form-control" placeholder="e.g. Asia Pacific" />
@@ -87,7 +107,7 @@
         <input type="text" name="visa_type" class="form-control" placeholder="e.g. Tourist, eVisa" />
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1rem;">
+    <div class="visa-row-3" style="margin-bottom:1rem;">
       <div class="form-group">
         <label>Processing Time</label>
         <input type="text" name="processing_time" class="form-control" placeholder="e.g. 5-7 days" />

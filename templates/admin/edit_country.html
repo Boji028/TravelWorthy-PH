@@ -63,6 +63,20 @@
     color: var(--mist);
     margin-top: .3rem;
   }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem;
+    align-items: end;
+  }
+
+  @media (max-width: 768px) {
+    .form-row {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+  }
 </style>
 {% endblock %}
 
@@ -79,7 +93,7 @@
   <div class="card" style="padding:2rem;">
     <form method="POST" action="{{ url_for('admin.edit_country', country_id=country.id) }}" enctype="multipart/form-data">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-      <div class="form-row" style="display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:end;">
+      <div class="form-row">
         <div class="form-group">
           <label>Country Name <span style="color:var(--danger)">*</span></label>
           <input type="text" name="name" class="form-control" required value="{{ country.name }}" />

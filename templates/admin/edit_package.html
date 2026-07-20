@@ -72,6 +72,13 @@
     font-size: 0.9rem;
   }
 
+  @media (max-width: 768px) {
+    .form-row {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+  }
+
 </style>
 {% endblock %}
 
@@ -191,7 +198,7 @@
         placeholder="e.g. Boracay Island, Malay, Aklan. Steps from White Beach...">{{ package.location_description or '' }}</textarea>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+    <div class="form-row">
       <div class="form-group">
         <label>Latitude <span style="font-size:.8rem;color:var(--mist)">(e.g. 11.9674)</span></label>
         <input type="number" name="latitude" class="form-control" step="any" value="{{ package.latitude or '' }}"
