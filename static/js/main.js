@@ -131,3 +131,32 @@ function initCustomSelect(root, onChange) {
     }
   };
 }
+
+// Formats a native <input type="date">'s value onto a positioned overlay
+// span, since iOS Safari won't let CSS resize/restyle the native control
+// itself (see static/css/main.css: .dstack / .doverlay). Call once per
+// date field: initDateDisplay(inputEl, overlayEl, 'Placeholder text').
+function initDateDisplay(input, overlay, placeholder) {
+  if (!input || !overlay) return;
+
+  function fmt(iso) {
+    if (!iso) return '';
+    var d = new Date(iso + 'T00:00:00');
+    if (isNaN(d)) return '';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function update() {
+    var text = fmt(input.value);
+    overlay.textContent = text || placeholder;
+    overlay.classList.toggle('has-value', !!text);
+  }
+
+  update();
+  input.addEventListener('change', update);
+  input.addEventListener('click', function () {
+    if (typeof input.showPicker === 'function') {
+      try { input.showPicker(); } catch (err) {}
+    }
+  });
+}
