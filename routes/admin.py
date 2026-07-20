@@ -1008,10 +1008,11 @@ def reply_to_inquiry(inquiry_id):
     try:
         from email_service import send_inquiry_reply
 
-        # Step 1: Send email FIRST — do not commit until we know it succeeded
+        # send_inquiry_reply's success/failure return value is not checked here
+        # (unlike send_inquiry_receipt) — see docs/fix-silent-inquiry-email-failures.md.
         send_inquiry_reply(inquiry, admin_response)
 
-        # Step 2: Only update database after email is confirmed sent
+        # DB update proceeds regardless of whether the email above actually sent.
         inquiry.admin_response = admin_response
         inquiry.responded_at = datetime.now(timezone.utc)
         # Only advance to CONTACTED; never downgrade an already-confirmed/closed inquiry.
