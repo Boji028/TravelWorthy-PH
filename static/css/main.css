@@ -636,6 +636,8 @@ input[type="datetime-local"].form-control {
    (.tw-input-stack). See static/js/main.js: initDateDisplay(). */
 .dstack {
     position: relative;
+    width: 100%;
+    min-width: 0;
 }
 
 .dstack input[type="date"].form-control {
