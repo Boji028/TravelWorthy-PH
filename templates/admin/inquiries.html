@@ -75,12 +75,22 @@
   .inq-toolbar input[type="text"],
   .inq-toolbar input[type="date"],
   .inq-toolbar input[type="month"],
-  .inq-toolbar select {
+  .inq-toolbar select,
+  .inq-toolbar-doverlay {
     font-size: .82rem;
     padding: .5rem .7rem;
     border: 1px solid var(--linen);
     border-radius: 6px;
     background: var(--white);
+    color: var(--bark);
+  }
+
+  .inq-toolbar-doverlay {
+    color: var(--mist);
+    white-space: nowrap;
+  }
+
+  .inq-toolbar-doverlay.has-value {
     color: var(--bark);
   }
 
@@ -391,9 +401,15 @@
     <input type="hidden" name="year" id="year_hidden" value="{{ year_param }}">
 
     <span id="customRangeWrap" class="inq-toolbar-customrange" style="display:{{ 'inline-flex' if (date_from or date_to) and not month_param and not year_param else 'none' }};">
-      <input type="date" name="date_from" id="date_from_input" value="{{ date_from }}">
+      <div class="dstack inq-toolbar-dstack">
+        <div class="doverlay inq-toolbar-doverlay" id="date_from_overlay" aria-hidden="true">Select date</div>
+        <input type="date" name="date_from" id="date_from_input" class="dstack-input" value="{{ date_from }}">
+      </div>
       <span class="inq-toolbar-or">to</span>
-      <input type="date" name="date_to" id="date_to_input" value="{{ date_to }}">
+      <div class="dstack inq-toolbar-dstack">
+        <div class="doverlay inq-toolbar-doverlay" id="date_to_overlay" aria-hidden="true">Select date</div>
+        <input type="date" name="date_to" id="date_to_input" class="dstack-input" value="{{ date_to }}">
+      </div>
     </span>
 
     <button type="submit" class="btn btn-outline btn-sm">Filter</button>
@@ -614,8 +630,15 @@ function applyDateMode(value) {
   }
 
   wrap.style.display = 'none';
-  document.getElementById('date_from_input').value = '';
-  document.getElementById('date_to_input').value = '';
+  const fromInput = document.getElementById('date_from_input');
+  const toInput = document.getElementById('date_to_input');
+  fromInput.value = '';
+  toInput.value = '';
+  // dispatchEvent, not just the .value assignment above: initDateOverlay's
+  // change listener is what refreshes the overlay text, and a direct
+  // property assignment doesn't fire that event on its own.
+  fromInput.dispatchEvent(new Event('change'));
+  toInput.dispatchEvent(new Event('change'));
   monthHidden.value = '';
   yearHidden.value = '';
 
@@ -626,6 +649,32 @@ function applyDateMode(value) {
   }
   loadInquiries(buildUrlFromForm(document.getElementById('inq-filter-form')));
 }
+
+// Mirrors static/js/main.js: initDateDisplay() — kept local rather than
+// loading main.js here, since this admin layout doesn't otherwise include
+// it and main.js carries unrelated public-site behavior (nav toggle,
+// flash auto-hide) this page has no use for.
+function initDateOverlay(input, overlay, placeholder) {
+  if (!input || !overlay) return;
+
+  function fmt(iso) {
+    if (!iso) return '';
+    var d = new Date(iso + 'T00:00:00');
+    if (isNaN(d)) return '';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function update() {
+    var text = fmt(input.value);
+    overlay.textContent = text || placeholder;
+    overlay.classList.toggle('has-value', !!text);
+  }
+
+  update();
+  input.addEventListener('change', update);
+}
+initDateOverlay(document.getElementById('date_from_input'), document.getElementById('date_from_overlay'), 'Select date');
+initDateOverlay(document.getElementById('date_to_input'), document.getElementById('date_to_overlay'), 'Select date');
 
 function toggleInquiryDetail(id) {
   const row = document.getElementById('detail-' + id);

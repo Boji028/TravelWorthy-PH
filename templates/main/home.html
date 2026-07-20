@@ -75,8 +75,15 @@
   .tw-input-stack input { border: 0; background: none; font-family: inherit; font-size: 14px;
     color: #fff; width: 100%; outline: 0; }
   .tw-input-stack input::placeholder { color: #dbf3f0; }
-  .tw-input-stack input[type="date"] { color: transparent; caret-color: transparent; cursor: pointer; }
-  .tw-input-stack input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0; }
+  /* iOS Safari won't let CSS resize/restyle the native date control itself
+     (same issue documented for .dstack/.doverlay elsewhere), so the real
+     input is made fully invisible and absolutely positioned - sizing and
+     the visible box come from the sibling .tw-marquee-overlay instead. */
+  .tw-date-stack { min-height: 20px; }
+  .tw-date-stack input[type="date"] {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    opacity: 0; cursor: pointer;
+  }
   .tw-marquee-overlay {
     position: absolute; inset: 0; display: flex; align-items: center;
     overflow: hidden; white-space: nowrap; pointer-events: none; }
@@ -289,7 +296,7 @@
       </div>
       <div class="tw-sf">
         <i class="fas fa-calendar"></i>
-        <div class="tw-input-stack">
+        <div class="tw-input-stack tw-date-stack">
           <input type="date" id="twDepReal" name="departure_date" aria-label="Departure date"
             value="{{ request.args.get('departure_date','') }}">
           <div class="tw-marquee-overlay" id="twDepOverlay" aria-hidden="true">
