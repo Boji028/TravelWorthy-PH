@@ -627,40 +627,35 @@ input[type="datetime-local"].form-control {
 }
 
 /* ── Date input display overlay ──
-   -webkit-appearance: none has no effect on <input type="date"> in iOS
-   Safari - unlike every other input type, so its native sizing can't be
-   overridden directly. Instead, hide the native input's own text/caret/
-   picker-icon and show formatted text on a positioned overlay on top,
-   keeping the real input (and its native tap-to-open picker) intact
-   underneath. Same technique as the homepage hero search bar
-   (.tw-input-stack). See static/js/main.js: initDateDisplay(). */
+   iOS Safari's native <input type="date"> doesn't reliably honor CSS
+   sizing - width, box-sizing, -webkit-appearance - the way every other
+   input type does, so trying to make the real input BE the visible box
+   kept breaking in new ways. Instead: the real input is fully invisible
+   and only used to capture the tap and hold the value; a plain sibling
+   div (which every browser sizes identically, with no native quirks) is
+   what actually renders the visible box, border, and text - it carries
+   both "doverlay" and "form-control" classes. See static/js/main.js:
+   initDateDisplay(). */
 .dstack {
     position: relative;
-    width: 100%;
-    min-width: 0;
 }
 
-.dstack input[type="date"].form-control {
-    color: transparent;
-    caret-color: transparent;
+.dstack-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    opacity: 0;
     cursor: pointer;
 }
 
-.dstack input[type="date"].form-control::-webkit-calendar-picker-indicator {
-    opacity: 0;
-}
-
 .doverlay {
-    position: absolute;
-    z-index: 1;
-    inset: 0;
     display: flex;
     align-items: center;
-    padding: .5rem 1rem;
     pointer-events: none;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: .92rem;
-    line-height: normal;
     color: var(--mist);
 }
 

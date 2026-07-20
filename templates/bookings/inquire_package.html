@@ -258,9 +258,9 @@
           <div class="form-group">
             <label style="font-size:.82rem;color:var(--mist);">From</label>
             <div class="dstack">
-              <input type="date" id="dateFrom" name="travel_date_from" class="form-control" required style="color-scheme:light;"
+              <div class="doverlay form-control" id="dateFromOverlay" aria-hidden="true">Select date</div>
+              <input type="date" id="dateFrom" name="travel_date_from" class="dstack-input" required
                 value="{{ form.travel_date_from.data or '' }}" />
-              <div class="doverlay" id="dateFromOverlay" aria-hidden="true">Select date</div>
             </div>
             {% if form.travel_date_from.errors %}
             <div style="color:var(--danger);font-size:.82rem;margin-top:.3rem;">{{ form.travel_date_from.errors[0] }}</div>
@@ -269,9 +269,9 @@
           <div class="form-group">
             <label style="font-size:.82rem;color:var(--mist);">To</label>
             <div class="dstack">
-              <input type="date" id="dateTo" name="travel_date_to" class="form-control" required style="color-scheme:light;"
+              <div class="doverlay form-control" id="dateToOverlay" aria-hidden="true">Select date</div>
+              <input type="date" id="dateTo" name="travel_date_to" class="dstack-input" required
                 value="{{ form.travel_date_to.data or '' }}" />
-              <div class="doverlay" id="dateToOverlay" aria-hidden="true">Select date</div>
             </div>
             {% if form.travel_date_to.errors %}
             <div style="color:var(--danger);font-size:.82rem;margin-top:.3rem;">{{ form.travel_date_to.errors[0] }}</div>
