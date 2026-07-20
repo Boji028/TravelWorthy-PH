@@ -168,6 +168,10 @@
     .why-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
 
+  @media (max-width: 768px) {
+    .why-grid { grid-template-columns: 1fr; }
+  }
+
   /* ── OUR SERVICES ── */
   .services-section { background: var(--white); padding: 4.5rem 2rem; }
   .services-inner { max-width: 1080px; margin: 0 auto; }
