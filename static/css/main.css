@@ -778,6 +778,7 @@ select.form-control {
     }
 
     .mm-account {
+        position: relative;
         display: flex;
         align-items: center;
         gap: .75rem;
@@ -828,6 +829,17 @@ select.form-control {
         padding: .4rem;
         text-decoration: none;
         flex-shrink: 0;
+    }
+    .mm-account .dropdown {
+        position: static;
+    }
+    .mobile-menu .mm-notif-menu {
+        left: 0;
+        right: 0;
+        min-width: 0;
+        max-width: none;
+        width: auto;
+        margin: 0 .5rem;
     }
 
     .mm-badge {

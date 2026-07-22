@@ -75,29 +75,7 @@
           </a>
           <ul class="dropdown-menu notif-menu" id="notifMenu">
             <li class="notif-header">Notifications</li>
-            {% if recent_notifications %}
-              {% for n in recent_notifications %}
-              <li class="notif-item {{ 'unread' if not n.is_read }}">
-                {% if n.link_url %}
-                <a href="{{ n.link_url }}" data-mark-read-url="{{ url_for('main.mark_notification_read', notification_id=n.id) }}">
-                {% elif n.inquiry and n.inquiry.user_id == current_user.id %}
-                <a href="{{ url_for('main.track_inquiry', reference_number=n.inquiry.reference_number) }}" data-mark-read-url="{{ url_for('main.mark_notification_read', notification_id=n.id) }}">
-                {% elif current_user.is_admin %}
-                <a href="{{ url_for('admin.inquiries') }}" data-mark-read-url="{{ url_for('main.mark_notification_read', notification_id=n.id) }}">
-                {% else %}
-                <a href="{{ url_for('main.my_inquiries') }}" data-mark-read-url="{{ url_for('main.mark_notification_read', notification_id=n.id) }}">
-                {% endif %}
-                  <span class="notif-icon"><i class="fas fa-paper-plane"></i></span>
-                  <span class="notif-body">
-                    <span class="notif-message">{{ n.message }}</span>
-                    <span class="notif-time">{{ n.created_at.strftime('%b %d, %I:%M %p') }}</span>
-                  </span>
-                </a>
-              </li>
-              {% endfor %}
-            {% else %}
-              <li class="notif-empty">You're all caught up.</li>
-            {% endif %}
+           {% include '_notif_items.html' %}
           </ul>
         </li>
         <li class="dropdown">
@@ -130,12 +108,18 @@
           <span class="mm-name">{{ current_user.name }}</span>
           <span class="mm-sub">View profile & inquiries</span>
         </a>
-        <a href="{{ url_for('main.my_inquiries') if not current_user.is_admin else url_for('admin.inquiries') }}" class="mm-bell" aria-label="Notifications">
-          <i class="fas fa-bell"></i>
-          {% if unread_notification_count and unread_notification_count > 0 %}
-          <span class="mm-badge">{{ unread_notification_count if unread_notification_count <= 8 else '9+' }}</span>
-          {% endif %}
-        </a>
+        <div class="dropdown">
+          <a href="#" class="dropdown-toggle mm-bell" id="mmNotifBell" aria-label="Notifications">
+            <i class="fas fa-bell"></i>
+            {% if unread_notification_count and unread_notification_count > 0 %}
+            <span class="mm-badge">{{ unread_notification_count if unread_notification_count <= 8 else '9+' }}</span>
+            {% endif %}
+          </a>
+          <ul class="dropdown-menu notif-menu mm-notif-menu" id="mmNotifMenu">
+            <li class="notif-header">Notifications</li>
+            {% include '_notif_items.html' %}
+          </ul>
+        </div>
       </div>
       {% else %}
       <div class="mm-account mm-guest">
@@ -259,41 +243,43 @@
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
   <script>
     // Mark a single notification as read when its link is clicked.
+    // Covers every notif menu on the page (desktop bell + mobile bell) since
+    // both render the same notification list and share the same unread count.
     (function () {
-      var bell = document.getElementById('notifBell');
-      var menu = document.getElementById('notifMenu');
-      var badge = bell ? bell.querySelector('.notif-badge') : null;
-      if (!bell || !menu) return;
+      var menus = document.querySelectorAll('.notif-menu');
+      if (!menus.length) return;
 
-      function decrementBadge() {
-        if (!badge) return;
-        var current = parseInt(badge.textContent, 10);
-        if (isNaN(current)) current = 1;
-        var next = current - 1;
-        if (next <= 0) {
-          badge.remove();
-          badge = null;
-          return;
-        }
-        badge.textContent = next > 9 ? '9+' : String(next);
+      function decrementBadges() {
+        document.querySelectorAll('.notif-badge, .mm-badge').forEach(function (badge) {
+          var current = parseInt(badge.textContent, 10);
+          if (isNaN(current)) current = 1;
+          var next = current - 1;
+          if (next <= 0) {
+            badge.remove();
+            return;
+          }
+          badge.textContent = next > 9 ? '9+' : String(next);
+        });
       }
 
-      menu.querySelectorAll('.notif-item.unread a').forEach(function (link) {
-        link.addEventListener('click', function () {
-          var item = link.closest('.notif-item');
-          var markUrl = link.getAttribute('data-mark-read-url');
-          if (!item || !markUrl || !item.classList.contains('unread')) return;
-          item.classList.remove('unread');
-          decrementBadge();
-          var csrfMeta = document.querySelector('meta[name="csrf-token"]');
-          fetch(markUrl, {
-            method: 'POST',
-            keepalive: true,
-            headers: {
-              'X-Requested-With': 'fetch',
-              'X-CSRFToken': csrfMeta ? csrfMeta.getAttribute('content') : ''
-            }
-          }).catch(function () { /* non-critical, ignore */ });
+      menus.forEach(function (menu) {
+        menu.querySelectorAll('.notif-item.unread a').forEach(function (link) {
+          link.addEventListener('click', function () {
+            var item = link.closest('.notif-item');
+            var markUrl = link.getAttribute('data-mark-read-url');
+            if (!item || !markUrl || !item.classList.contains('unread')) return;
+            item.classList.remove('unread');
+            decrementBadges();
+            var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            fetch(markUrl, {
+              method: 'POST',
+              keepalive: true,
+              headers: {
+                'X-Requested-With': 'fetch',
+                'X-CSRFToken': csrfMeta ? csrfMeta.getAttribute('content') : ''
+              }
+            }).catch(function () { /* non-critical, ignore */ });
+          });
         });
       });
     })();

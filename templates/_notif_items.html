@@ -1,0 +1,23 @@
+{% if recent_notifications %}
+  {% for n in recent_notifications %}
+  <li class="notif-item {{ 'unread' if not n.is_read }}">
+    {% if n.link_url %}
+    <a href="{{ n.link_url }}" data-mark-read-url="{{ url_for('main.mark_notification_read', notification_id=n.id) }}">
+    {% elif n.inquiry and n.inquiry.user_id == current_user.id %}
+    <a href="{{ url_for('main.track_inquiry', reference_number=n.inquiry.reference_number) }}" data-mark-read-url="{{ url_for('main.mark_notification_read', notification_id=n.id) }}">
+    {% elif current_user.is_admin %}
+    <a href="{{ url_for('admin.inquiries') }}" data-mark-read-url="{{ url_for('main.mark_notification_read', notification_id=n.id) }}">
+    {% else %}
+    <a href="{{ url_for('main.my_inquiries') }}" data-mark-read-url="{{ url_for('main.mark_notification_read', notification_id=n.id) }}">
+    {% endif %}
+      <span class="notif-icon"><i class="fas fa-paper-plane"></i></span>
+      <span class="notif-body">
+        <span class="notif-message">{{ n.message }}</span>
+        <span class="notif-time">{{ n.created_at.strftime('%b %d, %I:%M %p') }}</span>
+      </span>
+    </a>
+  </li>
+  {% endfor %}
+{% else %}
+  <li class="notif-empty">You're all caught up.</li>
+{% endif %}
