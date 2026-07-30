@@ -626,6 +626,43 @@ input[type="datetime-local"].form-control {
     height: auto;
 }
 
+/* ── Date input display overlay ──
+   iOS Safari's native <input type="date"> doesn't reliably honor CSS
+   sizing - width, box-sizing, -webkit-appearance - the way every other
+   input type does, so trying to make the real input BE the visible box
+   kept breaking in new ways. Instead: the real input is fully invisible
+   and only used to capture the tap and hold the value; a plain sibling
+   div (which every browser sizes identically, with no native quirks) is
+   what actually renders the visible box, border, and text - it carries
+   both "doverlay" and "form-control" classes. See static/js/main.js:
+   initDateDisplay(). */
+.dstack {
+    position: relative;
+}
+
+.dstack-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.doverlay {
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+    color: var(--mist);
+}
+
+.doverlay.has-value {
+    color: var(--ink);
+}
+
 /* ── Custom dropdown ──
    A styled replacement for <select> where the OPEN list needs to be
    themeable (native select option lists are OS-rendered and can't be
