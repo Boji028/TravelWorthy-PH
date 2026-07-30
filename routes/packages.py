@@ -1,9 +1,11 @@
 """Package routes for tour listing, details, and visa information."""
 from typing import Union, Dict, Any
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
+import random
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, session
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from sqlalchemy.orm import selectinload
+from flask_sqlalchemy.pagination import Pagination
 
 from app import db
 from models.package import TourPackage
@@ -12,6 +14,34 @@ from models.continent import Continent
 from models.visa import VisaCountry
 
 packages_bp = Blueprint("packages", __name__)
+
+
+class _ShuffledPagination(Pagination):
+    """Paginate a pre-shuffled list of IDs instead of issuing an
+    ORDER BY on the query. A SQL-level ORDER BY RANDOM() reshuffles on
+    every single query, so page 2 fetched independently from page 1 would
+    show an unrelated random slice — packages could repeat across pages
+    or never appear at all. Shuffling the id list once in Python and
+    paginating that list keeps a page 2 request consistent with whatever
+    page 1 showed for the same shuffle seed.
+    """
+
+    def _query_items(self) -> list:
+        all_ids: list[int] = self._query_args["all_ids"]
+        offset = self._query_offset
+        page_ids = all_ids[offset : offset + self.per_page]
+        if not page_ids:
+            return []
+        rows = (
+            TourPackage.query.options(selectinload(TourPackage.images))
+            .filter(TourPackage.id.in_(page_ids))
+            .all()
+        )
+        by_id = {pkg.id: pkg for pkg in rows}
+        return [by_id[pid] for pid in page_ids if pid in by_id]
+
+    def _query_count(self) -> int:
+        return len(self._query_args["all_ids"])
 
 
 def _can_review_package(user_id: int, package_id: int) -> bool:
@@ -73,7 +103,22 @@ def list_packages() -> Union[str, object]:
         query = query.filter(TourPackage.duration_days == duration)
 
     page: int = request.args.get("page", 1, type=int)
-    packages = query.order_by(TourPackage.created_at.desc()).paginate(page=page, per_page=9, error_out=False)
+
+    # Random order, but stable per browsing session: an AJAX pagination
+    # or filter request reuses the seed already in the session so page 2,
+    # 3, etc. line up with what page 1 showed. Only a fresh (non-AJAX)
+    # visit to this page gets a newly rolled seed, so the order changes
+    # each time someone actually navigates here, without breaking
+    # mid-browse pagination.
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    if not is_ajax or "packages_shuffle_seed" not in session:
+        session["packages_shuffle_seed"] = random.randint(0, 2**31 - 1)
+    shuffle_seed = session["packages_shuffle_seed"]
+
+    all_ids = [row.id for row in query.with_entities(TourPackage.id).all()]
+    random.Random(shuffle_seed).shuffle(all_ids)
+
+    packages = _ShuffledPagination(page=page, per_page=9, error_out=False, all_ids=all_ids)
 
     # Load related continent/country data to prevent N+1 queries
     continents = Continent.query.filter_by(is_active=True).order_by(Continent.name).all()
