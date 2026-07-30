@@ -405,8 +405,8 @@
   });
 
   // ── PDF Viewer ──
-  function openPdfViewer(filename, countryName) {
-    var url = '/uploads/' + filename;
+  function openPdfViewer(pdfPath, countryName) {
+    var url = pdfPath.indexOf('http') === 0 ? pdfPath : '/uploads/' + pdfPath;
     if (window.innerWidth <= 768) {
       window.open(url, '_blank');
       return;

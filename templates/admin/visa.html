@@ -92,7 +92,7 @@
           <td>{{ '₱%.0f' % visa.price if visa.price else '—' }}</td>
           <td>
             {% if visa.requirements_pdf %}
-            <a href="/uploads/{{ visa.requirements_pdf }}" target="_blank" style="color:var(--teal);"><i class="fas fa-file-pdf"></i></a>
+            <a href="{{ visa.requirements_pdf if visa.requirements_pdf.startswith('http') else '/uploads/' + visa.requirements_pdf }}" target="_blank" style="color:var(--teal);"><i class="fas fa-file-pdf"></i></a>
             {% else %}
             <span style="color:var(--mist)">—</span>
             {% endif %}

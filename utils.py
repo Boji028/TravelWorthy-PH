@@ -9,15 +9,23 @@ from flask import current_app
 UPLOAD_FOLDER_KEY = "UPLOAD_FOLDER"
 
 
-def delete_old_image(image_path: str, upload_folder: str = None) -> None:
-    """Delete an old image — works for both Cloudinary URLs and local files."""
+def delete_old_image(image_path: str, upload_folder: str = None, resource_type: str = "image") -> None:
+    """Delete an old image — works for both Cloudinary URLs and local files.
+
+    Args:
+        image_path: Local filename or Cloudinary URL to delete
+        upload_folder: Local upload folder, used only for local files
+        resource_type: Cloudinary resource type ("image" or "raw"). Pass
+            "raw" for non-image files like PDFs — must match what the file
+            was uploaded with, or Cloudinary won't find it to delete.
+    """
     if not image_path:
         return
     try:
         if "cloudinary.com" in image_path:
             from image_service import ImageUploadService
 
-            ImageUploadService.delete_image(image_path)
+            ImageUploadService.delete_image(image_path, resource_type=resource_type)
         else:
             if upload_folder:
                 base = Path(upload_folder).resolve()

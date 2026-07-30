@@ -28,6 +28,8 @@ class ImageUploadService:
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
     MAX_IMAGE_SIZE_MB = 25
     MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
+    MAX_PDF_SIZE_MB = 5
+    MAX_PDF_SIZE_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024
 
     @staticmethod
     def _allowed_file(filename: str) -> bool:
@@ -97,11 +99,63 @@ class ImageUploadService:
             raise ImageUploadException(f"Upload failed: {str(e)}")
 
     @staticmethod
-    def delete_image(url: str) -> bool:
-        """Delete an image from Cloudinary by URL.
+    def upload_pdf(file, prefix: str = "pdf") -> dict:
+        """Upload a PDF to Cloudinary as a raw file.
+
+        Images go through upload_and_compress(); PDFs (and any other
+        non-image document) go through here instead, using
+        resource_type="raw" since Cloudinary's image pipeline (transforms,
+        compression) doesn't apply to them.
 
         Args:
-            url: The Cloudinary secure URL of the image
+            file: FileStorage object from Flask
+            prefix: Folder/prefix for organizing uploads (e.g. 'visa')
+
+        Returns:
+            dict with 'path' (full URL), 'size_kb', 'uploaded_at'
+
+        Raises:
+            ImageUploadException: if validation or upload fails
+        """
+        if not file or not file.filename:
+            raise ImageUploadException("No file provided.")
+
+        if not file.filename.lower().endswith(".pdf"):
+            raise ImageUploadException("Only PDF files are allowed.")
+
+        # Check file size
+        file.seek(0, 2)  # Seek to end
+        size_bytes = file.tell()
+        file.seek(0)  # Reset
+
+        if size_bytes > ImageUploadService.MAX_PDF_SIZE_BYTES:
+            raise ImageUploadException(f"File too large. Maximum size is {ImageUploadService.MAX_PDF_SIZE_MB}MB.")
+
+        try:
+            result = cloudinary.uploader.upload(file, folder=f"travelworthyph/{prefix}", resource_type="raw")
+
+            url = result.get("secure_url", "")
+            size_kb = size_bytes / 1024
+
+            from datetime import datetime, timezone
+
+            return {"path": url, "size_kb": round(size_kb, 2), "uploaded_at": datetime.now(timezone.utc)}
+
+        except ImageUploadException:
+            raise
+        except Exception as e:
+            current_app.logger.error(f"Cloudinary PDF upload error: {e}", exc_info=True)
+            raise ImageUploadException(f"Upload failed: {str(e)}")
+
+    @staticmethod
+    def delete_image(url: str, resource_type: str = "image") -> bool:
+        """Delete an asset from Cloudinary by URL.
+
+        Args:
+            url: The Cloudinary secure URL of the asset
+            resource_type: "image" (default) or "raw" — must match the type
+                the asset was uploaded with (upload_and_compress uses
+                "image", upload_pdf uses "raw"), or Cloudinary won't find it
 
         Returns:
             True if deleted, False otherwise
@@ -123,7 +177,7 @@ class ImageUploadService:
             # Remove file extension
             public_id = public_id_with_ext.rsplit(".", 1)[0]
 
-            result = cloudinary.uploader.destroy(public_id)
+            result = cloudinary.uploader.destroy(public_id, resource_type)
             return result.get("result") == "ok"
 
         except Exception as e:

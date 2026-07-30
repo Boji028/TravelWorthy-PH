@@ -1,11 +1,8 @@
 """Admin panel routes for site management and content control."""
 from typing import Union, Dict, Any, Optional
-import os
-import uuid
 from datetime import datetime, timezone
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import current_user
-from werkzeug.utils import secure_filename
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 import bleach
 from sqlalchemy.orm import joinedload, selectinload
@@ -1610,25 +1607,13 @@ def visa_add():
             flash("Country name is required.", "danger")
             return redirect(url_for("admin.visa_add"))
 
-        pdf_filename = None
+        pdf_url = None
         pdf_file = request.files.get("requirements_pdf")
         if pdf_file and pdf_file.filename:
-            if not pdf_file.filename.lower().endswith(".pdf"):
-                flash("Only PDF files are allowed for requirements.", "danger")
-                return redirect(url_for("admin.visa_add"))
             try:
-                # Validate PDF file size (max 5MB)
-                pdf_file.seek(0, os.SEEK_END)
-                pdf_size = pdf_file.tell()
-                pdf_file.seek(0)
-                if pdf_size > 5 * 1024 * 1024:
-                    flash("PDF file too large. Maximum: 5MB", "danger")
-                    return redirect(url_for("admin.visa_add"))
-                # Use UUID to prevent filename collisions and overwrite attacks
-                ext = os.path.splitext(secure_filename(pdf_file.filename))[1].lower()
-                pdf_filename = f"visa_{uuid.uuid4().hex}{ext}"
-                pdf_file.save(os.path.join(current_app.config["UPLOAD_FOLDER"], pdf_filename))
-            except Exception as e:
+                upload_result = ImageUploadService.upload_pdf(pdf_file, "visa")
+                pdf_url = upload_result["path"]
+            except ImageUploadException as e:
                 flash(f"PDF upload failed: {str(e)}", "danger")
                 return redirect(url_for("admin.visa_add"))
 
@@ -1655,7 +1640,7 @@ def visa_add():
         visa = VisaCountry(
             country_name=country_name,
             flag_emoji=flag_emoji,
-            requirements_pdf=pdf_filename,
+            requirements_pdf=pdf_url,
             price=price,
             is_active=is_active,
             region=region,
@@ -1713,24 +1698,11 @@ def visa_edit(visa_id):
         # file that no longer exists.
         pdf_file = request.files.get("requirements_pdf")
         if pdf_file and pdf_file.filename:
-            if not pdf_file.filename.lower().endswith(".pdf"):
-                flash("Only PDF files are allowed for requirements.", "danger")
-                return redirect(url_for("admin.visa_edit", visa_id=visa_id))
             try:
-                # Validate PDF file size (max 5MB)
-                pdf_file.seek(0, os.SEEK_END)
-                pdf_size = pdf_file.tell()
-                pdf_file.seek(0)
-                if pdf_size > 5 * 1024 * 1024:
-                    flash("PDF file too large. Maximum: 5MB", "danger")
-                    return redirect(url_for("admin.visa_edit", visa_id=visa_id))
-                # Use UUID to prevent filename collisions and overwrite attacks
-                ext = os.path.splitext(secure_filename(pdf_file.filename))[1].lower()
-                pdf_filename = f"visa_{uuid.uuid4().hex}{ext}"
-                pdf_file.save(os.path.join(current_app.config["UPLOAD_FOLDER"], pdf_filename))
-                delete_old_image(visa.requirements_pdf, current_app.config["UPLOAD_FOLDER"])
-                visa.requirements_pdf = pdf_filename
-            except Exception as e:
+                upload_result = ImageUploadService.upload_pdf(pdf_file, "visa")
+                delete_old_image(visa.requirements_pdf, current_app.config["UPLOAD_FOLDER"], resource_type="raw")
+                visa.requirements_pdf = upload_result["path"]
+            except ImageUploadException as e:
                 flash(f"PDF upload failed: {str(e)}", "danger")
                 return redirect(url_for("admin.visa_edit", visa_id=visa_id))
 
@@ -1755,7 +1727,7 @@ def visa_edit(visa_id):
 @admin_required
 def visa_delete(visa_id):
     visa = db.get_or_404(VisaCountry, visa_id)
-    delete_old_image(visa.requirements_pdf, current_app.config["UPLOAD_FOLDER"])
+    delete_old_image(visa.requirements_pdf, current_app.config["UPLOAD_FOLDER"], resource_type="raw")
     db.session.delete(visa)
     db.session.commit()
     flash("Visa entry deleted.", "info")
@@ -1853,7 +1825,7 @@ def remove_visa_pdf(visa_id):
     """Remove requirements PDF from a visa entry."""
     visa = db.get_or_404(VisaCountry, visa_id)
     if visa.requirements_pdf:
-        delete_old_image(visa.requirements_pdf, current_app.config["UPLOAD_FOLDER"])
+        delete_old_image(visa.requirements_pdf, current_app.config["UPLOAD_FOLDER"], resource_type="raw")
         visa.requirements_pdf = None
         db.session.commit()
         flash("Visa PDF removed.", "success")

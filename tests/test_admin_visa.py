@@ -1,5 +1,16 @@
 """Tests for admin visa management routes."""
+from unittest.mock import patch
+from datetime import datetime, timezone
+from io import BytesIO
 from models.visa import VisaCountry
+from image_service import ImageUploadException
+
+
+FAKE_PDF_UPLOAD = {
+    "path": "https://res.cloudinary.com/test/raw/upload/v1/travelworthyph/visa/requirements.pdf",
+    "size_kb": 120.0,
+    "uploaded_at": datetime.now(timezone.utc),
+}
 
 
 def _make_visa(db, **overrides):
@@ -61,6 +72,28 @@ class TestVisaAdd:
         assert response.status_code == 302
         assert "/admin/visa" in response.headers["Location"]
 
+    def test_pdf_upload_sets_cloudinary_url(self, app, admin_client):
+        from app import db
+
+        with patch("image_service.ImageUploadService.upload_pdf", return_value=FAKE_PDF_UPLOAD):
+            admin_client.post(
+                "/admin/visa/add",
+                data={"country_name": "Vietnam", "requirements_pdf": (BytesIO(b"%PDF-1.4"), "requirements.pdf")},
+                content_type="multipart/form-data",
+            )
+        visa = VisaCountry.query.filter_by(country_name="Vietnam").first()
+        assert visa is not None
+        assert visa.requirements_pdf == FAKE_PDF_UPLOAD["path"]
+
+    def test_pdf_upload_failure_does_not_create_visa(self, app, admin_client):
+        with patch("image_service.ImageUploadService.upload_pdf", side_effect=ImageUploadException("File too large.")):
+            admin_client.post(
+                "/admin/visa/add",
+                data={"country_name": "Thailand", "requirements_pdf": (BytesIO(b"%PDF-1.4"), "requirements.pdf")},
+                content_type="multipart/form-data",
+            )
+        assert VisaCountry.query.filter_by(country_name="Thailand").count() == 0
+
 
 class TestVisaEdit:
     def test_requires_login(self, app, client):
@@ -87,6 +120,44 @@ class TestVisaEdit:
     def test_nonexistent_visa_returns_404(self, app, admin_client):
         response = admin_client.get("/admin/visa/edit/99999")
         assert response.status_code == 404
+
+    def test_pdf_upload_replaces_old_pdf_as_raw_resource(self, app, admin_client):
+        from app import db
+
+        visa = _make_visa(db, requirements_pdf="https://res.cloudinary.com/test/raw/upload/v1/travelworthyph/visa/old.pdf")
+        with (
+            patch("image_service.ImageUploadService.upload_pdf", return_value=FAKE_PDF_UPLOAD),
+            patch("image_service.ImageUploadService.delete_image") as mock_delete,
+        ):
+            admin_client.post(
+                f"/admin/visa/edit/{visa.id}",
+                data={
+                    "country_name": "Japan",
+                    "requirements_pdf": (BytesIO(b"%PDF-1.4"), "new_requirements.pdf"),
+                },
+                content_type="multipart/form-data",
+            )
+        updated = db.session.get(VisaCountry, visa.id)
+        assert updated.requirements_pdf == FAKE_PDF_UPLOAD["path"]
+        mock_delete.assert_called_once()
+        assert mock_delete.call_args.kwargs.get("resource_type") == "raw"
+
+    def test_pdf_upload_failure_leaves_old_pdf_in_place(self, app, admin_client):
+        from app import db
+
+        old_url = "https://res.cloudinary.com/test/raw/upload/v1/travelworthyph/visa/old.pdf"
+        visa = _make_visa(db, requirements_pdf=old_url)
+        with patch("image_service.ImageUploadService.upload_pdf", side_effect=ImageUploadException("File too large.")):
+            admin_client.post(
+                f"/admin/visa/edit/{visa.id}",
+                data={
+                    "country_name": "Japan",
+                    "requirements_pdf": (BytesIO(b"%PDF-1.4"), "new_requirements.pdf"),
+                },
+                content_type="multipart/form-data",
+            )
+        updated = db.session.get(VisaCountry, visa.id)
+        assert updated.requirements_pdf == old_url
 
 
 class TestVisaDelete:
@@ -115,6 +186,40 @@ class TestVisaDelete:
 
     def test_nonexistent_visa_returns_404(self, app, admin_client):
         response = admin_client.post("/admin/visa/delete/99999")
+        assert response.status_code == 404
+
+    def test_delete_removes_pdf_as_raw_resource(self, app, admin_client):
+        from app import db
+
+        visa = _make_visa(db, requirements_pdf="https://res.cloudinary.com/test/raw/upload/v1/travelworthyph/visa/old.pdf")
+        visa_id = visa.id
+        with patch("image_service.ImageUploadService.delete_image") as mock_delete:
+            admin_client.post(f"/admin/visa/delete/{visa_id}")
+        mock_delete.assert_called_once()
+        assert mock_delete.call_args.kwargs.get("resource_type") == "raw"
+
+
+class TestRemoveVisaPdf:
+    def test_requires_login(self, app, client):
+        from app import db
+
+        visa = _make_visa(db, requirements_pdf="https://res.cloudinary.com/test/raw/upload/v1/travelworthyph/visa/old.pdf")
+        response = client.post(f"/admin/visa/remove-pdf/{visa.id}")
+        assert response.status_code in (302, 401, 403)
+
+    def test_clears_pdf_field_as_raw_resource(self, app, admin_client):
+        from app import db
+
+        visa = _make_visa(db, requirements_pdf="https://res.cloudinary.com/test/raw/upload/v1/travelworthyph/visa/old.pdf")
+        with patch("image_service.ImageUploadService.delete_image") as mock_delete:
+            admin_client.post(f"/admin/visa/remove-pdf/{visa.id}")
+        updated = db.session.get(VisaCountry, visa.id)
+        assert updated.requirements_pdf is None
+        mock_delete.assert_called_once()
+        assert mock_delete.call_args.kwargs.get("resource_type") == "raw"
+
+    def test_nonexistent_visa_returns_404(self, app, admin_client):
+        response = admin_client.post("/admin/visa/remove-pdf/99999")
         assert response.status_code == 404
 
 

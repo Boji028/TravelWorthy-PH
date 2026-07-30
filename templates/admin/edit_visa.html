@@ -88,8 +88,8 @@
       <label>Requirements PDF</label>
       {% if visa.requirements_pdf %}
       <p style="font-size:.82rem;color:var(--mist);margin-bottom:.5rem;">
-        Current: <a href="/uploads/{{ visa.requirements_pdf }}" target="_blank" style="color:var(--teal);">
-          <i class="fas fa-file-pdf"></i> {{ visa.requirements_pdf }}
+        Current: <a href="{{ visa.requirements_pdf if visa.requirements_pdf.startswith('http') else '/uploads/' + visa.requirements_pdf }}" target="_blank" style="color:var(--teal);">
+          <i class="fas fa-file-pdf"></i> View current PDF
         </a>
       </p>
       {% endif %}
