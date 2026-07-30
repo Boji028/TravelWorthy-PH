@@ -1393,7 +1393,6 @@
     <div class="modal-header">
       <h2><i class="fas fa-paper-plane" style="color:var(--amber);margin-right:.5rem"></i>Inquire About This Package
       </h2>
-      <button type="button" class="modal-close" onclick="closeInquireModal()"><i class="fas fa-times"></i></button>
     </div>
     <form method="POST" action="{{ url_for('bookings.inquire_package', package_id=package.id) }}" autocomplete="off">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
@@ -1468,10 +1467,12 @@
         Our team will contact you within <strong style="color:var(--bark)">24 hours</strong> to finalize your
         inquiry.
       </div>
-      <button type="submit" class="btn btn-amber"
-        style="width:100%;justify-content:center;padding:.9rem;font-size:.95rem">
-        <i class="fas fa-paper-plane"></i> Send Inquiry
-      </button>
+      <div style="display:flex;gap:.75rem;justify-content:flex-end;border-top:1px solid var(--linen);padding-top:1.5rem;">
+        <button type="button" onclick="closeInquireModal()" class="btn btn-ghost">Cancel</button>
+        <button type="submit" class="btn btn-amber">
+          <i class="fas fa-paper-plane"></i> Send Inquiry
+        </button>
+      </div>
     </form>
   </div>
 </div>
