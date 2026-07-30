@@ -118,7 +118,7 @@ def create_app():
         "font-src": ["'self'", "fonts.gstatic.com", "cdnjs.cloudflare.com"],
         "img-src": ["'self'", "data:", "blob:", "res.cloudinary.com", "flagcdn.com"],
         "connect-src": ["'self'", "https://api.cloudinary.com"],
-        "frame-src": ["'self'", "https://www.google.com", "https://maps.google.com"],
+        "frame-src": ["'self'", "https://www.google.com", "https://maps.google.com", "https://res.cloudinary.com"],
     }
     force_https = os.getenv("FLASK_FORCE_HTTPS", "false").lower() == "true"
     Talisman(app, content_security_policy=csp, force_https=force_https)
