@@ -7,7 +7,7 @@ from image_service import ImageUploadException
 
 
 FAKE_PDF_UPLOAD = {
-    "path": "https://res.cloudinary.com/test/raw/upload/v1/travelworthyph/visa/requirements.pdf",
+    "path": "https://res.cloudinary.com/test/image/upload/v1/travelworthyph/visa/requirements.pdf",
     "size_kb": 120.0,
     "uploaded_at": datetime.now(timezone.utc),
 }
@@ -121,10 +121,10 @@ class TestVisaEdit:
         response = admin_client.get("/admin/visa/edit/99999")
         assert response.status_code == 404
 
-    def test_pdf_upload_replaces_old_pdf_as_raw_resource(self, app, admin_client):
+    def test_pdf_upload_replaces_old_pdf_as_image_resource(self, app, admin_client):
         from app import db
 
-        visa = _make_visa(db, requirements_pdf="https://res.cloudinary.com/test/raw/upload/v1/travelworthyph/visa/old.pdf")
+        visa = _make_visa(db, requirements_pdf="https://res.cloudinary.com/test/image/upload/v1/travelworthyph/visa/old.pdf")
         with (
             patch("image_service.ImageUploadService.upload_pdf", return_value=FAKE_PDF_UPLOAD),
             patch("image_service.ImageUploadService.delete_image") as mock_delete,
@@ -140,12 +140,12 @@ class TestVisaEdit:
         updated = db.session.get(VisaCountry, visa.id)
         assert updated.requirements_pdf == FAKE_PDF_UPLOAD["path"]
         mock_delete.assert_called_once()
-        assert mock_delete.call_args.kwargs.get("resource_type") == "raw"
+        assert mock_delete.call_args.kwargs.get("resource_type") == "image"
 
     def test_pdf_upload_failure_leaves_old_pdf_in_place(self, app, admin_client):
         from app import db
 
-        old_url = "https://res.cloudinary.com/test/raw/upload/v1/travelworthyph/visa/old.pdf"
+        old_url = "https://res.cloudinary.com/test/image/upload/v1/travelworthyph/visa/old.pdf"
         visa = _make_visa(db, requirements_pdf=old_url)
         with patch("image_service.ImageUploadService.upload_pdf", side_effect=ImageUploadException("File too large.")):
             admin_client.post(
@@ -188,35 +188,35 @@ class TestVisaDelete:
         response = admin_client.post("/admin/visa/delete/99999")
         assert response.status_code == 404
 
-    def test_delete_removes_pdf_as_raw_resource(self, app, admin_client):
+    def test_delete_removes_pdf_as_image_resource(self, app, admin_client):
         from app import db
 
-        visa = _make_visa(db, requirements_pdf="https://res.cloudinary.com/test/raw/upload/v1/travelworthyph/visa/old.pdf")
+        visa = _make_visa(db, requirements_pdf="https://res.cloudinary.com/test/image/upload/v1/travelworthyph/visa/old.pdf")
         visa_id = visa.id
         with patch("image_service.ImageUploadService.delete_image") as mock_delete:
             admin_client.post(f"/admin/visa/delete/{visa_id}")
         mock_delete.assert_called_once()
-        assert mock_delete.call_args.kwargs.get("resource_type") == "raw"
+        assert mock_delete.call_args.kwargs.get("resource_type") == "image"
 
 
 class TestRemoveVisaPdf:
     def test_requires_login(self, app, client):
         from app import db
 
-        visa = _make_visa(db, requirements_pdf="https://res.cloudinary.com/test/raw/upload/v1/travelworthyph/visa/old.pdf")
+        visa = _make_visa(db, requirements_pdf="https://res.cloudinary.com/test/image/upload/v1/travelworthyph/visa/old.pdf")
         response = client.post(f"/admin/visa/remove-pdf/{visa.id}")
         assert response.status_code in (302, 401, 403)
 
-    def test_clears_pdf_field_as_raw_resource(self, app, admin_client):
+    def test_clears_pdf_field_as_image_resource(self, app, admin_client):
         from app import db
 
-        visa = _make_visa(db, requirements_pdf="https://res.cloudinary.com/test/raw/upload/v1/travelworthyph/visa/old.pdf")
+        visa = _make_visa(db, requirements_pdf="https://res.cloudinary.com/test/image/upload/v1/travelworthyph/visa/old.pdf")
         with patch("image_service.ImageUploadService.delete_image") as mock_delete:
             admin_client.post(f"/admin/visa/remove-pdf/{visa.id}")
         updated = db.session.get(VisaCountry, visa.id)
         assert updated.requirements_pdf is None
         mock_delete.assert_called_once()
-        assert mock_delete.call_args.kwargs.get("resource_type") == "raw"
+        assert mock_delete.call_args.kwargs.get("resource_type") == "image"
 
     def test_nonexistent_visa_returns_404(self, app, admin_client):
         response = admin_client.post("/admin/visa/remove-pdf/99999")

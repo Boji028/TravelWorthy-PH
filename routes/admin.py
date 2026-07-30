@@ -1700,7 +1700,7 @@ def visa_edit(visa_id):
         if pdf_file and pdf_file.filename:
             try:
                 upload_result = ImageUploadService.upload_pdf(pdf_file, "visa")
-                delete_old_image(visa.requirements_pdf, current_app.config["UPLOAD_FOLDER"], resource_type="raw")
+                delete_old_image(visa.requirements_pdf, current_app.config["UPLOAD_FOLDER"])
                 visa.requirements_pdf = upload_result["path"]
             except ImageUploadException as e:
                 flash(f"PDF upload failed: {str(e)}", "danger")
@@ -1727,7 +1727,7 @@ def visa_edit(visa_id):
 @admin_required
 def visa_delete(visa_id):
     visa = db.get_or_404(VisaCountry, visa_id)
-    delete_old_image(visa.requirements_pdf, current_app.config["UPLOAD_FOLDER"], resource_type="raw")
+    delete_old_image(visa.requirements_pdf, current_app.config["UPLOAD_FOLDER"])
     db.session.delete(visa)
     db.session.commit()
     flash("Visa entry deleted.", "info")
@@ -1825,7 +1825,7 @@ def remove_visa_pdf(visa_id):
     """Remove requirements PDF from a visa entry."""
     visa = db.get_or_404(VisaCountry, visa_id)
     if visa.requirements_pdf:
-        delete_old_image(visa.requirements_pdf, current_app.config["UPLOAD_FOLDER"], resource_type="raw")
+        delete_old_image(visa.requirements_pdf, current_app.config["UPLOAD_FOLDER"])
         visa.requirements_pdf = None
         db.session.commit()
         flash("Visa PDF removed.", "success")

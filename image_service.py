@@ -100,12 +100,14 @@ class ImageUploadService:
 
     @staticmethod
     def upload_pdf(file, prefix: str = "pdf") -> dict:
-        """Upload a PDF to Cloudinary as a raw file.
+        """Upload a PDF to Cloudinary.
 
-        Images go through upload_and_compress(); PDFs (and any other
-        non-image document) go through here instead, using
-        resource_type="raw" since Cloudinary's image pipeline (transforms,
-        compression) doesn't apply to them.
+        Counter-intuitively, Cloudinary categorizes PDFs under its "image"
+        resource type (its default), not "raw" — raw is for arbitrary
+        binary files Cloudinary can't otherwise interpret, and it always
+        delivers those with Content-Disposition: attachment, forcing a
+        download instead of an inline view. "image" is what lets a PDF
+        open in the browser like any other Cloudinary asset.
 
         Args:
             file: FileStorage object from Flask
@@ -132,7 +134,7 @@ class ImageUploadService:
             raise ImageUploadException(f"File too large. Maximum size is {ImageUploadService.MAX_PDF_SIZE_MB}MB.")
 
         try:
-            result = cloudinary.uploader.upload(file, folder=f"travelworthyph/{prefix}", resource_type="raw")
+            result = cloudinary.uploader.upload(file, folder=f"travelworthyph/{prefix}", resource_type="image")
 
             url = result.get("secure_url", "")
             size_kb = size_bytes / 1024
@@ -153,9 +155,11 @@ class ImageUploadService:
 
         Args:
             url: The Cloudinary secure URL of the asset
-            resource_type: "image" (default) or "raw" — must match the type
-                the asset was uploaded with (upload_and_compress uses
-                "image", upload_pdf uses "raw"), or Cloudinary won't find it
+            resource_type: "image" (default; used by both
+                upload_and_compress and upload_pdf) or "raw" for a
+                genuinely non-image/non-transformable file — must match
+                the type the asset was uploaded with, or Cloudinary won't
+                find it
 
         Returns:
             True if deleted, False otherwise
