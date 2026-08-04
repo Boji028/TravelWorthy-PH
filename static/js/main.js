@@ -160,3 +160,23 @@ function initDateDisplay(input, overlay, placeholder) {
     }
   });
 }
+
+// Land the cursor at the end of a text field's value when it regains focus
+// (e.g. after the on-screen keyboard's Enter/Return key blurs it mid-typing,
+// or after switching apps and coming back) - lets someone keep typing right
+// away instead of having to manually swipe/drag the cursor into position.
+// Re-assigning .value (rather than setSelectionRange) works across every
+// input type, including email/tel/number, where browsers don't support the
+// Selection API. Only fires when a field newly gains focus, so it never
+// interferes with tapping to reposition the cursor inside a field that's
+// already focused.
+document.addEventListener('focusin', function (e) {
+  var el = e.target;
+  var textLike = ['text', 'email', 'tel', 'search', 'url', 'password'];
+  var isTextInput = el.tagName === 'INPUT' && textLike.indexOf(el.type) !== -1;
+  if (el.tagName === 'TEXTAREA' || isTextInput) {
+    var val = el.value;
+    el.value = '';
+    el.value = val;
+  }
+});

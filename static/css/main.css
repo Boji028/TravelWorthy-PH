@@ -628,16 +628,22 @@ input[type="datetime-local"].form-control {
     height: auto;
 }
 
-/* ── Date input display overlay ──
-   iOS Safari's native <input type="date"> doesn't reliably honor CSS
-   sizing - width, box-sizing, -webkit-appearance - the way every other
-   input type does, so trying to make the real input BE the visible box
-   kept breaking in new ways. Instead: the real input is fully invisible
-   and only used to capture the tap and hold the value; a plain sibling
-   div (which every browser sizes identically, with no native quirks) is
-   what actually renders the visible box, border, and text - it carries
-   both "doverlay" and "form-control" classes. See static/js/main.js:
-   initDateDisplay(). */
+/* Same Pogonia oversized-metrics issue as above, but here it's the native
+   text cursor and horizontal auto-scroll inside typed fields, not a
+   picker's box size - a long value in a narrow field won't scroll/track
+   the cursor reliably on iOS Safari when the field's font isn't a normal
+   text font. Reset every field people actually type real text into,
+   keeping form-control's existing size and spacing untouched. */
+input[type="text"].form-control,
+input[type="email"].form-control,
+input[type="tel"].form-control,
+input[type="search"].form-control,
+input[type="url"].form-control,
+input[type="number"].form-control,
+input[type="password"].form-control,
+textarea.form-control {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
 .dstack {
     position: relative;
 }
