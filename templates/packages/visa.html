@@ -431,10 +431,12 @@
     document.getElementById('visa-date-from').min = today;
     document.getElementById('visa-date-to').min = today;
     document.getElementById('assistant-overlay').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
   }
 
   function closeAssistantForm() {
     document.getElementById('assistant-overlay').style.display = 'none';
+    document.body.style.overflow = 'auto';
   }
 
   function submitVisaForm() {
