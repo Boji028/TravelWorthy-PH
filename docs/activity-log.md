@@ -3,6 +3,57 @@
 Reverse-chronological log of working sessions. One entry per session,
 newest first. Details for each fix live in their own kebab-case doc.
 
+## 2026-08-10 — Dead-code cleanup from the 2026-07-20 audit's deferred list
+
+Baseline: 571 passed; final: 571 passed (unchanged throughout - pure
+dead-code removal, no behavior changed). Scope was strictly the four items
+docs/full-codebase-audit-2026-07-20.md flagged as dead code but left
+unactioned (D3, D4, F5, F6); nothing else in that audit was touched. Each
+category got its own commit and its own full test run before moving on:
+
+- **Unused imports (D3)** — `9a23be7`. Removed `typing.Union` from
+  routes/main.py and routes/auth.py; `typing.Dict`/`Any` from
+  routes/packages.py and routes/admin.py (`Union`/`Optional` are still
+  used in each, kept); the unused `utils.save_image_metadata` import from
+  main.py (admin.py's copy is genuinely used across 9 call sites - kept
+  there); the dead local `from datetime import datetime` inside main.py's
+  `sitemap()`; and `utils.compress_image` from admin.py. Skipped
+  `email_service.py`'s `_strip_headers()`, which was on the audit's D3
+  list: it's a function definition, not an import, and it's since been
+  wired into `_send()` (commit `5657aac`) so it's live code now, not dead.
+- **Orphaned script (D4)** — no commit needed. `scripts/migrate_contact_user.py`
+  was already deleted the same day as the audit (commit `8f89c68`, part of
+  the separate D2 contact-messaging cleanup). Confirmed via `git log` and a
+  repo-wide search before concluding there was nothing left to remove.
+- **Inert lightbox feature (F5)** — `4341ec9`. Removed the dead
+  `#lightbox` markup/CSS from templates/packages/list.html, its
+  `<script src="packages.js">` tag, and deleted static/js/packages.js
+  outright (100% of its content was the dead openLightbox/closeLightbox/
+  zoom-toggle code, nothing else in the file). templates/main/reviews.html
+  has its own separate, fully-wired lightbox (own `<style>`/`<script>`,
+  different function signature, never loads packages.js) - confirmed
+  unrelated and left untouched.
+- **~25 dead CSS classes (F6)** — `d8e0be0`. Removed across
+  static/css/main.css (7 classes) and 7 templates (detail.html,
+  login.html, forgot_password.html, add_package.html, inquiries.html,
+  reviews.html, about.html). Full list in the commit message. Re-verified
+  every class fresh against current templates/JS rather than trusting the
+  audit's line numbers, since a lot of unrelated CSS/mobile work has
+  landed since 2026-07-20.
+
+Verified-and-kept (audit was stale here): edit_package.html's copy of
+`.form-card .sub` no longer exists - already cleaned up in a prior commit
+since the audit was written, so there was nothing to remove there.
+`email_service.py`'s `_strip_headers()` - see D3 above.
+
+Not evaluated this session (outside scope, not touched): the audit's
+remaining open items. B1, D1, D2, S1 were already resolved same-day as the
+audit (2026-07-20, before this session started); F1-F4 (CSS specificity,
+overflow, date-input, and mobile-grid bugs) were not part of this cleanup
+and were left alone.
+
+Not pushed - commits are local on main pending review.
+
 ## 2026-07-14 — Pre-deploy bug-hunt and production-readiness pass
 
 Baseline: 539 passed; final: 539 passed. Re-swept the two bug classes
