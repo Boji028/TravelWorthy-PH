@@ -683,58 +683,6 @@
   .empty-state-btn:hover {
     background: #0f3d48;
   }
-  /* ── LIGHTBOX ── */
-  .lightbox {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, .85);
-    z-index: 9999;
-    cursor: pointer;
-  }
-
-  .lightbox.active {
-    display: grid;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .lightbox img {
-    max-width: 560px;
-    width: 85vw;
-    height: auto;
-    max-height: 85vh;
-    object-fit: contain;
-    border-radius: 0;
-    box-shadow: none;
-    cursor: zoom-in;
-  }
-
-  .lightbox-close {
-    position: fixed;
-    top: 1rem;
-    right: 1rem;
-    color: white;
-    font-size: 2.5rem;
-    cursor: pointer;
-    z-index: 10000;
-    background: var(--amber);
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-    transition: background .2s;
-  }
-
-  .lightbox-close:hover {
-    background: var(--bark);
-  }
 
   .continent-dropdown {
     position: relative;
@@ -972,11 +920,6 @@
     {% set destination = request.args.get('destination', '') or None %}
     {% include 'packages/_pagination.html' %}
   </div>
-</div>
-
-<div class="lightbox" id="lightbox" onclick="closeLightbox()">
-  <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
-  <img id="lightbox-img" src="" alt="" onclick="event.stopPropagation()" />
 </div>
 
 <script nonce="{{ csp_nonce() }}">  // ── State ──
@@ -1418,5 +1361,4 @@
   });
 
 </script>
-<script src="{{ url_for('static', filename='js/packages.js') }}"></script>
 {% endblock %}
