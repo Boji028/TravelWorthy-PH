@@ -35,26 +35,6 @@
     display: block;
 }
 
-.btn-hero-primary,
-.btn-hero-ghost {
-    --clr: var(--amber);
-    transition: 0.5s;
-}
-
-.btn-hero-primary:hover {
-    background: var(--white) !important;
-    color: var(--clr) !important;
-    box-shadow: 0 0 25px var(--clr);
-    border: 1px solid var(--clr);
-}
-
-.btn-hero-ghost:hover {
-    background: var(--white) !important;
-    color: var(--clr) !important;
-    box-shadow: 0 0 25px var(--clr);
-    border: 1px solid var(--clr);
-}
-
 .nav-links a:hover {
     box-shadow: 0 0 15px var(--amber);
     color: var(--amber) !important;
@@ -199,14 +179,6 @@ nav {
     overflow: hidden;
     text-overflow: ellipsis;
     display: inline-block;
-}
-
-.nav-user {
-    display: flex;
-    align-items: center;
-    gap: .5rem;
-    font-size: .88rem;
-    color: var(--mist);
 }
 
 /* ── FLASH MESSAGES ── */
@@ -525,19 +497,9 @@ footer p {
     letter-spacing: .03em;
 }
 
-.badge-pending {
-    background: #fff3cd;
-    color: #856404;
-}
-
 .badge-confirmed {
     background: #d4edda;
     color: #155724;
-}
-
-.badge-cancelled {
-    background: #f8d7da;
-    color: #721c24;
 }
 
 .badge-new {
@@ -560,20 +522,6 @@ footer p {
     border-radius: var(--radius-lg);
     box-shadow: 0 2px 16px rgba(58, 46, 34, .07);
     overflow: hidden;
-}
-
-.section-title {
-    font-family: 'Pogonia', serif;
-    font-size: 2.2rem;
-    font-weight: 600;
-    color: var(--bark);
-    line-height: 1.2;
-}
-
-.section-sub {
-    color: var(--mist);
-    font-size: .95rem;
-    margin-top: .4rem;
 }
 
 /* ── FORM ── */
