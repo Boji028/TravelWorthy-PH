@@ -1,5 +1,4 @@
 """Main routes for public pages and contact functionality."""
-from typing import Union
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 from flask_login import current_user, login_required
 from sqlalchemy.orm import selectinload
@@ -8,7 +7,7 @@ from app import db
 from models.testimonial import Testimonial
 from models.package import TourPackage
 from image_service import ImageUploadService, ImageUploadException
-from utils import save_image_metadata, delete_old_image
+from utils import delete_old_image
 from models.blog import BlogPost
 
 main_bp = Blueprint("main", __name__)
@@ -227,7 +226,6 @@ def track_inquiry(reference_number):
 def sitemap():
     """Dynamically generated sitemap including all packages and blog posts."""
     from flask import Response
-    from datetime import datetime
 
     pages = []
     # Use configured SITE_URL to prevent Host Header Injection

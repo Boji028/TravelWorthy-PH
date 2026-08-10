@@ -1,5 +1,5 @@
 """Admin panel routes for site management and content control."""
-from typing import Union, Dict, Any, Optional
+from typing import Optional
 from datetime import datetime, timezone
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import current_user
@@ -10,7 +10,7 @@ from sqlalchemy import or_, func
 import io
 from app import db
 from decorators import admin_required
-from utils import delete_old_image, compress_image, save_image_metadata
+from utils import delete_old_image, save_image_metadata
 from models.user import User
 from models.package import TourPackage
 from models.package_image import PackageImage
