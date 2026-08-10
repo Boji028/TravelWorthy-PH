@@ -3,6 +3,66 @@
 Reverse-chronological log of working sessions. One entry per session,
 newest first. Details for each fix live in their own kebab-case doc.
 
+## 2026-08-10 — Wishlist / save-for-later feature
+
+Baseline: 571 passed; final: 594 passed (23 new tests, 0 failed). New
+feature: logged-in users can save a tour package or a visa country entry
+to a personal wishlist via a heart-toggle icon, and review/remove saved
+items from a new "My Wishlist" page. Built in three commits plus one
+browser-verification fix:
+
+- **`b1deba9`** — `models/wishlist.py` (`WishlistItem`) + migration.
+  **Design decision:** a single table with nullable `package_id`/`visa_id`
+  FKs and a `CheckConstraint` enforcing exactly one is set per row, rather
+  than two separate join tables. No existing model in this codebase
+  already solves "one row references one of several content types"
+  cleanly — `Inquiry` fakes it by string-sniffing `special_requests` for
+  `"[FOR VISA]"`, which is a known anti-pattern, not something to copy.
+  Given a genuinely fresh choice, the single-table shape was picked
+  because `Inquiry.__table_args__` already established
+  `db.CheckConstraint(...)` as a tested idiom in this repo — extending it
+  to "exactly one of two FKs" is a small, consistent step rather than a
+  new concept, and it means one route/template/JS path covers both
+  content types instead of duplicating everything twice. Consequence:
+  because the constraint requires exactly one FK non-null, a nullable FK
+  alone isn't sufficient for safe deletes — `cascade='all, delete-orphan'`
+  is needed on all three parent sides (`User`, `TourPackage`,
+  `VisaCountry`), not just `User`, or deleting a package/visa with saved
+  items would null out one FK and leave both null, violating the
+  constraint (the same class of bug CLAUDE.md's cascade pitfall warns
+  about, just via a CHECK violation instead of a NOT NULL violation).
+- **`bb2e19a`** — `routes/wishlist.py` (toggle-package, toggle-visa,
+  my_wishlist page) + saved-state wiring into `routes/packages.py`'s list/
+  detail/visa views. The toggle routes deliberately skip
+  `@login_required`: this app has no existing pattern for an AJAX action
+  that requires login (every current login-gated route just does a
+  full-page redirect), and a logged-out `fetch()` would silently receive
+  a followed redirect's HTML instead of an error it can act on. Each
+  route checks `current_user.is_authenticated` itself and returns a real
+  401 with a `login_url` instead.
+- **`224d62f`** — heart icons on package cards, the package detail page,
+  and visa cards; the new "My Wishlist" page; nav links. `static/js/
+  wishlist.js`'s fetch handler explicitly branches on a 401 status before
+  parsing JSON, which sidesteps a real, pre-existing bug of the same
+  shape already sitting in `templates/main/reviews.html`'s delete handler
+  (it treats a followed login-redirect as success via `res.redirected`).
+- **`fbc7d22`** — two fixes found only by actually running the app in a
+  browser (Playwright driven against the local dev server), not by
+  pytest: the visa-card heart was positioned right where the country flag
+  flows into the header band, partially hiding it — moved into the card's
+  content section instead. Removing the last item in a wishlist section
+  via its own heart icon left a blank box with no "nothing saved yet"
+  message, since that fallback was only ever rendered server-side at page
+  load — `wishlist.js` now adds it back in client-side when a section
+  empties out.
+
+Per your answers during planning: no separate visa "detail page" exists
+in this codebase (routes/packages.py's `visa()` renders one listing
+template with cards + two JS modals, never a per-country page), so the
+heart only went on visa cards, not into the PDF-requirements modal.
+Logged-out heart clicks redirect to `/auth/login?next=<page>`, matching
+how every other login-gated link in this app already behaves.
+
 ## 2026-08-10 — Dead-code cleanup from the 2026-07-20 audit's deferred list
 
 Baseline: 571 passed; final: 571 passed (unchanged throughout - pure
