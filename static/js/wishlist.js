@@ -31,8 +31,21 @@ function toggleWishlist(btn) {
           icon.classList.add('far');
           var row = btn.closest('.mywish-row');
           if (row) {
+            var list = row.closest('.mywish-list');
             row.style.opacity = '0';
-            setTimeout(function () { row.remove(); }, 200);
+            setTimeout(function () {
+              row.remove();
+              // The "nothing saved yet" fallback is normally rendered
+              // server-side at page load - removing the last row here
+              // client-side needs the same fallback added back in, or the
+              // section is left as a blank white box.
+              if (list && !list.querySelector('.mywish-row')) {
+                var empty = document.createElement('div');
+                empty.className = 'mywish-empty-inline';
+                empty.textContent = type === 'visa' ? 'No visa countries saved yet.' : 'No packages saved yet.';
+                list.appendChild(empty);
+              }
+            }, 200);
           }
         }
       });

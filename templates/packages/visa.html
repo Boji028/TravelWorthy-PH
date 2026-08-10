@@ -179,12 +179,6 @@
 
       <!-- Header band -->
       <div style="background:linear-gradient(135deg,var(--teal),var(--teal-d));padding:1.1rem 1.1rem 1rem;position:relative;color:#fff;">
-        <button type="button" class="wishlist-btn {{ 'active' if country.id in saved_visa_ids else '' }}"
-          data-type="visa" data-id="{{ country.id }}" aria-label="Save to wishlist"
-          onclick="toggleWishlist(this)"
-          style="position:absolute;top:.75rem;left:.75rem;width:34px;height:34px;border-radius:50%;z-index:2;">
-          <i class="{{ 'fas' if country.id in saved_visa_ids else 'far' }} fa-heart"></i>
-        </button>
         {% if country.visa_type %}
         <span style="position:absolute;top:.75rem;right:.75rem;background:rgba(255,255,255,.22);color:#fff;font-size:.65rem;font-weight:600;padding:4px 10px;border-radius:999px;">{{ country.visa_type }}</span>
         {% endif %}
@@ -207,6 +201,13 @@
 
       <!-- Card content -->
       <div style="position:relative;padding:.9rem 1.1rem 1.25rem;">
+
+        <button type="button" class="wishlist-btn {{ 'active' if country.id in saved_visa_ids else '' }}"
+          data-type="visa" data-id="{{ country.id }}" aria-label="Save to wishlist"
+          onclick="toggleWishlist(this)"
+          style="position:absolute;top:.9rem;right:1.1rem;width:34px;height:34px;border-radius:50%;z-index:2;">
+          <i class="{{ 'fas' if country.id in saved_visa_ids else 'far' }} fa-heart"></i>
+        </button>
 
         {% if country.price %}
         <span style="display:inline-block;background:#fdf0e3;color:var(--amber);font-size:.85rem;font-weight:700;padding:4px 12px;border-radius:999px;margin-bottom:.75rem;">₱{{ "{:,.0f}".format(country.price) }}</span>
