@@ -171,6 +171,7 @@ def create_app():
     from routes.admin import admin_bp
     from routes.main import main_bp
     from routes.blog import blog_bp
+    from routes.wishlist import wishlist_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix="/auth")
@@ -178,6 +179,7 @@ def create_app():
     app.register_blueprint(bookings_bp, url_prefix="/bookings")
     app.register_blueprint(admin_bp, url_prefix="/admin")
     app.register_blueprint(blog_bp, url_prefix="/blog")
+    app.register_blueprint(wishlist_bp, url_prefix="/wishlist")
 
     # Admin routes already require login + is_admin (@admin_required on every
     # view in routes/admin.py) — the global rate limits below exist to slow

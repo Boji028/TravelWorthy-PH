@@ -125,6 +125,10 @@ def list_packages() -> Union[str, object]:
     active_continent = db.session.get(Continent, continent_id) if continent_id else None
     active_country = db.session.get(Country, country_id) if country_id else None
 
+    from models.wishlist import WishlistItem
+
+    saved_package_ids = WishlistItem.saved_ids(current_user.id, WishlistItem.package_id) if current_user.is_authenticated else set()
+
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return render_template(
             "packages/list_ajax.html",
@@ -134,6 +138,7 @@ def list_packages() -> Union[str, object]:
             country_id=country_id,
             destination=destination or None,
             package_type=package_type or None,
+            saved_package_ids=saved_package_ids,
         )
 
     return render_template(
@@ -144,12 +149,14 @@ def list_packages() -> Union[str, object]:
         active_continent=active_continent,
         active_country=active_country,
         package_type=package_type,
+        saved_package_ids=saved_package_ids,
     )
 
 
 @packages_bp.route("/<int:package_id>")
 def package_detail(package_id: int) -> str:
     from models.package_review import PackageReview
+    from models.wishlist import WishlistItem
     from flask_login import current_user
 
     package = TourPackage.query.filter_by(id=package_id, is_active=True).first_or_404()
@@ -177,6 +184,11 @@ def package_detail(package_id: int) -> str:
     for img in package.images:
         all_images.append(img.path)
 
+    is_saved = (
+        current_user.is_authenticated
+        and WishlistItem.query.filter_by(user_id=current_user.id, package_id=package_id).first() is not None
+    )
+
     return render_template(
         "packages/detail.html",
         package=package,
@@ -186,6 +198,7 @@ def package_detail(package_id: int) -> str:
         user_review=user_review,
         can_review=can_review,
         all_images=all_images,
+        is_saved=is_saved,
     )
 
 
@@ -284,8 +297,11 @@ def autocomplete() -> str:
 @packages_bp.route("/visa")
 def visa() -> str:
     """Display visa requirements by country."""
+    from models.wishlist import WishlistItem
+
     countries = VisaCountry.query.filter_by(is_active=True).order_by(VisaCountry.country_name).all()
-    return render_template("packages/visa.html", countries=countries)
+    saved_visa_ids = WishlistItem.saved_ids(current_user.id, WishlistItem.visa_id) if current_user.is_authenticated else set()
+    return render_template("packages/visa.html", countries=countries, saved_visa_ids=saved_visa_ids)
 
 
 @packages_bp.route("/visa/country/<int:visa_id>/requirements")
