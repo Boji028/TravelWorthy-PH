@@ -26,6 +26,8 @@ from models.package import TourPackage
 from models.package_image import PackageImage
 from models.package_review import PackageReview
 from models.user import User
+from models.visa import VisaCountry
+from models.wishlist import WishlistItem
 from werkzeug.security import generate_password_hash
 
 
@@ -63,6 +65,15 @@ def _make_package(db, **overrides):
     db.session.add(package)
     db.session.commit()
     return package
+
+
+def _make_visa(db, **overrides):
+    defaults = dict(country_name="Japan", is_active=True)
+    defaults.update(overrides)
+    visa = VisaCountry(**defaults)
+    db.session.add(visa)
+    db.session.commit()
+    return visa
 
 
 def _make_reviewer(db, **overrides):
@@ -251,3 +262,80 @@ class TestUserDeleteWithAuthTokens:
         assert response.status_code == 302
         assert db.session.get(User, user_id) is None
         assert EmailVerificationToken.query.filter_by(user_id=user_id).count() == 0
+
+
+class TestUserDeleteWithWishlistItems:
+    """WishlistItem.user_id is NOT NULL, same pitfall class as everything
+    above. WishlistItem also enforces ck_wishlist_exactly_one_target, which
+    makes the default null-out-the-FK behavior fail even harder than a
+    plain NOT NULL violation would (see models/wishlist.py) - covered by
+    the sibling Package/Visa classes below, not here."""
+
+    def test_delete_user_with_wishlist_package_does_not_500(self, app, admin_client):
+        from app import db
+
+        user = _make_reviewer(db, email="wishespackage@example.com")
+        user_id = user.id
+        package = _make_package(db)
+        db.session.add(WishlistItem(user_id=user.id, package_id=package.id))
+        db.session.commit()
+
+        response = admin_client.post(f"/admin/users/delete/{user_id}")
+        assert response.status_code == 302
+        assert db.session.get(User, user_id) is None
+        assert WishlistItem.query.filter_by(user_id=user_id).count() == 0
+
+    def test_delete_user_with_wishlist_visa_does_not_500(self, app, admin_client):
+        from app import db
+
+        user = _make_reviewer(db, email="wishesvisa@example.com")
+        user_id = user.id
+        visa = _make_visa(db)
+        db.session.add(WishlistItem(user_id=user.id, visa_id=visa.id))
+        db.session.commit()
+
+        response = admin_client.post(f"/admin/users/delete/{user_id}")
+        assert response.status_code == 302
+        assert db.session.get(User, user_id) is None
+        assert WishlistItem.query.filter_by(user_id=user_id).count() == 0
+
+
+class TestPackageDeleteWithWishlistItems:
+    """package_id is nullable at the column level, but
+    ck_wishlist_exactly_one_target means SQLAlchemy's default "null out the
+    FK" behavior on parent delete would leave a row with both FKs null,
+    violating the constraint - this needs cascade='all, delete-orphan' on
+    TourPackage.wishlist_items just as much as a NOT NULL FK would."""
+
+    def test_delete_package_with_wishlist_item_does_not_500(self, app, admin_client):
+        from app import db
+
+        saver = _make_reviewer(db, email="saveduser@example.com")
+        package = _make_package(db)
+        package_id = package.id
+        db.session.add(WishlistItem(user_id=saver.id, package_id=package.id))
+        db.session.commit()
+
+        response = admin_client.post(f"/admin/packages/delete/{package_id}")
+        assert response.status_code == 302
+        assert db.session.get(TourPackage, package_id) is None
+        assert WishlistItem.query.filter_by(package_id=package_id).count() == 0
+
+
+class TestVisaDeleteWithWishlistItems:
+    """Same ck_wishlist_exactly_one_target hazard as
+    TestPackageDeleteWithWishlistItems, on the visa_id side."""
+
+    def test_delete_visa_with_wishlist_item_does_not_500(self, app, admin_client):
+        from app import db
+
+        saver = _make_reviewer(db, email="savedvisauser@example.com")
+        visa = _make_visa(db)
+        visa_id = visa.id
+        db.session.add(WishlistItem(user_id=saver.id, visa_id=visa.id))
+        db.session.commit()
+
+        response = admin_client.post(f"/admin/visa/delete/{visa_id}")
+        assert response.status_code == 302
+        assert db.session.get(VisaCountry, visa_id) is None
+        assert WishlistItem.query.filter_by(visa_id=visa_id).count() == 0

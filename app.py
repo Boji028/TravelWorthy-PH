@@ -201,6 +201,7 @@ def create_app():
         from models.package_image import PackageImage
         from models.package_review import PackageReview
         from models.inquiry_notification import InquiryNotification
+        from models.wishlist import WishlistItem
 
         # Only auto-create tables for ephemeral SQLite databases (quick local
         # experiments, pytest fixtures). Never auto-create against PostgreSQL —

@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 from models.user import User
 from models.package import TourPackage
 from models.agent import Agent
+from models.visa import VisaCountry
+from models.wishlist import WishlistItem
 from werkzeug.security import check_password_hash, generate_password_hash
 
 
@@ -238,3 +240,87 @@ class TestModelConstraints:
         db.session.commit()
 
         assert package.price == 0.00
+
+
+class TestWishlistItemModel:
+    """Test WishlistItem model."""
+
+    def test_save_package(self, app, test_user, test_package):
+        """Test saving a package populates package_id and leaves visa_id unset."""
+        from app import db
+
+        item = WishlistItem(user_id=test_user.id, package_id=test_package.id)
+        db.session.add(item)
+        db.session.commit()
+
+        assert item.id is not None
+        assert item.visa_id is None
+        assert isinstance(item.created_at, datetime)
+
+    def test_save_visa(self, app, test_user):
+        """Test saving a visa country populates visa_id and leaves package_id unset."""
+        from app import db
+
+        visa = VisaCountry(country_name="Japan", is_active=True)
+        db.session.add(visa)
+        db.session.commit()
+
+        item = WishlistItem(user_id=test_user.id, visa_id=visa.id)
+        db.session.add(item)
+        db.session.commit()
+
+        assert item.id is not None
+        assert item.package_id is None
+
+    def test_relationships_both_directions(self, app, test_user, test_package):
+        """Test the user/package relationships resolve, not just the raw FKs."""
+        from app import db
+
+        item = WishlistItem(user_id=test_user.id, package_id=test_package.id)
+        db.session.add(item)
+        db.session.commit()
+
+        assert item.user.id == test_user.id
+        assert item.package.id == test_package.id
+        assert item in test_user.wishlist_items
+        assert item in test_package.wishlist_items
+
+    def test_repr(self, app, test_user, test_package):
+        """Test string representation."""
+        from app import db
+
+        item = WishlistItem(user_id=test_user.id, package_id=test_package.id)
+        db.session.add(item)
+        db.session.commit()
+
+        assert f"package={test_package.id}" in repr(item)
+
+    def test_duplicate_save_of_same_package_violates_unique_constraint(self, app, test_user, test_package):
+        """Test a user can't save the same package twice."""
+        from app import db
+        from sqlalchemy.exc import IntegrityError
+
+        db.session.add(WishlistItem(user_id=test_user.id, package_id=test_package.id))
+        db.session.commit()
+        db.session.add(WishlistItem(user_id=test_user.id, package_id=test_package.id))
+
+        with pytest.raises(IntegrityError):
+            db.session.commit()
+
+    def test_requires_exactly_one_target(self, app, test_user, test_package):
+        """Test ck_wishlist_exactly_one_target rejects both-set and neither-set rows."""
+        from app import db
+        from sqlalchemy.exc import IntegrityError
+
+        visa = VisaCountry(country_name="Korea", is_active=True)
+        db.session.add(visa)
+        db.session.commit()
+
+        db.session.add(WishlistItem(user_id=test_user.id, package_id=test_package.id, visa_id=visa.id))
+        with pytest.raises(IntegrityError):
+            db.session.commit()
+        db.session.rollback()
+
+        db.session.add(WishlistItem(user_id=test_user.id))
+        with pytest.raises(IntegrityError):
+            db.session.commit()
