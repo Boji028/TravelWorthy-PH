@@ -1,7 +1,12 @@
 {% for pkg in packages %}
-<div class="pkg-card" onclick="window.location='{{ url_for('packages.package_detail', package_id=pkg.id) }}'">
+<div class="pkg-card" data-package-id="{{ pkg.id }}" onclick="window.location='{{ url_for('packages.package_detail', package_id=pkg.id) }}'">
   <div class="pkg-img-wrap">
     {% if pkg.is_featured %}<div class="pkg-badge"><i class="fas fa-star"></i> Featured</div>{% endif %}
+    <button type="button" class="wishlist-btn pkg-save-btn {{ 'active' if pkg.id in saved_package_ids else '' }}"
+      data-type="package" data-id="{{ pkg.id }}" aria-label="Save to wishlist"
+      onclick="event.stopPropagation(); toggleWishlist(this)">
+      <i class="{{ 'fas' if pkg.id in saved_package_ids else 'far' }} fa-heart"></i>
+    </button>
     {% if pkg.image and pkg.image != 'default_tour.jpg' %}
     <img class="pkg-img" src="{{ (pkg.image | cloudinary_package_card) if pkg.image.startswith('http') else '/uploads/' + pkg.image }}" alt="{{ pkg.title }}" loading="lazy"/>
     {% else %}

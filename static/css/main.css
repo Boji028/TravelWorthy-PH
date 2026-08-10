@@ -1067,6 +1067,32 @@ select.form-control {
   line-height: 1;
 }
 
+/* ── WISHLIST HEART TOGGLE (shared by package cards/detail/visa cards) ── */
+.wishlist-btn {
+  border: none;
+  background: rgba(255, 255, 255, .9);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .15);
+  transition: transform .15s;
+}
+
+.wishlist-btn:hover {
+  transform: scale(1.1);
+}
+
+.wishlist-btn:disabled {
+  opacity: .6;
+  cursor: default;
+}
+
+.wishlist-btn i {
+  color: var(--amber);
+  pointer-events: none;
+}
+
 .notif-menu {
   right: 0;
   left: auto;

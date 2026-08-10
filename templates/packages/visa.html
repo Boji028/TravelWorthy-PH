@@ -172,13 +172,19 @@
     {% for country in countries %}
 
     <div class="visa-card"
-      data-region="{{ country.region or '' }}" data-country="{{ country.country_name | lower }}"
+      data-region="{{ country.region or '' }}" data-country="{{ country.country_name | lower }}" data-visa-id="{{ country.id }}"
       style="position:relative;overflow:hidden;background:var(--white);border-radius:var(--radius-lg);box-shadow:0 2px 12px rgba(58,46,34,.07);transition:transform .2s,box-shadow .2s;opacity:0;animation:visaCardRise .6s ease forwards;animation-delay:{{ (loop.index0 % 12) * 0.05 }}s;"
       onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 32px rgba(58,46,34,.15)'"
       onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 2px 12px rgba(58,46,34,.07)'">
 
       <!-- Header band -->
       <div style="background:linear-gradient(135deg,var(--teal),var(--teal-d));padding:1.1rem 1.1rem 1rem;position:relative;color:#fff;">
+        <button type="button" class="wishlist-btn {{ 'active' if country.id in saved_visa_ids else '' }}"
+          data-type="visa" data-id="{{ country.id }}" aria-label="Save to wishlist"
+          onclick="toggleWishlist(this)"
+          style="position:absolute;top:.75rem;left:.75rem;width:34px;height:34px;border-radius:50%;z-index:2;">
+          <i class="{{ 'fas' if country.id in saved_visa_ids else 'far' }} fa-heart"></i>
+        </button>
         {% if country.visa_type %}
         <span style="position:absolute;top:.75rem;right:.75rem;background:rgba(255,255,255,.22);color:#fff;font-size:.65rem;font-weight:600;padding:4px 10px;border-radius:999px;">{{ country.visa_type }}</span>
         {% endif %}
@@ -525,5 +531,6 @@
     if (e.target === this) closeAssistantForm();
   });
 </script>
+<script src="{{ url_for('static', filename='js/wishlist.js') }}"></script>
 
 {% endblock %}

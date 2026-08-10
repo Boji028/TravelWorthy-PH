@@ -106,3 +106,47 @@ class TestMyWishlistPage:
     def test_requires_login(self, client):
         response = client.get("/wishlist/")
         assert response.status_code in (302, 401, 403)
+
+    def test_empty_state(self, authenticated_client):
+        response = authenticated_client.get("/wishlist/")
+        assert response.status_code == 200
+        assert b"haven&#39;t saved anything" in response.data or b"haven't saved anything" in response.data
+
+    def test_shows_saved_package_and_visa(self, app, authenticated_client, test_user, test_package):
+        from app import db
+
+        visa = _make_visa(db, country_name="South Korea")
+        db.session.add(WishlistItem(user_id=test_user.id, package_id=test_package.id))
+        db.session.add(WishlistItem(user_id=test_user.id, visa_id=visa.id))
+        db.session.commit()
+
+        response = authenticated_client.get("/wishlist/")
+        page = response.get_data(as_text=True)
+        assert test_package.title in page
+        assert "South Korea" in page
+
+    def test_only_shows_current_users_items(self, app, authenticated_client, test_user, test_package):
+        from app import db
+        from models.user import User
+        from werkzeug.security import generate_password_hash
+
+        other = User(
+            name="Other3", email="other3@example.com", password=generate_password_hash("Pass123"), email_verified=True
+        )
+        db.session.add(other)
+        db.session.commit()
+        db.session.add(WishlistItem(user_id=other.id, package_id=test_package.id))
+        db.session.commit()
+
+        response = authenticated_client.get("/wishlist/")
+        assert test_package.title not in response.get_data(as_text=True)
+
+    def test_remove_from_wishlist_page(self, app, authenticated_client, test_user, test_package):
+        from app import db
+
+        db.session.add(WishlistItem(user_id=test_user.id, package_id=test_package.id))
+        db.session.commit()
+
+        response = authenticated_client.post(f"/wishlist/toggle/package/{test_package.id}")
+        assert response.get_json()["saved"] is False
+        assert WishlistItem.query.filter_by(user_id=test_user.id, package_id=test_package.id).count() == 0

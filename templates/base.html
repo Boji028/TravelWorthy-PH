@@ -86,6 +86,7 @@
             {% endif %}
             <li><a href="{{ url_for('auth.profile') }}">My Profile</a></li>
             <li><a href="{{ url_for('main.my_inquiries') }}">My Inquiries</a></li>
+            <li><a href="{{ url_for('wishlist.my_wishlist') }}">My Wishlist</a></li>
             <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
           </ul>
         </li>
@@ -144,6 +145,7 @@
         <div class="mm-actions">
           {% if current_user.is_admin %}<a href="{{ url_for('admin.dashboard') }}">Dashboard</a>{% endif %}
           <a href="{{ url_for('main.my_inquiries') }}">My Inquiries</a>
+          <a href="{{ url_for('wishlist.my_wishlist') }}">My Wishlist</a>
           <a href="{{ url_for('auth.logout') }}" class="mm-logout">Logout</a>
         </div>
         {% endif %}

@@ -189,6 +189,20 @@
     background: var(--linen);
   }
 
+  .detail-save-btn {
+    position: absolute;
+    top: .75rem;
+    right: 2.5rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    z-index: 2;
+  }
+
+  .detail-save-btn i {
+    font-size: 1.05rem;
+  }
+
   /* ── MAIN LAYOUT ── */
   .detail-wrap {
     max-width: 1100px;
@@ -783,6 +797,11 @@
 
 {% if all_images %}
 <div class="photo-grid" id="s-photos">
+  <button type="button" class="wishlist-btn detail-save-btn {{ 'active' if is_saved else '' }}"
+    data-type="package" data-id="{{ package.id }}" aria-label="Save to wishlist"
+    onclick="toggleWishlist(this)">
+    <i class="{{ 'fas' if is_saved else 'far' }} fa-heart"></i>
+  </button>
   <div class="photo-main" onclick="openPhotoViewer(0)">
     <img src="{{ (all_images[0] | cloudinary_enhance) if all_images[0].startswith('http') else all_images[0] }}"
       alt="{{ package.title }}" loading="lazy" />
@@ -806,7 +825,12 @@
   {% endif %}
 </div>
 {% else %}
-<div style="max-width:1100px;margin:1rem auto 0;padding:0 2rem;">
+<div style="max-width:1100px;margin:1rem auto 0;padding:0 2rem;position:relative;">
+  <button type="button" class="wishlist-btn detail-save-btn {{ 'active' if is_saved else '' }}"
+    data-type="package" data-id="{{ package.id }}" aria-label="Save to wishlist"
+    onclick="toggleWishlist(this)">
+    <i class="{{ 'fas' if is_saved else 'far' }} fa-heart"></i>
+  </button>
   <div
     style="width:100%;height:320px;background:var(--linen);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;font-size:4rem;color:var(--mist);">
     <i class="fas fa-mountain"></i>
@@ -1495,4 +1519,5 @@
   }
 
 </script>
+<script src="{{ url_for('static', filename='js/wishlist.js') }}"></script>
 {% endblock %}

@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% block title %}My Wishlist — Travel Worthy PH{% endblock %}
+
+{% block extra_styles %}
+<style>
+  .mywish-hero {
+    background: var(--sand);
+    padding: 3rem 1.5rem 2.5rem;
+    text-align: center;
+  }
+
+  .mywish-hero h1 {
+    font-family: 'Pogonia', serif;
+    font-size: clamp(1.8rem, 4vw, 2.4rem);
+    color: var(--bark);
+    margin: 0 0 .4rem;
+  }
+
+  .mywish-hero p {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    color: var(--mist);
+    font-size: 1.05rem;
+    margin: 0;
+  }
+
+  .mywish-wrap {
+    max-width: 820px;
+    margin: -1.5rem auto 4rem;
+    padding: 0 1.5rem;
+  }
+
+  .mywish-section {
+    margin-bottom: 2rem;
+  }
+
+  .mywish-section-title {
+    font-family: 'Pogonia', serif;
+    font-size: 1.3rem;
+    color: var(--bark);
+    margin-bottom: .75rem;
+  }
+
+  .mywish-list {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 4px 24px rgba(58, 46, 34, .08);
+    overflow: hidden;
+  }
+
+  .mywish-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.3rem;
+    border-bottom: 1px solid var(--linen);
+    text-decoration: none;
+    transition: background .15s, opacity .2s;
+  }
+
+  .mywish-row:last-child {
+    border-bottom: none;
+  }
+
+  a.mywish-row:hover {
+    background: #fafaf8;
+  }
+
+  .mywish-thumb,
+  .mywish-flag {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius);
+    object-fit: cover;
+    flex-shrink: 0;
+    background: var(--linen);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--mist);
+  }
+
+  .mywish-main {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .mywish-name {
+    font-weight: 600;
+    color: var(--bark);
+    font-size: .98rem;
+    margin-bottom: .15rem;
+  }
+
+  .mywish-meta {
+    font-size: .8rem;
+    color: var(--mist);
+  }
+
+  .mywish-row .wishlist-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .mywish-empty-inline {
+    padding: 1.5rem 1.3rem;
+    color: var(--mist);
+    font-size: .88rem;
+    text-align: center;
+  }
+
+  .mywish-empty {
+    text-align: center;
+    padding: 3.5rem 2rem;
+    color: var(--mist);
+  }
+
+  .mywish-empty i {
+    font-size: 2.2rem;
+    opacity: .35;
+    display: block;
+    margin-bottom: 1rem;
+  }
+
+  .mywish-empty a {
+    color: var(--teal);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  @media (max-width: 768px) {
+    .mywish-row {
+      padding: .85rem 1rem;
+      gap: .75rem;
+    }
+
+    .mywish-thumb,
+    .mywish-flag {
+      width: 48px;
+      height: 48px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="mywish-hero">
+  <h1>My Wishlist</h1>
+  <p>Everything you've saved for later, all in one place</p>
+</section>
+
+<div class="mywish-wrap">
+  {% if not saved_packages and not saved_visas %}
+  <div class="mywish-list">
+    <div class="mywish-empty">
+      <i class="far fa-heart"></i>
+      <p>You haven't saved anything yet.</p>
+      <a href="{{ url_for('packages.list_packages') }}">Browse packages</a> ·
+      <a href="{{ url_for('packages.visa') }}">Explore visas</a>
+    </div>
+  </div>
+  {% else %}
+
+  <div class="mywish-section">
+    <div class="mywish-section-title">Saved Packages</div>
+    <div class="mywish-list">
+      {% if saved_packages %}
+      {% for item in saved_packages %}
+      <a class="mywish-row" href="{{ url_for('packages.package_detail', package_id=item.package.id) }}">
+        {% if item.package.image and item.package.image != 'default_tour.jpg' %}
+        <img class="mywish-thumb"
+          src="{{ (item.package.image | cloudinary_package_card) if item.package.image.startswith('http') else '/uploads/' + item.package.image }}"
+          alt="{{ item.package.title }}" loading="lazy" />
+        {% else %}
+        <div class="mywish-thumb"><i class="fas fa-mountain"></i></div>
+        {% endif %}
+        <div class="mywish-main">
+          <div class="mywish-name">{{ item.package.title }}</div>
+          <div class="mywish-meta">
+            {{ item.package.destination }} ·
+            {% if item.package.currency == 'USD' %}${% elif item.package.currency == 'EUR' %}€{% else %}₱{% endif %}{{ "{:,.0f}".format(item.package.price) }} / person
+          </div>
+        </div>
+        <button type="button" class="wishlist-btn active" data-type="package" data-id="{{ item.package.id }}"
+          aria-label="Remove from wishlist" onclick="event.preventDefault(); toggleWishlist(this)">
+          <i class="fas fa-heart"></i>
+        </button>
+      </a>
+      {% endfor %}
+      {% else %}
+      <div class="mywish-empty-inline">No packages saved yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="mywish-section">
+    <div class="mywish-section-title">Saved Visa Countries</div>
+    <div class="mywish-list">
+      {% if saved_visas %}
+      {% for item in saved_visas %}
+      <div class="mywish-row">
+        {% set iso = item.visa.flag_emoji | flag_to_iso %}
+        {% if iso %}
+        <img class="mywish-flag" src="https://flagcdn.com/h80/{{ iso }}.png" alt="{{ item.visa.country_name }} flag"
+          loading="lazy" />
+        {% else %}
+        <div class="mywish-flag" style="font-size:1.4rem;">{{ item.visa.flag_emoji or '🌍' }}</div>
+        {% endif %}
+        <div class="mywish-main">
+          <div class="mywish-name">{{ item.visa.country_name }}</div>
+          <div class="mywish-meta">
+            {% if item.visa.visa_type %}{{ item.visa.visa_type }}{% endif %}
+            {% if item.visa.price %} · ₱{{ "{:,.0f}".format(item.visa.price) }}{% endif %}
+          </div>
+        </div>
+        <button type="button" class="wishlist-btn active" data-type="visa" data-id="{{ item.visa.id }}"
+          aria-label="Remove from wishlist" onclick="toggleWishlist(this)">
+          <i class="fas fa-heart"></i>
+        </button>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="mywish-empty-inline">No visa countries saved yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% endif %}
+</div>
+<script src="{{ url_for('static', filename='js/wishlist.js') }}"></script>
+{% endblock %}
