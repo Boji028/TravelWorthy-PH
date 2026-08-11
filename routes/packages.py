@@ -189,6 +189,25 @@ def package_detail(package_id: int) -> str:
         and WishlistItem.query.filter_by(user_id=current_user.id, package_id=package_id).first() is not None
     )
 
+    # Same package_type (domestic/international) rather than country_id,
+    # since country_id is only set on some packages — package_type is
+    # always present and guaranteed comparable.
+    related_packages = (
+        TourPackage.query.filter(
+            TourPackage.id != package_id,
+            TourPackage.is_active.is_(True),
+            TourPackage.package_type == package.package_type,
+        )
+        .order_by(TourPackage.is_featured.desc(), TourPackage.created_at.desc())
+        .limit(4)
+        .all()
+    )
+    saved_package_ids = (
+        WishlistItem.saved_ids(current_user.id, WishlistItem.package_id)
+        if current_user.is_authenticated
+        else set()
+    )
+
     return render_template(
         "packages/detail.html",
         package=package,
@@ -199,6 +218,8 @@ def package_detail(package_id: int) -> str:
         can_review=can_review,
         all_images=all_images,
         is_saved=is_saved,
+        related_packages=related_packages,
+        saved_package_ids=saved_package_ids,
     )
 
 

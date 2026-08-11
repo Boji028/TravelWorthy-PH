@@ -1208,6 +1208,16 @@
   {% endif %}
 </div>
 {% endif %}
+<!-- RELATED PACKAGES (full width below the grid) -->
+{% if related_packages %}
+<div class="related-section" id="s-related">
+  <h3>You might also like</h3>
+  <div class="packages-grid">
+    {% set packages = related_packages %}
+    {% include 'packages/_cards.html' %}
+  </div>
+</div>
+{% endif %}
 <!-- FLIERS MODAL -->
 {% if package.flier_image %}
 <div id="fliersModal" class="modal">
