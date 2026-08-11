@@ -198,7 +198,7 @@ def package_detail(package_id: int) -> str:
             TourPackage.is_active.is_(True),
             TourPackage.package_type == package.package_type,
         )
-        .order_by(TourPackage.is_featured.desc(), TourPackage.created_at.desc())
+        .order_by(func.random())
         .limit(4)
         .all()
     )
