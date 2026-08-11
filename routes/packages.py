@@ -199,7 +199,7 @@ def package_detail(package_id: int) -> str:
             TourPackage.package_type == package.package_type,
         )
         .order_by(func.random())
-        .limit(4)
+        .limit(3)
         .all()
     )
     saved_package_ids = (
