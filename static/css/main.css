@@ -1092,7 +1092,37 @@ select.form-control {
   color: var(--amber);
   pointer-events: none;
 }
+.share-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
 
+.share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--teal);
+  background: #fff;
+  color: var(--teal);
+  font-size: .85rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.share-btn:hover {
+  background: var(--linen);
+}
+
+@media (max-width: 768px) {
+  .share-btn {
+    padding: 10px 16px;
+    font-size: .9rem;
+  }
+}
 .notif-menu {
   right: 0;
   left: auto;

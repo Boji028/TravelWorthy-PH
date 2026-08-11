@@ -797,9 +797,8 @@
 
 {% if all_images %}
 <div class="photo-grid" id="s-photos">
-  <button type="button" class="wishlist-btn detail-save-btn {{ 'active' if is_saved else '' }}"
-    data-type="package" data-id="{{ package.id }}" aria-label="Save to wishlist"
-    onclick="toggleWishlist(this)">
+  <button type="button" class="wishlist-btn detail-save-btn {{ 'active' if is_saved else '' }}" data-type="package"
+    data-id="{{ package.id }}" aria-label="Save to wishlist" onclick="toggleWishlist(this)">
     <i class="{{ 'fas' if is_saved else 'far' }} fa-heart"></i>
   </button>
   <div class="photo-main" onclick="openPhotoViewer(0)">
@@ -826,9 +825,8 @@
 </div>
 {% else %}
 <div style="max-width:1100px;margin:1rem auto 0;padding:0 2rem;position:relative;">
-  <button type="button" class="wishlist-btn detail-save-btn {{ 'active' if is_saved else '' }}"
-    data-type="package" data-id="{{ package.id }}" aria-label="Save to wishlist"
-    onclick="toggleWishlist(this)">
+  <button type="button" class="wishlist-btn detail-save-btn {{ 'active' if is_saved else '' }}" data-type="package"
+    data-id="{{ package.id }}" aria-label="Save to wishlist" onclick="toggleWishlist(this)">
     <i class="{{ 'fas' if is_saved else 'far' }} fa-heart"></i>
   </button>
   <div
@@ -872,6 +870,18 @@
         <span class="pkg-sep">·</span>
         <span>{{ package.country.flag_emoji or '' }} {{ package.country.name }}</span>
         {% endif %}
+      </div>
+
+      <div class="share-row">
+        <button type="button" class="share-btn" id="webShareBtn" style="display:none;" onclick="shareViaWebShare()">
+          <i class="fas fa-share-nodes"></i> Share
+        </button>
+        <a href="#" class="share-btn" id="fbShareBtn" style="display:none;" target="_blank" rel="noopener">
+          <i class="fab fa-facebook-f"></i> Share
+        </a>
+        <button type="button" class="share-btn" id="copyLinkBtn" style="display:none;" onclick="copyPackageLink(this)">
+          <i class="fas fa-link"></i> Copy link
+        </button>
       </div>
 
       <div class="host-row">
@@ -1099,7 +1109,8 @@
           {% elif not can_review %}
           <div
             style="background:var(--sand);border-radius:var(--radius);padding:1rem;font-size:.88rem;color:var(--mist)">
-            <i class="fas fa-info-circle" style="color:var(--teal)"></i> You can review this package once you have a confirmed booking for it.
+            <i class="fas fa-info-circle" style="color:var(--teal)"></i> You can review this package once you have a
+            confirmed booking for it.
           </div>
           {% else %}
           <form method="POST" action="{{ url_for('packages.submit_review', package_id=package.id) }}"
@@ -1326,7 +1337,8 @@
         Our team will contact you within <strong style="color:var(--bark)">24 hours</strong> to finalize your
         inquiry.
       </div>
-      <div style="display:flex;gap:.75rem;justify-content:flex-end;border-top:1px solid var(--linen);padding-top:1.5rem;">
+      <div
+        style="display:flex;gap:.75rem;justify-content:flex-end;border-top:1px solid var(--linen);padding-top:1.5rem;">
         <button type="button" onclick="closeInquireModal()" class="btn btn-ghost">Cancel</button>
         <button type="submit" class="btn btn-amber">
           <i class="fas fa-paper-plane"></i> Send Inquiry
@@ -1388,9 +1400,18 @@
     });
   });
 
-  const allPhotos = [{% for img in all_images %}
-    "{{ (img | cloudinary_enhance) if img.startswith('http') else img }}"{% if not loop.last %},{% endif %}
-  {% endfor %}
+  const allPhotos = [{
+      %
+      for img in all_images %
+    }
+    "{{ (img | cloudinary_enhance) if img.startswith('http') else img }}" {
+      %
+      if not loop.last %
+    }, {
+      % endif %
+    } {
+      % endfor %
+    }
   ];
   let currentPhoto = 0;
 
@@ -1496,9 +1517,12 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    initDateDisplay(document.getElementById('detailDateFrom'), document.getElementById('detailDateFromOverlay'), 'Select date');
-    initDateDisplay(document.getElementById('detailDateTo'), document.getElementById('detailDateToOverlay'), 'Select date');
+    initDateDisplay(document.getElementById('detailDateFrom'), document.getElementById('detailDateFromOverlay'),
+      'Select date');
+    initDateDisplay(document.getElementById('detailDateTo'), document.getElementById('detailDateToOverlay'),
+      'Select date');
   });
+
 </script>
 
 <script type="application/ld+json">
@@ -1506,9 +1530,16 @@
     "@context": "https://schema.org",
     "@type": "TouristTrip",
     "name": "{{ package.title }}",
-    "description": "{{ package.description[:160] | replace('"', '\\"') }}",
-    "touristType": "Any"{% if package.image %},
-    "image": "{% if package.image.startswith('http') %}{{ package.image }}{% else %}{{ config['SITE_URL'] }}/uploads/{{ package.image }}{% endif %}"{% endif %},
+    "description": "{{ package.description[:160] | replace('"
+    ', '\\
+    "') }}",
+    "touristType": "Any" {
+      %
+      if package.image %
+    },
+    "image": "{% if package.image.startswith('http') %}{{ package.image }}{% else %}{{ config['SITE_URL'] }}/uploads/{{ package.image }}{% endif %}" {
+      % endif %
+    },
     "offers": {
       "@type": "Offer",
       "price": "{{ package.price }}",
@@ -1520,4 +1551,5 @@
 
 </script>
 <script src="{{ url_for('static', filename='js/wishlist.js') }}"></script>
+<script src="{{ url_for('static', filename='js/share.js') }}"></script>
 {% endblock %}
