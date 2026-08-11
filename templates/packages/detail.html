@@ -1400,18 +1400,9 @@
     });
   });
 
-  const allPhotos = [{
-      %
-      for img in all_images %
-    }
-    "{{ (img | cloudinary_enhance) if img.startswith('http') else img }}" {
-      %
-      if not loop.last %
-    }, {
-      % endif %
-    } {
-      % endfor %
-    }
+  const allPhotos = [{% for img in all_images %}
+    "{{ (img | cloudinary_enhance) if img.startswith('http') else img }}"{% if not loop.last %},{% endif %}
+  {% endfor %}
   ];
   let currentPhoto = 0;
 
@@ -1530,16 +1521,9 @@
     "@context": "https://schema.org",
     "@type": "TouristTrip",
     "name": "{{ package.title }}",
-    "description": "{{ package.description[:160] | replace('"
-    ', '\\
-    "') }}",
-    "touristType": "Any" {
-      %
-      if package.image %
-    },
-    "image": "{% if package.image.startswith('http') %}{{ package.image }}{% else %}{{ config['SITE_URL'] }}/uploads/{{ package.image }}{% endif %}" {
-      % endif %
-    },
+    "description": "{{ package.description[:160] | replace('"', '\\"') }}",
+    "touristType": "Any"{% if package.image %},
+    "image": "{% if package.image.startswith('http') %}{{ package.image }}{% else %}{{ config['SITE_URL'] }}/uploads/{{ package.image }}{% endif %}"{% endif %},
     "offers": {
       "@type": "Offer",
       "price": "{{ package.price }}",
