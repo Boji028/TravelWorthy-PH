@@ -25,6 +25,7 @@ class TourPackage(db.Model):
     flier_image_uploaded_at: Optional[datetime] = db.Column(db.DateTime, nullable=True)
     inclusions: Optional[str] = db.Column(db.Text, nullable=True)
     exclusions: Optional[str] = db.Column(db.Text, nullable=True)
+    itinerary: Optional[str] = db.Column(db.Text, nullable=True)
     is_active: bool = db.Column(db.Boolean, default=True, index=True)
     is_featured: bool = db.Column(db.Boolean, default=False, index=True)
     package_type: str = db.Column(db.String(20), default="domestic", nullable=False, index=True)

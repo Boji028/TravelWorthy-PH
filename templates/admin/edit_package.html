@@ -187,6 +187,12 @@
     </div>
 
     <div class="form-group">
+      <label>Itinerary <span style="font-size:.8rem;color:var(--mist)">(one day per line — Day 1 is the first
+          line, Day 2 the second, and so on)</span></label>
+      <textarea name="itinerary" class="form-control" rows="6">{{ package.itinerary or '' }}</textarea>
+    </div>
+
+    <div class="form-group">
       <label>What this package offers <span style="font-size:.8rem;color:var(--mist)">(one item per line — e.g. Hotel
           swimming pool)</span></label>
       <textarea name="amenities" class="form-control" rows="6">{{ package.amenities or '' }}</textarea>

@@ -357,6 +357,7 @@ def add_package():
                 flier_image=flier_filename,
                 inclusions=request.form.get("inclusions", "").strip(),
                 exclusions=request.form.get("exclusions", "").strip(),
+                itinerary=request.form.get("itinerary", "").strip(),
                 amenities=request.form.get("amenities", "").strip(),
                 location_description=request.form.get("location_description", "").strip(),
                 latitude=latitude,
@@ -486,6 +487,7 @@ def edit_package(package_id):
             package.is_featured = request.form.get("is_featured") == "on"
             package.inclusions = request.form.get("inclusions", "").strip()
             package.exclusions = request.form.get("exclusions", "").strip()
+            package.itinerary = request.form.get("itinerary", "").strip()
             package.amenities = request.form.get("amenities", "").strip()
             package.location_description = request.form.get("location_description", "").strip()
             package.latitude = float(request.form.get("latitude")) if request.form.get("latitude") else None

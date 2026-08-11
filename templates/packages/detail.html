@@ -376,6 +376,60 @@
     margin-bottom: .75rem;
   }
 
+  .itinerary-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .itinerary-day {
+    display: flex;
+    gap: 14px;
+  }
+
+  .itinerary-marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .itinerary-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--teal);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .8rem;
+    font-weight: 600;
+  }
+
+  .itinerary-line {
+    width: 2px;
+    flex: 1;
+    background: var(--linen);
+    margin: 4px 0;
+  }
+
+  .itinerary-body {
+    padding-bottom: 1.25rem;
+  }
+
+  .itinerary-title {
+    font-size: .92rem;
+    font-weight: 600;
+    color: var(--bark);
+    margin-bottom: 2px;
+  }
+
+  .itinerary-desc {
+    font-size: .88rem;
+    color: var(--mist);
+    line-height: 1.6;
+  }
+
   /* DESCRIPTION */
   .desc-text {
     font-size: .9rem;
@@ -842,6 +896,8 @@
     <button class="sec-tab active" onclick="goTo('s-about', this)">About</button>
     {% if package.inclusions or package.exclusions %}<button class="sec-tab"
       onclick="goTo('s-inclusions', this)">Inclusions</button>{% endif %}
+    {% if package.itinerary %}<button class="sec-tab"
+      onclick="goTo('s-itinerary', this)">Itinerary</button>{% endif %}
     {% if package.amenities %}<button class="sec-tab" onclick="goTo('s-amenities', this)">Amenities</button>{% endif %}
     <button class="sec-tab" onclick="goTo('s-reviews', this)">Reviews</button>
     {% if package.location_description or package.latitude %}<button class="sec-tab"
@@ -953,6 +1009,28 @@
           {% endif %}{% endfor %}
         </div>
         {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ITINERARY -->
+    {% if package.itinerary %}
+    <div class="detail-section" id="s-itinerary">
+      <h3>Itinerary</h3>
+      <div class="itinerary-list">
+        {% set days = package.itinerary.split('\n') | map('trim') | select | list %}
+        {% for day in days %}
+        <div class="itinerary-day">
+          <div class="itinerary-marker">
+            <div class="itinerary-num">{{ loop.index }}</div>
+            {% if not loop.last %}<div class="itinerary-line"></div>{% endif %}
+          </div>
+          <div class="itinerary-body">
+            <div class="itinerary-title">Day {{ loop.index }}</div>
+            <div class="itinerary-desc">{{ day }}</div>
+          </div>
+        </div>
+        {% endfor %}
       </div>
     </div>
     {% endif %}
