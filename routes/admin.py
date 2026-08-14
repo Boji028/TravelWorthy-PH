@@ -310,32 +310,40 @@ def add_package():
 
             filename = "default_tour.jpg"
             upload_result = None
-            try:
-                image_file = request.files.get("image")
-                if image_file and image_file.filename:
-                    upload_result = ImageUploadService.upload_and_compress(image_file, "package")
-                    filename = upload_result["path"]
-            except ImageUploadException as e:
-                current_app.logger.warning(f"Package image upload failed: {e}")
-                flash(f"Image upload failed: {str(e)}. Using default image.", "warning")
-            except Exception as e:
-                current_app.logger.error(f"Unexpected error uploading package image: {e}", exc_info=True)
-                flash("Image upload error. Using default image.", "warning")
+            image_url = request.form.get("image_url", "").strip()
+            if image_url and image_url.startswith("https://"):
+                filename = image_url
+            else:
+                try:
+                    image_file = request.files.get("image")
+                    if image_file and image_file.filename:
+                        upload_result = ImageUploadService.upload_and_compress(image_file, "package")
+                        filename = upload_result["path"]
+                except ImageUploadException as e:
+                    current_app.logger.warning(f"Package image upload failed: {e}")
+                    flash(f"Image upload failed: {str(e)}. Using default image.", "warning")
+                except Exception as e:
+                    current_app.logger.error(f"Unexpected error uploading package image: {e}", exc_info=True)
+                    flash("Image upload error. Using default image.", "warning")
 
             # ── Flier image (optional) ──────────────────────────────
             flier_filename = None
             flier_upload_result = None
-            try:
-                flier_file = request.files.get("flier_image")
-                if flier_file and flier_file.filename:
-                    flier_upload_result = ImageUploadService.upload_and_compress(flier_file, "flier")
-                    flier_filename = flier_upload_result["path"]
-            except ImageUploadException as e:
-                current_app.logger.warning(f"Flier image upload failed: {e}")
-                flash(f"Flier upload failed: {str(e)}. You can add it later via Edit Package.", "warning")
-            except Exception as e:
-                current_app.logger.error(f"Unexpected error uploading flier: {e}", exc_info=True)
-                flash("Flier upload error. You can add it later via Edit Package.", "warning")
+            flier_image_url = request.form.get("flier_image_url", "").strip()
+            if flier_image_url and flier_image_url.startswith("https://"):
+                flier_filename = flier_image_url
+            else:
+                try:
+                    flier_file = request.files.get("flier_image")
+                    if flier_file and flier_file.filename:
+                        flier_upload_result = ImageUploadService.upload_and_compress(flier_file, "flier")
+                        flier_filename = flier_upload_result["path"]
+                except ImageUploadException as e:
+                    current_app.logger.warning(f"Flier image upload failed: {e}")
+                    flash(f"Flier upload failed: {str(e)}. You can add it later via Edit Package.", "warning")
+                except Exception as e:
+                    current_app.logger.error(f"Unexpected error uploading flier: {e}", exc_info=True)
+                    flash("Flier upload error. You can add it later via Edit Package.", "warning")
 
             is_featured = request.form.get("is_featured") == "on"
             package_type = request.form.get("package_type", "domestic")

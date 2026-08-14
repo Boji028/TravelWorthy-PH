@@ -77,6 +77,8 @@
 <div class="form-card">
   <form method="POST" action="{{ url_for('admin.add_package') }}" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <input type="hidden" name="image_url" id="image_url" value="" />
+    <input type="hidden" name="flier_image_url" id="flier_image_url" value="" />
     <div class="form-group">
       <label>Package Title <span style="color:var(--danger)">*</span></label>
       <input type="text" name="title" class="form-control" placeholder="e.g. Palawan Island Hopping Adventure"
@@ -173,9 +175,8 @@
         <button type="button" class="file-upload-btn" onclick="this.nextElementSibling.click()">
           <i class="fas fa-image"></i> Choose Photo
         </button>
-        <input type="file" name="image" accept="image/*"
-          onchange="this.nextElementSibling.textContent = this.files[0]?.name || 'No file chosen'" />
-        <span class="file-upload-label">No file chosen</span>
+        <input type="file" name="image" accept="image/*" id="image-input" />
+        <span class="file-upload-label" id="image-status">No file chosen</span>
       </div>
       <div style="font-size:.78rem;color:var(--mist);margin-top:.3rem">PNG, JPG, JPEG, GIF or WEBP. Max 16MB.</div>
     </div>
@@ -189,9 +190,8 @@
         <button type="button" class="file-upload-btn" onclick="this.nextElementSibling.click()">
           <i class="fas fa-file-image"></i> Choose Flier
         </button>
-        <input type="file" name="flier_image" accept="image/*"
-          onchange="this.nextElementSibling.textContent = this.files[0]?.name || 'No file chosen'" />
-        <span class="file-upload-label">No file chosen</span>
+        <input type="file" name="flier_image" accept="image/*" id="flier-input" />
+        <span class="file-upload-label" id="flier-status">No file chosen</span>
       </div>
       <div style="font-size:.78rem;color:var(--mist);margin-top:.3rem">PNG, JPG, JPEG, GIF or WEBP. Max 16MB. Used for
         promotional materials.</div>
@@ -260,5 +260,65 @@
       });
   });
 
+  function getCsrfToken() {
+    return document.querySelector('input[name="csrf_token"]').value;
+  }
+
+  async function uploadImageToCloudinary(file, folder, hiddenInput, fileInput, statusLabel) {
+    statusLabel.textContent = 'Uploading ' + file.name + '…';
+
+    try {
+      const sigResponse = await fetch('/admin/cloudinary-signature', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({ folder: folder })
+      });
+
+      if (!sigResponse.ok) throw new Error('Could not get upload signature');
+
+      const sigData = await sigResponse.json();
+
+      const cloudForm = new FormData();
+      cloudForm.append('file', file);
+      cloudForm.append('api_key', sigData.api_key);
+      cloudForm.append('timestamp', sigData.timestamp);
+      cloudForm.append('signature', sigData.signature);
+      cloudForm.append('folder', sigData.folder);
+
+      const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${sigData.cloud_name}/image/upload`, {
+        method: 'POST',
+        body: cloudForm
+      });
+
+      if (!uploadResponse.ok) throw new Error('Cloudinary upload failed');
+
+      const uploadData = await uploadResponse.json();
+      hiddenInput.value = uploadData.secure_url;
+      fileInput.disabled = true;
+      statusLabel.textContent = 'Uploaded: ' + file.name;
+
+    } catch (err) {
+      console.error('Direct upload failed, falling back to server upload on submit:', err);
+      hiddenInput.value = '';
+      statusLabel.textContent = file.name + ' (will upload on submit)';
+    }
+  }
+
+  document.getElementById('image-input').addEventListener('change', function () {
+    const file = this.files[0];
+    const label = document.getElementById('image-status');
+    if (!file) { label.textContent = 'No file chosen'; return; }
+    uploadImageToCloudinary(file, 'travelworthyph/package', document.getElementById('image_url'), this, label);
+  });
+
+  document.getElementById('flier-input').addEventListener('change', function () {
+    const file = this.files[0];
+    const label = document.getElementById('flier-status');
+    if (!file) { label.textContent = 'No file chosen'; return; }
+    uploadImageToCloudinary(file, 'travelworthyph/flier', document.getElementById('flier_image_url'), this, label);
+  });
 </script>
 {% endblock %}
