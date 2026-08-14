@@ -6,7 +6,8 @@ from flask_login import login_required, current_user
 from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 from flask_sqlalchemy.pagination import Pagination
-
+import re
+from markupsafe import Markup, escape
 from app import db
 from models.package import TourPackage
 from models.country import Country
@@ -151,6 +152,19 @@ def list_packages() -> Union[str, object]:
         package_type=package_type,
         saved_package_ids=saved_package_ids,
     )
+
+_BOLD_PATTERN = re.compile(r"\*\*(.+?)\*\*")
+
+
+@packages_bp.app_template_filter("bold_markdown")
+def bold_markdown(text):
+    """Convert **word** into <strong>word</strong> for itinerary
+    descriptions. Escapes everything else first, so this is the only
+    way HTML can end up in the output — no other tag can sneak through."""
+    if not text:
+        return Markup("")
+    escaped = escape(text)
+    return Markup(_BOLD_PATTERN.sub(r"<strong>\1</strong>", str(escaped)))
 
 
 @packages_bp.route("/<int:package_id>")

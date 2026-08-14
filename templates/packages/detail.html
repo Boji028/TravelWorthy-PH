@@ -424,6 +424,13 @@
     margin-bottom: 2px;
   }
 
+  .itinerary-meals {
+    font-size: .8rem;
+    color: var(--teal);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
   .itinerary-desc {
     font-size: .88rem;
     color: var(--mist);
@@ -896,7 +903,7 @@
     <button class="sec-tab active" onclick="goTo('s-about', this)">About</button>
     {% if package.inclusions or package.exclusions %}<button class="sec-tab"
       onclick="goTo('s-inclusions', this)">Inclusions</button>{% endif %}
-    {% if package.itinerary %}<button class="sec-tab"
+    {% if package.itinerary_days or package.itinerary %}<button class="sec-tab"
       onclick="goTo('s-itinerary', this)">Itinerary</button>{% endif %}
     {% if package.amenities %}<button class="sec-tab" onclick="goTo('s-amenities', this)">Amenities</button>{% endif %}
     <button class="sec-tab" onclick="goTo('s-reviews', this)">Reviews</button>
@@ -1014,10 +1021,25 @@
     {% endif %}
 
     <!-- ITINERARY -->
-    {% if package.itinerary %}
+    {% if package.itinerary_days or package.itinerary %}
     <div class="detail-section" id="s-itinerary">
       <h3>Itinerary</h3>
       <div class="itinerary-list">
+        {% if package.itinerary_days %}
+        {% for day in package.itinerary_days %}
+        <div class="itinerary-day">
+          <div class="itinerary-marker">
+            <div class="itinerary-num">{{ day.day_number }}</div>
+            {% if not loop.last %}<div class="itinerary-line"></div>{% endif %}
+          </div>
+          <div class="itinerary-body">
+            <div class="itinerary-title">Day {{ day.day_number }}: {{ day.title }}</div>
+            {% if day.meals %}<div class="itinerary-meals">Meals: {{ day.meals }}</div>{% endif %}
+            <div class="itinerary-desc">{{ day.description | bold_markdown }}</div>
+          </div>
+        </div>
+        {% endfor %}
+        {% else %}
         {% set days = package.itinerary.split('\n') | map('trim') | select | list %}
         {% for day in days %}
         <div class="itinerary-day">
@@ -1031,6 +1053,7 @@
           </div>
         </div>
         {% endfor %}
+        {% endif %}
       </div>
     </div>
     {% endif %}

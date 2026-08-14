@@ -26,7 +26,7 @@ from models.inquiry_notification import InquiryNotification
 from models.site_settings import SiteSettings
 from models.email_verification import EmailVerificationToken
 from models.agent import Agent
-
+from models.itinerary_day import ItineraryDay
 admin_bp = Blueprint("admin", __name__)
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
@@ -365,7 +365,6 @@ def add_package():
                 flier_image=flier_filename,
                 inclusions=request.form.get("inclusions", "").strip(),
                 exclusions=request.form.get("exclusions", "").strip(),
-                itinerary=request.form.get("itinerary", "").strip(),
                 amenities=request.form.get("amenities", "").strip(),
                 location_description=request.form.get("location_description", "").strip(),
                 latitude=latitude,
@@ -375,6 +374,25 @@ def add_package():
                 assigned_agent_id=assigned_agent_id,
             )
             db.session.add(package)
+            db.session.commit()
+
+            day_titles = request.form.getlist("itinerary_day_title")
+            day_meals = request.form.getlist("itinerary_day_meals")
+            day_descriptions = request.form.getlist("itinerary_day_description")
+            for i, day_title in enumerate(day_titles):
+                day_title = day_title.strip()
+                if not day_title:
+                    continue
+                db.session.add(
+                    ItineraryDay(
+                        package_id=package.id,
+                        day_number=i + 1,
+                        title=day_title,
+                        meals=day_meals[i].strip() if i < len(day_meals) else None,
+                        description=day_descriptions[i].strip() if i < len(day_descriptions) else None,
+                        order=i,
+                    )
+                )
             db.session.commit()
 
             try:
@@ -495,8 +513,26 @@ def edit_package(package_id):
             package.is_featured = request.form.get("is_featured") == "on"
             package.inclusions = request.form.get("inclusions", "").strip()
             package.exclusions = request.form.get("exclusions", "").strip()
-            package.itinerary = request.form.get("itinerary", "").strip()
             package.amenities = request.form.get("amenities", "").strip()
+
+            ItineraryDay.query.filter_by(package_id=package.id).delete()
+            day_titles = request.form.getlist("itinerary_day_title")
+            day_meals = request.form.getlist("itinerary_day_meals")
+            day_descriptions = request.form.getlist("itinerary_day_description")
+            for i, day_title in enumerate(day_titles):
+                day_title = day_title.strip()
+                if not day_title:
+                    continue
+                db.session.add(
+                    ItineraryDay(
+                        package_id=package.id,
+                        day_number=i + 1,
+                        title=day_title,
+                        meals=day_meals[i].strip() if i < len(day_meals) else None,
+                        description=day_descriptions[i].strip() if i < len(day_descriptions) else None,
+                        order=i,
+                    )
+                )
             package.location_description = request.form.get("location_description", "").strip()
             package.latitude = float(request.form.get("latitude")) if request.form.get("latitude") else None
             package.longitude = float(request.form.get("longitude")) if request.form.get("longitude") else None

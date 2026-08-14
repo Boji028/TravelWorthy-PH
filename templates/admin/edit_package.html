@@ -186,10 +186,27 @@
       <textarea name="exclusions" class="form-control" rows="5">{{ package.exclusions or '' }}</textarea>
     </div>
 
-    <div class="form-group">
-      <label>Itinerary <span style="font-size:.8rem;color:var(--mist)">(one day per line — Day 1 is the first
-          line, Day 2 the second, and so on)</span></label>
-      <textarea name="itinerary" class="form-control" rows="6">{{ package.itinerary or '' }}</textarea>
+    <div class="form-group" style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--linen);">
+      <label style="display:flex;align-items:center;gap:.4rem;">
+        <i class="fas fa-route" style="color:var(--teal);"></i>
+        Itinerary
+        <span style="font-size:.8rem;color:var(--mist);font-weight:400;">(add one block per day — wrap a word in **like this** to bold it)</span>
+      </label>
+
+      <div id="itinerary-days"></div>
+
+      <button type="button" id="add-day-btn"
+        style="background:var(--teal);color:white;border:none;border-radius:var(--radius);padding:.5rem 1rem;cursor:pointer;font-size:.88rem;display:flex;align-items:center;gap:.5rem;margin-top:.5rem;">
+        <i class="fas fa-plus"></i> Add Day
+      </button>
+
+      <script id="existing-itinerary-days" type="application/json">
+[
+  {% for day in package.itinerary_days %}
+  {"title": {{ day.title | tojson }}, "meals": {{ day.meals | tojson }}, "description": {{ day.description | tojson }}}{% if not loop.last %},{% endif %}
+  {% endfor %}
+]
+      </script>
     </div>
 
     <div class="form-group">
@@ -538,6 +555,66 @@
       }
     } catch (err) {
       alert('Error deleting image.');
+    }
+  }
+
+  // ── Itinerary day builder ──────────────────────────
+  let dayCount = 0;
+  const daysContainer = document.getElementById('itinerary-days');
+
+  function addDayBlock(prefill) {
+    dayCount++;
+    const n = dayCount;
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'border:1px solid var(--linen);border-radius:var(--radius);padding:1rem;margin-bottom:.75rem;position:relative;';
+    wrapper.innerHTML = `
+      <button type="button" class="remove-day-btn" style="position:absolute;top:.6rem;right:.6rem;background:none;border:none;color:var(--danger);cursor:pointer;font-size:.9rem;"><i class="fas fa-times"></i></button>
+      <div class="day-label" style="font-size:.8rem;font-weight:600;color:var(--teal);margin-bottom:.5rem;">Day ${n}</div>
+      <input type="hidden" name="itinerary_day_number" value="${n}" />
+      <div class="form-group" style="margin-bottom:.5rem;">
+        <label style="font-size:.82rem;">Title</label>
+        <input type="text" name="itinerary_day_title" class="form-control" placeholder="e.g. Clark – Basco – North Batan" value="${prefill ? prefill.title || '' : ''}" />
+      </div>
+      <div class="form-group" style="margin-bottom:.5rem;">
+        <label style="font-size:.82rem;">Meals <span style="color:var(--mist);font-weight:400;">(e.g. X / L / X)</span></label>
+        <input type="text" name="itinerary_day_meals" class="form-control" placeholder="X / L / X" value="${prefill ? prefill.meals || '' : ''}" />
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label style="font-size:.82rem;">Description</label>
+        <textarea name="itinerary_day_description" class="form-control" rows="4" placeholder="Describe the day's activities. Wrap a word in **like this** to bold it.">${prefill ? prefill.description || '' : ''}</textarea>
+      </div>
+    `;
+    daysContainer.appendChild(wrapper);
+  }
+
+  function renumberDays() {
+    const wrappers = daysContainer.querySelectorAll(':scope > div');
+    wrappers.forEach((w, i) => {
+      const n = i + 1;
+      w.querySelector('.day-label').textContent = 'Day ' + n;
+      w.querySelector('input[name="itinerary_day_number"]').value = n;
+    });
+    dayCount = wrappers.length;
+  }
+
+  daysContainer.addEventListener('click', function (e) {
+    const btn = e.target.closest('.remove-day-btn');
+    if (btn) {
+      btn.parentElement.remove();
+      renumberDays();
+    }
+  });
+
+  document.getElementById('add-day-btn').addEventListener('click', () => addDayBlock());
+
+  // Pre-fill with this package's existing days
+  const existingDaysEl = document.getElementById('existing-itinerary-days');
+  if (existingDaysEl) {
+    try {
+      const existingDays = JSON.parse(existingDaysEl.textContent);
+      existingDays.forEach(d => addDayBlock(d));
+    } catch (err) {
+      console.error('Could not load existing itinerary days', err);
     }
   }
 
