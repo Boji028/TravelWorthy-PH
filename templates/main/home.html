@@ -78,6 +78,7 @@
     border-radius: 999px; padding: 7px 7px 7px 8px; max-width: 620px; margin: 0 auto;
     opacity: 0; animation: twRise 1s ease 1.1s forwards; box-shadow: 0 20px 60px rgba(0,20,24,.3);
   }
+  .tw-search-trigger { display: none; }
   .tw-sf { display: flex; align-items: center; gap: 8px; flex: 1; padding: 8px 14px;
     border-right: 1px solid rgba(255,255,255,.28); min-width: 0; }
   .tw-sf:nth-of-type(1) { flex: 2.3; }
@@ -289,6 +290,20 @@
     .tw-sf { border-right: 0; border-bottom: 1px solid rgba(255,255,255,.28); }
     .tw-sf:last-of-type { border-bottom: 0; }
     .tw-sbtn { width: 100%; margin-top: 4px; }
+    .tw-search-wrap.tw-collapsed .tw-search { display: none; }
+    .tw-search-wrap.tw-collapsed .tw-search-trigger {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.34);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-radius: 999px; padding: 13px 18px; font-family: inherit; font-size: 14px;
+    cursor: pointer; opacity: 0; animation: twRise 1s ease 1.1s forwards;
+    box-shadow: 0 20px 60px rgba(0,20,24,.3);
+}
+.tw-search-trigger .tw-st-label {
+  flex: 1; text-align: left; color: #eafffc;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tw-search-trigger i { color: #fff; font-size: 13px; opacity: .9; flex-shrink: 0; }
   }
   @media (prefers-reduced-motion: reduce) {
     .tw-hero-img, .tw-wave { animation: none !important; }
@@ -314,39 +329,46 @@
       <em><span class="w" style="animation-delay:.55s">worth&nbsp;it</span></em>
     </h1>
     <p class="tw-hero-sub">Handcrafted tour packages to the world's most breathtaking destinations. We plan every detail — you keep the memories.</p>
-    <form class="tw-search" action="{{ url_for('packages.list_packages') }}" method="GET">
-      <div class="tw-sf">
-        <i class="fas fa-map-pin"></i>
-        <div class="tw-input-stack">
-          <input type="text" name="destination" autocomplete="off" id="twDestInput" aria-label="Where would you like to go?"
-            value="{{ request.args.get('destination','') }}">
-          <div class="tw-marquee-overlay" id="twDestOverlay" aria-hidden="true">
-            <span class="tw-marquee-inner" id="twDestInner">Where would you like to go?</span>
+    <div class="tw-search-wrap tw-collapsed" id="twSearchWrap">
+      <button type="button" class="tw-search-trigger" id="twSearchTrigger">
+        <i class="fas fa-search" aria-hidden="true"></i>
+        <span class="tw-st-label">Where would you like to go?</span>
+        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+      </button>
+      <form class="tw-search" action="{{ url_for('packages.list_packages') }}" method="GET">
+        <div class="tw-sf">
+          <i class="fas fa-map-pin"></i>
+          <div class="tw-input-stack">
+            <input type="text" name="destination" autocomplete="off" id="twDestInput" aria-label="Where would you like to go?"
+              value="{{ request.args.get('destination','') }}">
+            <div class="tw-marquee-overlay" id="twDestOverlay" aria-hidden="true">
+              <span class="tw-marquee-inner" id="twDestInner">Where would you like to go?</span>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="tw-sf">
-        <i class="fas fa-calendar"></i>
-        <div class="tw-input-stack tw-date-stack">
-          <input type="date" id="twDepReal" name="departure_date" aria-label="Departure date"
-            value="{{ request.args.get('departure_date','') }}">
-          <div class="tw-marquee-overlay" id="twDepOverlay" aria-hidden="true">
-            <span class="tw-marquee-inner" id="twDepInner">Departure</span>
+        <div class="tw-sf">
+          <i class="fas fa-calendar"></i>
+          <div class="tw-input-stack tw-date-stack">
+            <input type="date" id="twDepReal" name="departure_date" aria-label="Departure date"
+              value="{{ request.args.get('departure_date','') }}">
+            <div class="tw-marquee-overlay" id="twDepOverlay" aria-hidden="true">
+              <span class="tw-marquee-inner" id="twDepInner">Departure</span>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="tw-sf">
-        <i class="fas fa-users"></i>
-        <div class="tw-input-stack">
-          <input type="number" name="guests" min="1" id="twGuestsInput" aria-label="Guests"
-            value="{{ request.args.get('guests','') }}">
-          <div class="tw-marquee-overlay" id="twGuestsOverlay" aria-hidden="true">
-            <span class="tw-marquee-inner" id="twGuestsInner">Guests</span>
+        <div class="tw-sf">
+          <i class="fas fa-users"></i>
+          <div class="tw-input-stack">
+            <input type="number" name="guests" min="1" id="twGuestsInput" aria-label="Guests"
+              value="{{ request.args.get('guests','') }}">
+            <div class="tw-marquee-overlay" id="twGuestsOverlay" aria-hidden="true">
+              <span class="tw-marquee-inner" id="twGuestsInner">Guests</span>
+            </div>
           </div>
         </div>
-      </div>
-      <button type="submit" class="tw-sbtn">Explore now</button>
-    </form>
+        <button type="submit" class="tw-sbtn">Explore now</button>
+      </form>
+    </div>
   </div>
   <div class="tw-hero-dots" id="twHeroDots"></div>
   <div class="tw-cue">Scroll<i class="fas fa-chevron-down"></i></div>
@@ -560,6 +582,15 @@
 <script nonce="{{ csp_nonce() }}">
   (function () {
     var reduce = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    var searchWrap = document.getElementById('twSearchWrap');
+    var searchTrigger = document.getElementById('twSearchTrigger');
+    if (searchWrap && searchTrigger) {
+      searchTrigger.addEventListener('click', function () {
+      searchWrap.classList.remove('tw-collapsed');
+    var destInput = document.getElementById('twDestInput');
+    if (destInput) { setTimeout(function () { destInput.focus(); }, 50); }
+  });
+}
 
     // Hero slideshow — admin-picked slides if any exist, otherwise the
     // original fallback (site settings hero image + featured/active package covers).
