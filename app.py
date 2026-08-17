@@ -279,10 +279,27 @@ def create_app():
 
     @app.template_filter("cloudinary_enhance")
     def cloudinary_enhance(url):
-        """Enhance Cloudinary image without cropping — for full-size display."""
+        """Enhance Cloudinary image without cropping — for full-size display.
+        Capped at 2400px wide: sharp on any screen (even 3x-retina phones,
+        which only need ~1200 real pixels), while avoiding the softness
+        that Cloudinary's auto-quality applies to true 4K+ originals to
+        keep their file size sane."""
         if not url or not url.startswith("https://res.cloudinary.com"):
             return url
-        transforms = "f_auto,q_auto:best,e_improve,e_sharpen:40"
+        transforms = "f_auto,q_auto:best,e_improve,e_sharpen:40,w_2400,c_limit"
+        return url.replace("/upload/", f"/upload/{transforms}/")
+
+    @app.template_filter("cloudinary_hero_mobile")
+    def cloudinary_hero_mobile(url):
+        """Portrait-cropped variant of a hero/background image for narrow
+        phone screens. A wide landscape photo has to stretch well past its
+        native resolution to cover a tall phone viewport with plain
+        background-size:cover — this serves an actually-portrait crop
+        instead, using Cloudinary's automatic subject-aware gravity so the
+        interesting part of the photo stays in frame."""
+        if not url or not url.startswith("https://res.cloudinary.com"):
+            return url
+        transforms = "f_auto,q_auto:best,e_improve,e_sharpen:40,c_fill,g_auto,ar_9:16,w_1200"
         return url.replace("/upload/", f"/upload/{transforms}/")
 
     @app.template_filter("flag_to_iso")
