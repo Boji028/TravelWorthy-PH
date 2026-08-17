@@ -1,0 +1,316 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Hero Slideshow — Admin{% endblock %}
+
+{% block admin_styles %}
+<style>
+  .card-wrap {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: 0 2px 12px rgba(58, 46, 34, .07);
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--linen);
+  }
+
+  .card-header h3 {
+    font-family: 'Pogonia', serif;
+    font-size: 1.25rem;
+    color: var(--bark);
+  }
+
+  .hs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .hs-card {
+    position: relative;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--linen);
+  }
+
+  .hs-card img {
+    width: 100%;
+    height: 110px;
+    object-fit: cover;
+    display: block;
+  }
+
+  .hs-order-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: rgba(0, 0, 0, .55);
+    color: #fff;
+    font-size: .72rem;
+    padding: 2px 7px;
+    border-radius: 999px;
+  }
+
+  .hs-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: .5rem .6rem;
+    background: var(--sand);
+  }
+
+  .hs-move-btns {
+    display: flex;
+    gap: .3rem;
+  }
+
+  .hs-icon-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    border: none;
+    background: var(--white);
+    color: var(--bark);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .75rem;
+  }
+
+  .hs-icon-btn:hover {
+    background: var(--linen);
+  }
+
+  .hs-icon-btn:disabled {
+    opacity: .35;
+    cursor: default;
+  }
+
+  .btn-sm-danger {
+    padding: .3rem .5rem;
+    font-size: .75rem;
+    border-radius: 6px;
+    background: rgba(192, 57, 43, .1);
+    color: var(--danger);
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-sm-danger:hover {
+    background: rgba(192, 57, 43, .2);
+  }
+
+  .hs-upload-area {
+    border-top: 1px solid var(--linen);
+    padding-top: 1.25rem;
+  }
+
+  .hs-upload-btn {
+    background: var(--teal);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    padding: .6rem 1.2rem;
+    cursor: pointer;
+    font-size: .88rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+
+  .hs-upload-btn:hover {
+    background: var(--bark);
+  }
+
+  .hs-bar-track {
+    background: var(--linen);
+    border-radius: 4px;
+    height: 6px;
+    overflow: hidden;
+  }
+
+  .hs-bar-inner {
+    height: 100%;
+    background: var(--teal);
+    width: 0%;
+    transition: width .2s;
+  }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <h1>Hero slideshow</h1>
+  <p>These images rotate on the homepage background. Add a few, and the first one shown here is also what visitors see first.</p>
+</div>
+
+<div class="card-wrap">
+  <div class="card-header">
+    <h3>Current slides
+      <span style="font-size:.85rem;color:var(--mist);font-family:'DM Sans',sans-serif">({{ slides|length }})</span>
+    </h3>
+  </div>
+
+  {% if slides %}
+  <div class="hs-grid" id="hs-grid">
+    {% for slide in slides %}
+    <div class="hs-card">
+      <span class="hs-order-badge">{{ loop.index }}</span>
+      <img src="{{ slide.path }}" alt="Hero slide {{ loop.index }}" loading="lazy">
+      <div class="hs-actions">
+        <div class="hs-move-btns">
+          <form method="POST" action="{{ url_for('admin.reorder_hero_slide', slide_id=slide.id, direction='up') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <button type="submit" class="hs-icon-btn" {% if loop.first %}disabled{% endif %} title="Move earlier">
+              <i class="fas fa-arrow-left"></i>
+            </button>
+          </form>
+          <form method="POST" action="{{ url_for('admin.reorder_hero_slide', slide_id=slide.id, direction='down') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <button type="submit" class="hs-icon-btn" {% if loop.last %}disabled{% endif %} title="Move later">
+              <i class="fas fa-arrow-right"></i>
+            </button>
+          </form>
+        </div>
+        <form method="POST" action="{{ url_for('admin.delete_hero_slide', slide_id=slide.id) }}"
+          data-confirm="Remove this slide from the homepage rotation?">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button type="submit" class="btn-sm-danger"><i class="fas fa-trash"></i></button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:2.5rem;color:var(--mist);margin-bottom:1.5rem;">
+    <i class="fas fa-images" style="font-size:2.5rem;margin-bottom:1rem;display:block;opacity:.3"></i>
+    No slides yet — the homepage hero is currently using Site Settings' image plus package photos as a fallback.
+  </div>
+  {% endif %}
+
+  <div class="hs-upload-area">
+    <button type="button" id="hs-upload-btn" class="hs-upload-btn">
+      <i class="fas fa-cloud-upload-alt"></i> Add photos
+    </button>
+    <div style="font-size:.75rem;color:var(--mist);margin-top:.4rem;">
+      Uploads straight to the cloud — pick one or several at once.
+    </div>
+    <div id="hs-upload-status" style="margin-top:.75rem;"></div>
+  </div>
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+  var hsUploadBtn = document.getElementById('hs-upload-btn');
+  var hsStatus = document.getElementById('hs-upload-status');
+  var hsCsrf = document.querySelector('meta[name="csrf-token"]').content;
+
+  hsUploadBtn.addEventListener('click', function () {
+    var fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.multiple = true;
+    fileInput.click();
+
+    fileInput.addEventListener('change', async function () {
+      var files = Array.from(fileInput.files);
+      if (!files.length) return;
+
+      hsStatus.innerHTML = '<div style="color:var(--teal);font-size:.85rem;"><i class="fas fa-spinner fa-spin"></i> Preparing upload...</div>';
+
+      var sigData;
+      try {
+        var sigRes = await fetch('/admin/cloudinary-signature', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': hsCsrf },
+          body: JSON.stringify({ folder: 'travelworthyph/hero' })
+        });
+        sigData = await sigRes.json();
+      } catch (err) {
+        hsStatus.innerHTML = '<div style="color:var(--danger);font-size:.85rem;">Failed to get upload signature. Try again.</div>';
+        return;
+      }
+
+      var uploadedUrls = [];
+
+      for (var i = 0; i < files.length; i++) {
+        var file = files[i];
+        var barId = 'hs-progress-' + Date.now() + '-' + i;
+
+        hsStatus.innerHTML += '<div id="' + barId + '" style="margin-bottom:.5rem;">' +
+          '<div style="font-size:.8rem;color:var(--bark);margin-bottom:.2rem;">' + file.name + '</div>' +
+          '<div class="hs-bar-track"><div class="hs-bar-inner"></div></div></div>';
+
+        var formData = new FormData();
+        formData.append('file', file);
+        formData.append('api_key', sigData.api_key);
+        formData.append('timestamp', sigData.timestamp);
+        formData.append('signature', sigData.signature);
+        formData.append('folder', sigData.folder);
+
+        try {
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', 'https://api.cloudinary.com/v1_1/' + sigData.cloud_name + '/image/upload');
+
+          xhr.upload.onprogress = (function (id) {
+            return function (e) {
+              if (e.lengthComputable) {
+                var pct = Math.round((e.loaded / e.total) * 100);
+                var bar = document.querySelector('#' + id + ' .hs-bar-inner');
+                if (bar) bar.style.width = pct + '%';
+              }
+            };
+          })(barId);
+
+          var result = await new Promise(function (resolve, reject) {
+            xhr.onload = function () {
+              if (xhr.status === 200) resolve(JSON.parse(xhr.responseText));
+              else reject(new Error('Upload failed'));
+            };
+            xhr.onerror = function () { reject(new Error('Network error')); };
+            xhr.send(formData);
+          });
+
+          uploadedUrls.push(result.secure_url);
+          var doneBar = document.querySelector('#' + barId + ' .hs-bar-inner');
+          if (doneBar) doneBar.style.width = '100%';
+        } catch (err) {
+          var barEl = document.getElementById(barId);
+          if (barEl) barEl.innerHTML += '<div style="color:var(--danger);font-size:.75rem;">Failed — try again</div>';
+        }
+      }
+
+      if (!uploadedUrls.length) {
+        hsStatus.innerHTML += '<div style="color:var(--danger);font-size:.85rem;margin-top:.5rem;">No photos uploaded.</div>';
+        return;
+      }
+
+      hsStatus.innerHTML += '<div style="color:var(--teal);font-size:.85rem;margin-top:.5rem;"><i class="fas fa-check-circle"></i> Saving...</div>';
+
+      var form = document.createElement('form');
+      form.method = 'POST';
+      form.action = "{{ url_for('admin.add_hero_slides') }}";
+      var csrfInput = document.createElement('input');
+      csrfInput.type = 'hidden';
+      csrfInput.name = 'csrf_token';
+      csrfInput.value = hsCsrf;
+      form.appendChild(csrfInput);
+      uploadedUrls.forEach(function (url) {
+        var urlInput = document.createElement('input');
+        urlInput.type = 'hidden';
+        urlInput.name = 'new_slide_urls';
+        urlInput.value = url;
+        form.appendChild(urlInput);
+      });
+      document.body.appendChild(form);
+      form.submit();
+    });
+  });
+</script>
+{% endblock %}

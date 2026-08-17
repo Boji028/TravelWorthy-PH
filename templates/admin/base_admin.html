@@ -274,6 +274,10 @@
       class="sidebar-link {% if request.endpoint == 'admin.site_settings' %}active{% endif %}">
       <i class="fas fa-image"></i> Site Settings
     </a>
+    <a href="{{ url_for('admin.hero_slides') }}"
+      class="sidebar-link {% if 'hero_slide' in request.endpoint %}active{% endif %}">
+      <i class="fas fa-images"></i> Hero Slideshow
+    </a>
     <a href="{{ url_for('admin.agents') }}"
       class="sidebar-link {% if 'agent' in request.endpoint %}active{% endif %}">
       <i class="fas fa-user-tie"></i> Agents

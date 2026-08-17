@@ -36,6 +36,9 @@ def home():
     )
     from models.continent import Continent
     from models.site_settings import SiteSettings
+    from models.hero_slide import HeroSlide
+    
+    hero_slides = HeroSlide.query.order_by(HeroSlide.order).all()
 
     testimonials = (
         Testimonial.query.options(selectinload(Testimonial.user)).order_by(Testimonial.created_at.desc()).limit(5).all()
@@ -50,6 +53,7 @@ def home():
         posts=posts,
         continents=continents,
         site_settings=site_settings,
+        hero_slides=hero_slides,
     )
 
 

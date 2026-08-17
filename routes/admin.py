@@ -27,6 +27,8 @@ from models.site_settings import SiteSettings
 from models.email_verification import EmailVerificationToken
 from models.agent import Agent
 from models.itinerary_day import ItineraryDay
+from models.hero_slide import HeroSlide
+
 admin_bp = Blueprint("admin", __name__)
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
