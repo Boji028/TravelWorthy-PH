@@ -2111,7 +2111,65 @@ def site_settings():
 
     return render_template("admin/site_settings.html", settings=settings)
 
+# ── Hero Slides ─────────────────────────────────────────
+@admin_bp.route("/hero-slides")
+@admin_required
+def hero_slides():
+    slides = HeroSlide.query.order_by(HeroSlide.order).all()
+    return render_template("admin/hero_slides.html", slides=slides)
 
+
+@admin_bp.route("/hero-slides/add", methods=["POST"])
+@admin_required
+def add_hero_slides():
+    # Track order manually, same reasoning as the package gallery upload:
+    # newly-added rows aren't visible via a fresh count() until committed,
+    # so compute the starting point once, before adding anything.
+    next_order = HeroSlide.query.count()
+    new_urls = request.form.getlist("new_slide_urls")
+    added = 0
+    for url in new_urls:
+        if url and url.startswith("https://"):
+            db.session.add(HeroSlide(path=url, order=next_order))
+            next_order += 1
+            added += 1
+    db.session.commit()
+    if added:
+        flash(f"{added} slide{'s' if added != 1 else ''} added.", "success")
+    else:
+        flash("No images were uploaded.", "warning")
+    return redirect(url_for("admin.hero_slides"))
+
+
+@admin_bp.route("/hero-slides/delete/<int:slide_id>", methods=["POST"])
+@admin_required
+def delete_hero_slide(slide_id):
+    slide = db.get_or_404(HeroSlide, slide_id)
+    delete_old_image(slide.path, current_app.config["UPLOAD_FOLDER"])
+    db.session.delete(slide)
+    db.session.commit()
+    flash("Slide removed.", "info")
+    return redirect(url_for("admin.hero_slides"))
+
+
+@admin_bp.route("/hero-slides/reorder/<int:slide_id>/<direction>", methods=["POST"])
+@admin_required
+def reorder_hero_slide(slide_id, direction):
+    slide = db.get_or_404(HeroSlide, slide_id)
+    if direction == "up":
+        neighbor = (
+            HeroSlide.query.filter(HeroSlide.order < slide.order).order_by(HeroSlide.order.desc()).first()
+        )
+    elif direction == "down":
+        neighbor = (
+            HeroSlide.query.filter(HeroSlide.order > slide.order).order_by(HeroSlide.order.asc()).first()
+        )
+    else:
+        neighbor = None
+    if neighbor:
+        slide.order, neighbor.order = neighbor.order, slide.order
+        db.session.commit()
+    return redirect(url_for("admin.hero_slides"))
 # ── Agents ──────────────────────────────────────────────
 @admin_bp.route("/agents")
 @admin_required
