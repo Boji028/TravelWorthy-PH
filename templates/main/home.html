@@ -22,10 +22,15 @@
   .tw-hero-img {
     position: absolute;
     inset: -1%;
-    background: url("{{ (site_settings.hero_image | cloudinary_enhance) if site_settings.hero_image and site_settings.hero_image.startswith('http') else ('/uploads/' ~ site_settings.hero_image) if site_settings.hero_image else url_for('static', filename='images/beach.jpg') }}") center / cover no-repeat;
+    background: url("{{ (hero_slides[0].path | cloudinary_enhance) if hero_slides else ((site_settings.hero_image | cloudinary_enhance) if site_settings.hero_image and site_settings.hero_image.startswith('http') else ('/uploads/' ~ site_settings.hero_image) if site_settings.hero_image else url_for('static', filename='images/beach.jpg')) }}") center / cover no-repeat;
     will-change: transform;
     animation: twKen 20s ease-in-out infinite alternate;
+    transition: opacity 1.6s ease;
   }
+  .tw-hero-dots { position: absolute; bottom: 64px; left: 50%; transform: translateX(-50%); z-index: 5;
+    display: flex; gap: 8px; }
+  .tw-hero-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.4); transition: background .2s, transform .2s; }
+  .tw-hero-dot.on { background: var(--amber); transform: scale(1.25); }
   .tw-hero-veil {
     position: absolute; inset: 0;
     background:
@@ -191,6 +196,18 @@
   .tw-why-item h3 { font-family: 'Pogonia', 'Cormorant Garamond', serif; font-size: 1.2rem; color: #f3ede3; margin-bottom: 8px; font-weight: 600; }
   .tw-why-item p { font-size: 13px; color: #8fa8a3; line-height: 1.7; }
 
+  /* ── GALLERY (auto-scrolling snapshots) ── */
+  .tw-gallery-wrap { overflow: hidden; margin-top: 8px; }
+  .tw-gallery-track { display: flex; gap: 16px; width: max-content; animation: twGalleryScroll 38s linear infinite; }
+  .tw-gallery-wrap:hover .tw-gallery-track { animation-play-state: paused; }
+  .tw-gallery-item { position: relative; flex: none; width: 240px; height: 135px; border-radius: 14px;
+    overflow: hidden; display: block; }
+  .tw-gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tw-gallery-cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px 8px; font-size: 12.5px;
+    color: #fff; background: linear-gradient(180deg, transparent, rgba(8,28,32,.72)); }
+  @keyframes twGalleryScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @media (max-width: 560px) { .tw-gallery-item { width: 168px; height: 95px; } }
+
   /* ── TESTIMONIAL ── */
   .tw-tmo { position: relative; padding: 100px 32px; text-align: center; color: #fff; overflow: hidden; }
   .tw-tmo-bg { position: absolute; inset: 0; background: url("{{ (site_settings.testimonial_image | cloudinary_enhance) if site_settings.testimonial_image and site_settings.testimonial_image.startswith('http') else ('/uploads/' ~ site_settings.testimonial_image) if site_settings.testimonial_image else url_for('static', filename='images/beach.jpg') }}") center / cover;
@@ -265,6 +282,7 @@
     .tw-hero-img, .tw-wave { animation: none !important; }
     .tw-reveal { transition: none; }
     .tw-marquee-inner.is-marquee { animation: none; }
+    .tw-gallery-track { animation: none !important; }
   }
 </style>
 {% endblock %}
@@ -274,6 +292,7 @@
 <!-- HERO -->
 <header class="tw-hero">
   <div class="tw-hero-img" id="twHeroImg"></div>
+  <div class="tw-hero-img" id="twHeroImg2" style="opacity:0;"></div>
   <div class="tw-hero-veil"></div>
   <div class="tw-hero-inner">
     <div class="tw-eyebrow"><span class="ln"></span> Crafting journeys since 2019 <span class="ln"></span></div>
@@ -317,6 +336,7 @@
       <button type="submit" class="tw-sbtn">Explore now</button>
     </form>
   </div>
+  <div class="tw-hero-dots" id="twHeroDots"></div>
   <div class="tw-cue">Scroll<i class="fas fa-chevron-down"></i></div>
   <div class="tw-waves"><span class="tw-wave tw-w1"></span><span class="tw-wave tw-w2"></span></div>
 </header>
@@ -436,6 +456,43 @@
   </div>
 </section>
 
+<!-- GALLERY (auto-scrolling snapshots from featured packages) -->
+{% if packages %}
+<section class="tw-section tw-gallery" id="gallery">
+  <div class="tw-head tw-reveal">
+    <div>
+      <div class="tw-eyebrow2">Snapshots</div>
+      <h2 class="tw-title tw-serif">Moments from the road</h2>
+      <div class="tw-subtle">A glimpse of the trips waiting for you</div>
+    </div>
+  </div>
+  <div class="tw-gallery-wrap">
+    <div class="tw-gallery-track">
+      {% for pkg in packages[:6] %}
+      {% set cover = pkg.image if pkg.image and pkg.image != 'default_tour.jpg' else (pkg.images[0].path if pkg.images else none) %}
+      {% if cover %}
+      <a class="tw-gallery-item" href="{{ url_for('packages.package_detail', package_id=pkg.id) }}">
+        <img src="{{ (cover | cloudinary_package_card) if cover.startswith('http') else '/uploads/' ~ cover }}"
+          alt="{{ pkg.title }}" loading="lazy">
+        <div class="tw-gallery-cap">{{ pkg.destination }}</div>
+      </a>
+      {% endif %}
+      {% endfor %}
+      {% for pkg in packages[:6] %}
+      {% set cover = pkg.image if pkg.image and pkg.image != 'default_tour.jpg' else (pkg.images[0].path if pkg.images else none) %}
+      {% if cover %}
+      <a class="tw-gallery-item" href="{{ url_for('packages.package_detail', package_id=pkg.id) }}" aria-hidden="true" tabindex="-1">
+        <img src="{{ (cover | cloudinary_package_card) if cover.startswith('http') else '/uploads/' ~ cover }}"
+          alt="" loading="lazy">
+        <div class="tw-gallery-cap">{{ pkg.destination }}</div>
+      </a>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
 <!-- TESTIMONIALS (only shows if testimonials are passed from the route) -->
 {% if testimonials %}
 <section class="tw-tmo" id="testimonials">
@@ -494,6 +551,45 @@
 <script nonce="{{ csp_nonce() }}">
   (function () {
     var reduce = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+    // Hero slideshow — admin-picked slides if any exist, otherwise the
+    // original fallback (site settings hero image + featured/active package covers)
+    var heroImages = [
+      {% if hero_slides %}
+      {% for slide in hero_slides %}
+      {{ (slide.path | cloudinary_enhance) | tojson }}{{ "," if not loop.last }}
+      {% endfor %}
+      {% else %}
+      {% if site_settings.hero_image %}
+      {{ ((site_settings.hero_image | cloudinary_enhance) if site_settings.hero_image.startswith('http') else '/uploads/' ~ site_settings.hero_image) | tojson }},
+      {% endif %}
+      {% for pkg in packages[:5] %}
+      {% set cover = pkg.image if pkg.image and pkg.image != 'default_tour.jpg' else (pkg.images[0].path if pkg.images else none) %}
+      {% if cover %}
+      {{ ((cover | cloudinary_enhance) if cover.startswith('http') else '/uploads/' ~ cover) | tojson }}{{ "," if not loop.last }}
+      {% endif %}
+      {% endfor %}
+      {% endif %}
+    ].filter(Boolean);
+    var heroA = document.getElementById('twHeroImg'), heroB = document.getElementById('twHeroImg2'),
+        heroDots = document.getElementById('twHeroDots');
+    if (heroA && heroB && heroDots && !reduce && heroImages.length > 1) {
+      var hIdx = 0, hCurrent = heroA, hHidden = heroB;
+      heroImages.forEach(function (_, i) {
+        var d = document.createElement('div');
+        d.className = 'tw-hero-dot' + (i === 0 ? ' on' : '');
+        heroDots.appendChild(d);
+      });
+      var hDots = heroDots.querySelectorAll('.tw-hero-dot');
+      setInterval(function () {
+        hIdx = (hIdx + 1) % heroImages.length;
+        hHidden.style.backgroundImage = 'url("' + heroImages[hIdx] + '")';
+        hHidden.style.opacity = '1';
+        hCurrent.style.opacity = '0';
+        var tmp = hCurrent; hCurrent = hHidden; hHidden = tmp;
+        hDots.forEach(function (d, i) { d.classList.toggle('on', i === hIdx); });
+      }, 5000);
+    }
 
     // Flowing placeholder / date text
     function twMarqueeRefresh(overlay, inner, text) {
