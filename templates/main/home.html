@@ -194,6 +194,18 @@
   .tw-card-cta { display: inline-flex; align-items: center; gap: 6px; color: var(--teal); font-size: 12px; font-weight: 600; transition: gap .25s, color .2s; }
   .tw-card:hover .tw-card-cta { gap: 10px; color: var(--amber); }
 
+  /* ── GALLERY (auto-scrolling snapshots) ── */
+  .tw-gallery-wrap { overflow: hidden; margin-top: 8px; }
+  .tw-gallery-track { display: flex; width: max-content; animation: twGalleryScroll 38s linear infinite; }
+  .tw-gallery-wrap:hover .tw-gallery-track { animation-play-state: paused; }
+  .tw-gallery-item { position: relative; flex: none; width: 240px; height: 135px; margin-right: 16px; border-radius: 14px;
+    overflow: hidden; display: block; }
+  .tw-gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tw-gallery-cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px 8px; font-size: 12.5px;
+    color: #fff; background: linear-gradient(180deg, transparent, rgba(8,28,32,.72)); }
+  @keyframes twGalleryScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @media (max-width: 560px) { .tw-gallery-item { width: 168px; height: 95px; } }
+
   /* ── WHY BAND ── */
   .tw-why { background: #2a2728; padding: 80px 32px; }
   .tw-why-inner { max-width: 1180px; margin: 0 auto; }
@@ -208,18 +220,6 @@
   .tw-why-item:hover .tw-why-icon { transform: scale(1.1); background: rgba(239,130,51,.14); border-color: var(--amber); }
   .tw-why-item h3 { font-family: 'Pogonia', 'Cormorant Garamond', serif; font-size: 1.2rem; color: #f3ede3; margin-bottom: 8px; font-weight: 600; }
   .tw-why-item p { font-size: 13px; color: #8fa8a3; line-height: 1.7; }
-
-  /* ── GALLERY (auto-scrolling snapshots) ── */
-  .tw-gallery-wrap { overflow: hidden; margin-top: 8px; }
-  .tw-gallery-track { display: flex; width: max-content; animation: twGalleryScroll 38s linear infinite; }
-  .tw-gallery-wrap:hover .tw-gallery-track { animation-play-state: paused; }
-  .tw-gallery-item { position: relative; flex: none; width: 240px; height: 135px; margin-right: 16px; border-radius: 14px;
-    overflow: hidden; display: block; }
-  .tw-gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .tw-gallery-cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px 8px; font-size: 12.5px;
-    color: #fff; background: linear-gradient(180deg, transparent, rgba(8,28,32,.72)); }
-  @keyframes twGalleryScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-  @media (max-width: 560px) { .tw-gallery-item { width: 168px; height: 95px; } }
 
   /* ── TESTIMONIAL ── */
   .tw-tmo { position: relative; padding: 100px 32px; text-align: center; color: #fff; overflow: hidden; }
@@ -474,22 +474,6 @@
   {% endif %}
 </section>
 
-<!-- WHY TRAVEL WORTHY -->
-<section class="tw-why" id="why">
-  <div class="tw-why-inner">
-    <div class="tw-why-head tw-reveal">
-      <div class="tw-eyebrow2">Why Travel Worthy</div>
-      <h2 class="tw-title tw-serif">Travel, the way it should feel</h2>
-    </div>
-    <div class="tw-why-grid">
-      <div class="tw-why-item tw-reveal tw-d1"><div class="tw-why-icon"><i class="fas fa-pen-ruler"></i></div><h3>Handcrafted</h3><p>Every itinerary is built by hand around how you actually want to travel.</p></div>
-      <div class="tw-why-item tw-reveal tw-d2"><div class="tw-why-icon"><i class="fas fa-award"></i></div><h3>Since 2019</h3><p>Years of happy travelers and trips that ran exactly as promised.</p></div>
-      <div class="tw-why-item tw-reveal tw-d3"><div class="tw-why-icon"><i class="fas fa-comments"></i></div><h3>No pressure</h3><p>Inquiry-based, never pushy. Ask questions, take your time, then decide.</p></div>
-      <div class="tw-why-item tw-reveal tw-d4"><div class="tw-why-icon"><i class="fas fa-map-location-dot"></i></div><h3>Local know-how</h3><p>Real on-the-ground knowledge so the details are handled before you ask.</p></div>
-    </div>
-  </div>
-</section>
-
 <!-- GALLERY (auto-scrolling snapshots, randomized on each page load) -->
 {% if gallery_packages %}
 <section class="tw-section tw-gallery" id="gallery">
@@ -523,6 +507,22 @@
   </div>
 </section>
 {% endif %}
+
+<!-- WHY TRAVEL WORTHY -->
+<section class="tw-why" id="why">
+  <div class="tw-why-inner">
+    <div class="tw-why-head tw-reveal">
+      <div class="tw-eyebrow2">Why Travel Worthy</div>
+      <h2 class="tw-title tw-serif">Travel, the way it should feel</h2>
+    </div>
+    <div class="tw-why-grid">
+      <div class="tw-why-item tw-reveal tw-d1"><div class="tw-why-icon"><i class="fas fa-pen-ruler"></i></div><h3>Handcrafted</h3><p>Every itinerary is built by hand around how you actually want to travel.</p></div>
+      <div class="tw-why-item tw-reveal tw-d2"><div class="tw-why-icon"><i class="fas fa-award"></i></div><h3>Since 2019</h3><p>Years of happy travelers and trips that ran exactly as promised.</p></div>
+      <div class="tw-why-item tw-reveal tw-d3"><div class="tw-why-icon"><i class="fas fa-comments"></i></div><h3>No pressure</h3><p>Inquiry-based, never pushy. Ask questions, take your time, then decide.</p></div>
+      <div class="tw-why-item tw-reveal tw-d4"><div class="tw-why-icon"><i class="fas fa-map-location-dot"></i></div><h3>Local know-how</h3><p>Real on-the-ground knowledge so the details are handled before you ask.</p></div>
+    </div>
+  </div>
+</section>
 
 <!-- TESTIMONIALS (only shows if testimonials are passed from the route) -->
 {% if testimonials %}
