@@ -93,6 +93,73 @@
     cursor: default;
   }
 
+  .hs-mobile-row {
+    padding: .5rem .6rem;
+    border-top: 1px solid var(--linen);
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+
+  .hs-mobile-thumb {
+    position: relative;
+    width: 28px;
+    height: 44px;
+    border-radius: 4px;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 1px solid var(--linen);
+  }
+
+  .hs-mobile-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .hs-mobile-remove {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--danger);
+    color: #fff;
+    border: none;
+    font-size: .5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .hs-mobile-label {
+    font-size: .7rem;
+    color: var(--mist);
+  }
+
+  .hs-mobile-add-btn {
+    width: 100%;
+    background: none;
+    border: 1px dashed var(--linen);
+    border-radius: 6px;
+    padding: .4rem;
+    font-size: .7rem;
+    color: var(--teal);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .3rem;
+  }
+
+  .hs-mobile-add-btn:hover {
+    background: var(--sand);
+  }
+
   .btn-sm-danger {
     padding: .3rem .5rem;
     font-size: .75rem;
@@ -148,7 +215,7 @@
 {% block admin_content %}
 <div class="admin-header">
   <h1>Hero slideshow</h1>
-  <p>These images rotate on the homepage background. Add a few, and the first one shown here is also what visitors see first.</p>
+  <p>These images rotate on the homepage background. Add a few, and the first one shown here is also what visitors see first. Each slide also has an optional "Add mobile version" button below it, in case a portrait photo composed on purpose looks better on phones than an automatic crop of the landscape one.</p>
 </div>
 
 <div class="card-wrap">
@@ -184,6 +251,23 @@
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
           <button type="submit" class="btn-sm-danger"><i class="fas fa-trash"></i></button>
         </form>
+      </div>
+      <div class="hs-mobile-row">
+        {% if slide.mobile_path %}
+        <div class="hs-mobile-thumb">
+          <img src="{{ slide.mobile_path }}" alt="Mobile version" loading="lazy">
+          <form method="POST" action="{{ url_for('admin.remove_hero_slide_mobile', slide_id=slide.id) }}"
+            data-confirm="Remove the mobile version? This slide goes back to the automatic crop." data-confirm-danger="false">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <button type="submit" class="hs-mobile-remove" title="Remove mobile version"><i class="fas fa-times"></i></button>
+          </form>
+        </div>
+        <span class="hs-mobile-label">Mobile set</span>
+        {% else %}
+        <button type="button" class="hs-mobile-add-btn" data-slide-id="{{ slide.id }}">
+          <i class="fas fa-mobile-screen-button"></i> Add mobile version
+        </button>
+        {% endif %}
       </div>
     </div>
     {% endfor %}
@@ -310,6 +394,69 @@
       });
       document.body.appendChild(form);
       form.submit();
+    });
+  });
+
+  // Per-slide mobile version upload — same direct-to-Cloudinary pattern,
+  // one file, posted straight to that slide's set-mobile endpoint.
+  document.querySelectorAll('.hs-mobile-add-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var slideId = btn.dataset.slideId;
+      var fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/*';
+      fileInput.click();
+
+      fileInput.addEventListener('change', async function () {
+        var file = fileInput.files[0];
+        if (!file) return;
+
+        var originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+
+        try {
+          var sigRes = await fetch('/admin/cloudinary-signature', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': hsCsrf },
+            body: JSON.stringify({ folder: 'travelworthyph/hero-mobile' })
+          });
+          var sigData = await sigRes.json();
+
+          var formData = new FormData();
+          formData.append('file', file);
+          formData.append('api_key', sigData.api_key);
+          formData.append('timestamp', sigData.timestamp);
+          formData.append('signature', sigData.signature);
+          formData.append('folder', sigData.folder);
+
+          var uploadRes = await fetch('https://api.cloudinary.com/v1_1/' + sigData.cloud_name + '/image/upload', {
+            method: 'POST',
+            body: formData
+          });
+          var result = await uploadRes.json();
+
+          var form = document.createElement('form');
+          form.method = 'POST';
+          form.action = '/admin/hero-slides/set-mobile/' + slideId;
+          var csrfInput = document.createElement('input');
+          csrfInput.type = 'hidden';
+          csrfInput.name = 'csrf_token';
+          csrfInput.value = hsCsrf;
+          form.appendChild(csrfInput);
+          var urlInput = document.createElement('input');
+          urlInput.type = 'hidden';
+          urlInput.name = 'mobile_url';
+          urlInput.value = result.secure_url;
+          form.appendChild(urlInput);
+          document.body.appendChild(form);
+          form.submit();
+        } catch (err) {
+          btn.disabled = false;
+          btn.innerHTML = originalHtml;
+          alert('Upload failed. Try again.');
+        }
+      });
     });
   });
 </script>

@@ -2170,6 +2170,36 @@ def reorder_hero_slide(slide_id, direction):
         slide.order, neighbor.order = neighbor.order, slide.order
         db.session.commit()
     return redirect(url_for("admin.hero_slides"))
+
+@admin_bp.route("/hero-slides/set-mobile/<int:slide_id>", methods=["POST"])
+@admin_required
+def set_hero_slide_mobile(slide_id):
+    """Attach a separately-composed portrait photo to one slide, for phone
+    screens — an escape hatch from the automatic ar_9:16 smart-crop when a
+    landscape crop of the same shot isn't the best framing."""
+    slide = db.get_or_404(HeroSlide, slide_id)
+    url = request.form.get("mobile_url", "").strip()
+    if url and url.startswith("https://"):
+        if slide.mobile_path:
+            delete_old_image(slide.mobile_path, current_app.config["UPLOAD_FOLDER"])
+        slide.mobile_path = url
+        db.session.commit()
+        flash("Mobile version added.", "success")
+    else:
+        flash("No image was uploaded.", "warning")
+    return redirect(url_for("admin.hero_slides"))
+
+
+@admin_bp.route("/hero-slides/remove-mobile/<int:slide_id>", methods=["POST"])
+@admin_required
+def remove_hero_slide_mobile(slide_id):
+    slide = db.get_or_404(HeroSlide, slide_id)
+    if slide.mobile_path:
+        delete_old_image(slide.mobile_path, current_app.config["UPLOAD_FOLDER"])
+        slide.mobile_path = None
+        db.session.commit()
+        flash("Mobile version removed — back to the automatic crop.", "info")
+    return redirect(url_for("admin.hero_slides"))
 # ── Agents ──────────────────────────────────────────────
 @admin_bp.route("/agents")
 @admin_required

@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 
+{% set hero_raw = hero_slides[0].path if hero_slides else (site_settings.hero_image if site_settings.hero_image else none) %}
+{% set hero_raw_mobile = hero_slides[0].mobile_path if hero_slides and hero_slides[0].mobile_path else none %}
+
 {% block extra_styles %}
 <style>
   /* ============ CINEMATIC HOMEPAGE ============ */
@@ -22,10 +25,19 @@
   .tw-hero-img {
     position: absolute;
     inset: -1%;
-    background: url("{{ (hero_slides[0].path | cloudinary_enhance) if hero_slides else ((site_settings.hero_image | cloudinary_enhance) if site_settings.hero_image and site_settings.hero_image.startswith('http') else ('/uploads/' ~ site_settings.hero_image) if site_settings.hero_image else url_for('static', filename='images/beach.jpg')) }}") center / cover no-repeat;
+    background: url("{{ (hero_raw | cloudinary_enhance) if hero_raw and hero_raw.startswith('http') else ('/uploads/' ~ hero_raw) if hero_raw else url_for('static', filename='images/beach.jpg') }}") center / cover no-repeat;
     will-change: transform;
     animation: twKen 20s ease-in-out infinite alternate;
     transition: opacity 1.6s ease;
+  }
+  @media (max-width: 640px) {
+    /* A wide landscape photo has to stretch well past its native
+       resolution to cover a tall phone screen with plain cover-sizing —
+       use a purpose-composed portrait photo if the admin added one,
+       otherwise fall back to an auto smart-cropped version. */
+    .tw-hero-img {
+      background-image: url("{{ (hero_raw_mobile | cloudinary_enhance) if hero_raw_mobile else ((hero_raw | cloudinary_hero_mobile) if hero_raw and hero_raw.startswith('http') else ('/uploads/' ~ hero_raw) if hero_raw else url_for('static', filename='images/beach.jpg')) }}");
+    }
   }
   .tw-hero-dots { position: absolute; bottom: 64px; left: 50%; transform: translateX(-50%); z-index: 5;
     display: flex; gap: 8px; }
@@ -550,24 +562,27 @@
     var reduce = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
 
     // Hero slideshow — admin-picked slides if any exist, otherwise the
-    // original fallback (site settings hero image + featured/active package covers)
+    // original fallback (site settings hero image + featured/active package covers).
+    // Each entry carries both a desktop (full landscape) and mobile
+    // (portrait-cropped) URL — heroPick() below chooses per current width.
     var heroImages = [
       {% if hero_slides %}
       {% for slide in hero_slides %}
-      {{ (slide.path | cloudinary_enhance) | tojson }}{{ "," if not loop.last }}
+      { d: {{ (slide.path | cloudinary_enhance) | tojson }}, m: {{ ((slide.mobile_path | cloudinary_enhance) if slide.mobile_path else (slide.path | cloudinary_hero_mobile)) | tojson }} }{{ "," if not loop.last }}
       {% endfor %}
       {% else %}
       {% if site_settings.hero_image %}
-      {{ ((site_settings.hero_image | cloudinary_enhance) if site_settings.hero_image.startswith('http') else '/uploads/' ~ site_settings.hero_image) | tojson }},
+      { d: {{ ((site_settings.hero_image | cloudinary_enhance) if site_settings.hero_image.startswith('http') else '/uploads/' ~ site_settings.hero_image) | tojson }}, m: {{ ((site_settings.hero_image | cloudinary_hero_mobile) if site_settings.hero_image.startswith('http') else '/uploads/' ~ site_settings.hero_image) | tojson }} },
       {% endif %}
       {% for pkg in packages[:5] %}
       {% set cover = pkg.image if pkg.image and pkg.image != 'default_tour.jpg' else (pkg.images[0].path if pkg.images else none) %}
       {% if cover %}
-      {{ ((cover | cloudinary_enhance) if cover.startswith('http') else '/uploads/' ~ cover) | tojson }}{{ "," if not loop.last }}
+      { d: {{ ((cover | cloudinary_enhance) if cover.startswith('http') else '/uploads/' ~ cover) | tojson }}, m: {{ ((cover | cloudinary_hero_mobile) if cover.startswith('http') else '/uploads/' ~ cover) | tojson }} }{{ "," if not loop.last }}
       {% endif %}
       {% endfor %}
       {% endif %}
-    ].filter(Boolean);
+    ].filter(function (x) { return x && x.d; });
+    function heroPick(img) { return (window.innerWidth <= 640 ? img.m : img.d) || img.d; }
     var heroA = document.getElementById('twHeroImg'), heroB = document.getElementById('twHeroImg2'),
         heroDots = document.getElementById('twHeroDots');
     if (heroA && heroB && heroDots && !reduce && heroImages.length > 1) {
@@ -580,7 +595,7 @@
       var hDots = heroDots.querySelectorAll('.tw-hero-dot');
       setInterval(function () {
         hIdx = (hIdx + 1) % heroImages.length;
-        hHidden.style.backgroundImage = 'url("' + heroImages[hIdx] + '")';
+        hHidden.style.backgroundImage = 'url("' + heroPick(heroImages[hIdx]) + '")';
         hHidden.style.opacity = '1';
         hCurrent.style.opacity = '0';
         var tmp = hCurrent; hCurrent = hHidden; hHidden = tmp;
