@@ -456,8 +456,8 @@
   </div>
 </section>
 
-<!-- GALLERY (auto-scrolling snapshots from featured packages) -->
-{% if packages %}
+<!-- GALLERY (auto-scrolling snapshots, randomized on each page load) -->
+{% if gallery_packages %}
 <section class="tw-section tw-gallery" id="gallery">
   <div class="tw-head tw-reveal">
     <div>
@@ -468,26 +468,23 @@
   </div>
   <div class="tw-gallery-wrap">
     <div class="tw-gallery-track">
-      {% for pkg in packages[:6] %}
+      {% for pkg in gallery_packages %}
       {% set cover = pkg.image if pkg.image and pkg.image != 'default_tour.jpg' else (pkg.images[0].path if pkg.images else none) %}
-      {% if cover %}
       <a class="tw-gallery-item" href="{{ url_for('packages.package_detail', package_id=pkg.id) }}">
         <img src="{{ (cover | cloudinary_package_card) if cover.startswith('http') else '/uploads/' ~ cover }}"
           alt="{{ pkg.title }}" loading="lazy">
         <div class="tw-gallery-cap">{{ pkg.destination }}</div>
       </a>
-      {% endif %}
       {% endfor %}
-      {% for pkg in packages[:6] %}
+      {% for pkg in gallery_packages %}
       {% set cover = pkg.image if pkg.image and pkg.image != 'default_tour.jpg' else (pkg.images[0].path if pkg.images else none) %}
-      {% if cover %}
       <a class="tw-gallery-item" href="{{ url_for('packages.package_detail', package_id=pkg.id) }}" aria-hidden="true" tabindex="-1">
         <img src="{{ (cover | cloudinary_package_card) if cover.startswith('http') else '/uploads/' ~ cover }}"
           alt="" loading="lazy">
         <div class="tw-gallery-cap">{{ pkg.destination }}</div>
       </a>
-      {% endif %}
       {% endfor %}
+
     </div>
   </div>
 </section>

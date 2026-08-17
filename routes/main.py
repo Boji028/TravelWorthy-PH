@@ -9,7 +9,7 @@ from models.package import TourPackage
 from image_service import ImageUploadService, ImageUploadException
 from utils import delete_old_image
 from models.blog import BlogPost
-
+from sqlalchemy import func
 main_bp = Blueprint("main", __name__)
 
 ALLOWED_TAGS = ["b", "i", "u", "em", "strong", "p", "br", "ul", "ol", "li"]
@@ -39,6 +39,25 @@ def home():
     from models.hero_slide import HeroSlide
     
     hero_slides = HeroSlide.query.order_by(HeroSlide.order).all()
+    
+    # Random selection for the "Snapshots" gallery — deliberately separate from
+    # `packages` above (which stays newest-first for the Featured journeys
+    # cards). Pull all active packages in random order, then keep the first
+    # 6 that actually have a usable cover photo, so the gallery count doesn't
+    # shrink just because a randomly-picked package happens to have no image.
+    _random_active = (
+        TourPackage.query.options(selectinload(TourPackage.images))
+        .filter_by(is_active=True)
+        .order_by(func.random())
+        .all()
+    )
+    gallery_packages = []
+    for pkg in _random_active:
+        has_cover = (pkg.image and pkg.image != "default_tour.jpg") or pkg.images
+        if has_cover:
+            gallery_packages.append(pkg)
+        if len(gallery_packages) == 6:
+            break
 
     testimonials = (
         Testimonial.query.options(selectinload(Testimonial.user)).order_by(Testimonial.created_at.desc()).limit(5).all()
@@ -54,6 +73,7 @@ def home():
         continents=continents,
         site_settings=site_settings,
         hero_slides=hero_slides,
+        gallery_packages=gallery_packages,
     )
 
 
