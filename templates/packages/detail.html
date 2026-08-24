@@ -1063,7 +1063,7 @@
       <div class="dates-grid">
         {% for d in package.travel_dates %}
         <div class="date-card">
-          <div class="date-card-day">{{ d.date.strftime('%b %d, %Y') }}</div>
+          <div class="date-card-day">{{ d.display_range }}</div>
           {% if d.note %}<span class="date-card-note">{{ d.note }}</span>{% endif %}
         </div>
         {% endfor %}

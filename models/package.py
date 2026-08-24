@@ -53,3 +53,4 @@ class TourPackage(db.Model):
 
     def __repr__(self) -> str:
         return f"<TourPackage {self.title}>"
+

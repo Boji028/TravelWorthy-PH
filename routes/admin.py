@@ -398,6 +398,7 @@ def add_package():
                 )
 
             travel_date_values = request.form.getlist("travel_date_date")
+            travel_date_end_values = request.form.getlist("travel_date_end_date")
             travel_date_notes = request.form.getlist("travel_date_note")
             for i, raw_date in enumerate(travel_date_values):
                 raw_date = raw_date.strip()
@@ -407,10 +408,18 @@ def add_package():
                     parsed_date = datetime.strptime(raw_date, "%Y-%m-%d").date()
                 except ValueError:
                     continue
+                parsed_end_date = None
+                raw_end_date = travel_date_end_values[i].strip() if i < len(travel_date_end_values) else ""
+                if raw_end_date:
+                    try:
+                        parsed_end_date = datetime.strptime(raw_end_date, "%Y-%m-%d").date()
+                    except ValueError:
+                        parsed_end_date = None
                 db.session.add(
                     TravelDate(
                         package_id=package.id,
                         date=parsed_date,
+                        end_date=parsed_end_date,
                         note=travel_date_notes[i].strip() if i < len(travel_date_notes) else None,
                     )
                 )
@@ -557,6 +566,7 @@ def edit_package(package_id):
 
             TravelDate.query.filter_by(package_id=package.id).delete()
             travel_date_values = request.form.getlist("travel_date_date")
+            travel_date_end_values = request.form.getlist("travel_date_end_date")
             travel_date_notes = request.form.getlist("travel_date_note")
             for i, raw_date in enumerate(travel_date_values):
                 raw_date = raw_date.strip()
@@ -566,10 +576,18 @@ def edit_package(package_id):
                     parsed_date = datetime.strptime(raw_date, "%Y-%m-%d").date()
                 except ValueError:
                     continue
+                parsed_end_date = None
+                raw_end_date = travel_date_end_values[i].strip() if i < len(travel_date_end_values) else ""
+                if raw_end_date:
+                    try:
+                        parsed_end_date = datetime.strptime(raw_end_date, "%Y-%m-%d").date()
+                    except ValueError:
+                        parsed_end_date = None
                 db.session.add(
                     TravelDate(
                         package_id=package.id,
                         date=parsed_date,
+                        end_date=parsed_end_date,
                         note=travel_date_notes[i].strip() if i < len(travel_date_notes) else None,
                     )
                 )
