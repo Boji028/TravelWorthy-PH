@@ -220,6 +220,32 @@
       <div style="font-size:.78rem;color:var(--mist);margin-top:.3rem">PNG, JPG, JPEG, GIF or WEBP. Max 16MB. Used for
         promotional materials.</div>
     </div>
+    <!-- Gallery Images — Direct Cloudinary Upload -->
+    <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--linen);">
+      <label
+        style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--mist);display:block;margin-bottom:1rem;">
+        <i class="fas fa-images" style="color:var(--teal);margin-right:.4rem"></i>Gallery Photos
+        <span style="font-size:.78rem;color:var(--mist);font-weight:400;text-transform:none;letter-spacing:normal;">(optional)</span>
+      </label>
+
+      <!-- New uploads preview -->
+      <div id="upload-preview" style="display:flex;flex-wrap:wrap;gap:.75rem;margin-bottom:1rem;"></div>
+
+      <!-- Hidden inputs for new image URLs -->
+      <div id="new-image-inputs"></div>
+
+      <!-- Upload button -->
+      <button type="button" id="upload-btn"
+        style="background:var(--teal);color:white;border:none;border-radius:var(--radius);padding:.6rem 1.2rem;cursor:pointer;font-size:.88rem;display:flex;align-items:center;gap:.5rem;">
+        <i class="fas fa-cloud-upload-alt"></i> Add Photos
+      </button>
+      <div style="font-size:.75rem;color:var(--mist);margin-top:.4rem;">
+        Click "Add Photos" to upload directly to cloud. Fast and instant.
+      </div>
+
+      <!-- Upload progress area -->
+      <div id="upload-status" style="margin-top:.75rem;"></div>
+    </div>
     <div class="form-group">
       <label>What this package offers <span style="font-size:.8rem;color:var(--mist)">(one item per line)</span></label>
       <textarea name="amenities" class="form-control" rows="6"
@@ -343,6 +369,117 @@
     const label = document.getElementById('flier-status');
     if (!file) { label.textContent = 'No file chosen'; return; }
     uploadImageToCloudinary(file, 'travelworthyph/flier', document.getElementById('flier_image_url'), this, label);
+  });
+
+  // ── Gallery Photos — Direct Cloudinary Upload ──────────────────────────
+  const uploadBtn = document.getElementById('upload-btn');
+  const previewArea = document.getElementById('upload-preview');
+  const inputsArea = document.getElementById('new-image-inputs');
+  const statusArea = document.getElementById('upload-status');
+
+  uploadBtn.addEventListener('click', () => {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.multiple = true;
+    fileInput.click();
+
+    fileInput.addEventListener('change', async () => {
+      const files = Array.from(fileInput.files);
+      if (!files.length) return;
+
+      // Get signature from Flask
+      statusArea.innerHTML =
+        '<div style="color:var(--teal);font-size:.85rem;"><i class="fas fa-spinner fa-spin"></i> Preparing upload...</div>';
+
+      let sigData;
+      try {
+        const sigRes = await fetch('/admin/cloudinary-signature', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken(),
+          },
+          body: JSON.stringify({
+            folder: 'travelworthyph/package'
+          }),
+        });
+        sigData = await sigRes.json();
+      } catch (err) {
+        statusArea.innerHTML =
+          '<div style="color:var(--danger);font-size:.85rem;">Failed to get upload signature. Try again.</div>';
+        return;
+      }
+
+      // Upload each file directly to Cloudinary
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const barId = `progress-${Date.now()}-${i}`;
+
+        statusArea.innerHTML += `
+          <div id="${barId}" style="margin-bottom:.5rem;">
+            <div style="font-size:.8rem;color:var(--bark);margin-bottom:.2rem;">${file.name}</div>
+            <div style="background:var(--linen);border-radius:4px;height:6px;overflow:hidden;">
+              <div class="bar-inner" style="height:100%;background:var(--teal);width:0%;transition:width .2s;"></div>
+            </div>
+          </div>`;
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('api_key', sigData.api_key);
+        formData.append('timestamp', sigData.timestamp);
+        formData.append('signature', sigData.signature);
+        formData.append('folder', sigData.folder);
+
+        try {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', `https://api.cloudinary.com/v1_1/${sigData.cloud_name}/image/upload`);
+
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+              const pct = Math.round((e.loaded / e.total) * 100);
+              const bar = document.querySelector(`#${barId} .bar-inner`);
+              if (bar) bar.style.width = pct + '%';
+            }
+          };
+
+          const result = await new Promise((resolve, reject) => {
+            xhr.onload = () => {
+              if (xhr.status === 200) resolve(JSON.parse(xhr.responseText));
+              else reject(new Error('Upload failed'));
+            };
+            xhr.onerror = () => reject(new Error('Network error'));
+            xhr.send(formData);
+          });
+
+          const url = result.secure_url;
+
+          // Show preview
+          previewArea.innerHTML += `
+            <div style="position:relative;width:100px;height:100px;">
+              <img src="${url}" style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:2px solid var(--teal);" />
+              <div style="position:absolute;bottom:4px;right:4px;background:var(--teal);border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;">
+                <i class="fas fa-check" style="color:white;font-size:.6rem;"></i>
+              </div>
+            </div>`;
+
+          // Add hidden input so Flask receives the URL on form submit
+          inputsArea.innerHTML += `<input type="hidden" name="new_gallery_urls" value="${url}" />`;
+
+          // Mark progress bar done
+          const bar = document.querySelector(`#${barId} .bar-inner`);
+          if (bar) bar.style.width = '100%';
+
+        } catch (err) {
+          const barEl = document.getElementById(barId);
+          if (barEl) barEl.innerHTML +=
+            `<div style="color:var(--danger);font-size:.75rem;">Failed — try again</div>`;
+        }
+      }
+
+      statusArea.innerHTML +=
+        '<div style="color:var(--teal);font-size:.85rem;margin-top:.5rem;"><i class="fas fa-check-circle"></i> All uploads done! They\'ll be added when you click Add Package.</div>';
+    });
   });
 
 // ── Itinerary day builder ──────────────────────────

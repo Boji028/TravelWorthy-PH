@@ -423,6 +423,11 @@ def add_package():
                         note=travel_date_notes[i].strip() if i < len(travel_date_notes) else None,
                     )
                 )
+
+            new_gallery_urls = request.form.getlist("new_gallery_urls")
+            for order, url in enumerate(new_gallery_urls):
+                if url and url.startswith("https://"):
+                    db.session.add(PackageImage(package_id=package.id, path=url, order=order))
             db.session.commit()
 
             try:
