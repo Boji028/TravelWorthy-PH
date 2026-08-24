@@ -206,6 +206,29 @@
   {"title": {{ day.title | tojson }}, "meals": {{ day.meals | tojson }}, "description": {{ day.description | tojson }}}{% if not loop.last %},{% endif %}
   {% endfor %}
 ]
+            </script>
+    </div>
+
+    <div class="form-group" style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--linen);">
+      <label style="display:flex;align-items:center;gap:.4rem;">
+        <i class="fas fa-calendar-days" style="color:var(--teal);"></i>
+        Travel Dates
+        <span style="font-size:.8rem;color:var(--mist);font-weight:400;">(optional — add one block per scheduled departure)</span>
+      </label>
+
+      <div id="travel-dates"></div>
+
+      <button type="button" id="add-date-btn"
+        style="background:var(--teal);color:white;border:none;border-radius:var(--radius);padding:.5rem 1rem;cursor:pointer;font-size:.88rem;display:flex;align-items:center;gap:.5rem;margin-top:.5rem;">
+        <i class="fas fa-plus"></i> Add Date
+      </button>
+
+      <script id="existing-travel-dates" type="application/json">
+[
+  {% for d in package.travel_dates %}
+  {"date": {{ d.date.isoformat() | tojson }}, "note": {{ d.note | tojson }}}{% if not loop.last %},{% endif %}
+  {% endfor %}
+]
       </script>
     </div>
 
@@ -612,9 +635,51 @@
   if (existingDaysEl) {
     try {
       const existingDays = JSON.parse(existingDaysEl.textContent);
-      existingDays.forEach(d => addDayBlock(d));
+            existingDays.forEach(d => addDayBlock(d));
     } catch (err) {
       console.error('Could not load existing itinerary days', err);
+    }
+  }
+
+// ── Travel date builder ──────────────────────────
+  let dateCount = 0;
+  const datesContainer = document.getElementById('travel-dates');
+
+  function addDateBlock(prefill) {
+    dateCount++;
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'border:1px solid var(--linen);border-radius:var(--radius);padding:1rem;margin-bottom:.75rem;position:relative;display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap;';
+    wrapper.innerHTML = `
+      <button type="button" class="remove-date-btn" style="position:absolute;top:.6rem;right:.6rem;background:none;border:none;color:var(--danger);cursor:pointer;font-size:.9rem;"><i class="fas fa-times"></i></button>
+      <div class="form-group" style="margin-bottom:0;flex:1;min-width:160px;">
+        <label style="font-size:.82rem;">Date</label>
+        <input type="date" name="travel_date_date" class="form-control" value="${prefill ? prefill.date || '' : ''}" />
+      </div>
+      <div class="form-group" style="margin-bottom:0;flex:1;min-width:160px;">
+        <label style="font-size:.82rem;">Note <span style="color:var(--mist);font-weight:400;">(optional)</span></label>
+        <input type="text" name="travel_date_note" class="form-control" placeholder="e.g. Early Bird, Peak Season" value="${prefill ? prefill.note || '' : ''}" />
+      </div>
+    `;
+    datesContainer.appendChild(wrapper);
+  }
+
+  datesContainer.addEventListener('click', function (e) {
+    const btn = e.target.closest('.remove-date-btn');
+    if (btn) {
+      btn.parentElement.remove();
+    }
+  });
+
+  document.getElementById('add-date-btn').addEventListener('click', () => addDateBlock());
+
+  // Pre-fill with this package's existing travel dates
+  const existingDatesEl = document.getElementById('existing-travel-dates');
+  if (existingDatesEl) {
+    try {
+      const existingDates = JSON.parse(existingDatesEl.textContent);
+      existingDates.forEach(d => addDateBlock(d));
+    } catch (err) {
+      console.error('Could not load existing travel dates', err);
     }
   }
 

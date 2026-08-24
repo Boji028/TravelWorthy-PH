@@ -27,6 +27,7 @@ from models.site_settings import SiteSettings
 from models.email_verification import EmailVerificationToken
 from models.agent import Agent
 from models.itinerary_day import ItineraryDay
+from models.travel_date import TravelDate
 from models.hero_slide import HeroSlide
 
 admin_bp = Blueprint("admin", __name__)
@@ -395,6 +396,24 @@ def add_package():
                         order=i,
                     )
                 )
+
+            travel_date_values = request.form.getlist("travel_date_date")
+            travel_date_notes = request.form.getlist("travel_date_note")
+            for i, raw_date in enumerate(travel_date_values):
+                raw_date = raw_date.strip()
+                if not raw_date:
+                    continue
+                try:
+                    parsed_date = datetime.strptime(raw_date, "%Y-%m-%d").date()
+                except ValueError:
+                    continue
+                db.session.add(
+                    TravelDate(
+                        package_id=package.id,
+                        date=parsed_date,
+                        note=travel_date_notes[i].strip() if i < len(travel_date_notes) else None,
+                    )
+                )
             db.session.commit()
 
             try:
@@ -535,6 +554,26 @@ def edit_package(package_id):
                         order=i,
                     )
                 )
+
+            TravelDate.query.filter_by(package_id=package.id).delete()
+            travel_date_values = request.form.getlist("travel_date_date")
+            travel_date_notes = request.form.getlist("travel_date_note")
+            for i, raw_date in enumerate(travel_date_values):
+                raw_date = raw_date.strip()
+                if not raw_date:
+                    continue
+                try:
+                    parsed_date = datetime.strptime(raw_date, "%Y-%m-%d").date()
+                except ValueError:
+                    continue
+                db.session.add(
+                    TravelDate(
+                        package_id=package.id,
+                        date=parsed_date,
+                        note=travel_date_notes[i].strip() if i < len(travel_date_notes) else None,
+                    )
+                )
+
             package.location_description = request.form.get("location_description", "").strip()
             package.latitude = float(request.form.get("latitude")) if request.form.get("latitude") else None
             package.longitude = float(request.form.get("longitude")) if request.form.get("longitude") else None

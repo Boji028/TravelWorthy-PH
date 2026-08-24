@@ -491,7 +491,7 @@
     gap: .3rem;
   }
 
-  .inc-item {
+    .inc-item {
     display: flex;
     align-items: flex-start;
     gap: .4rem;
@@ -499,6 +499,41 @@
     color: var(--bark);
     padding: .15rem 0;
     line-height: 1.45;
+  }
+
+  /* TRAVEL DATES */
+  .dates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: .75rem;
+  }
+
+  .date-card {
+    background: var(--sand);
+    border-radius: var(--radius);
+    padding: .85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+  }
+
+  .date-card-day {
+    font-size: .95rem;
+    font-weight: 700;
+    color: var(--bark);
+  }
+
+  .date-card-note {
+    display: inline-flex;
+    align-self: flex-start;
+    white-space: nowrap;
+    background: #fdf3e3;
+    color: #a86830;
+    font-size: .68rem;
+    font-weight: 600;
+    padding: .12rem .5rem;
+    border-radius: 999px;
+    border: 1px solid #e8c97a;
   }
 
   /* AMENITIES */
@@ -900,9 +935,10 @@
 <!-- SECTION NAV -->
 <div class="sec-nav">
   <div class="sec-nav-inner">
-    <button class="sec-tab active" onclick="goTo('s-about', this)">About</button>
+        <button class="sec-tab active" onclick="goTo('s-about', this)">About</button>
     {% if package.inclusions or package.exclusions %}<button class="sec-tab"
       onclick="goTo('s-inclusions', this)">Inclusions</button>{% endif %}
+    {% if package.travel_dates %}<button class="sec-tab" onclick="goTo('s-dates', this)">Dates</button>{% endif %}
     {% if package.itinerary_days or package.itinerary %}<button class="sec-tab"
       onclick="goTo('s-itinerary', this)">Itinerary</button>{% endif %}
     {% if package.amenities %}<button class="sec-tab" onclick="goTo('s-amenities', this)">Amenities</button>{% endif %}
@@ -1016,6 +1052,21 @@
           {% endif %}{% endfor %}
         </div>
         {% endif %}
+      </div>
+        </div>
+    {% endif %}
+
+    <!-- TRAVEL DATES -->
+    {% if package.travel_dates %}
+    <div class="detail-section" id="s-dates">
+      <h3>Available travel dates</h3>
+      <div class="dates-grid">
+        {% for d in package.travel_dates %}
+        <div class="date-card">
+          <div class="date-card-day">{{ d.date.strftime('%b %d, %Y') }}</div>
+          {% if d.note %}<span class="date-card-note">{{ d.note }}</span>{% endif %}
+        </div>
+        {% endfor %}
       </div>
     </div>
     {% endif %}

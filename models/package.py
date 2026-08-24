@@ -46,6 +46,9 @@ class TourPackage(db.Model):
     itinerary_days = db.relationship(
         "ItineraryDay", backref="package", lazy=True, order_by="ItineraryDay.order", cascade="all, delete-orphan"
     )
+    travel_dates = db.relationship(
+        "TravelDate", backref="package", lazy=True, order_by="TravelDate.date", cascade="all, delete-orphan"
+    )
     assigned_agent = db.relationship("Agent", backref="packages")
 
     def __repr__(self) -> str:
