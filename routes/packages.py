@@ -1,6 +1,8 @@
 """Package routes for tour listing, details, and visa information."""
 from typing import Union
 import random
+from datetime import date
+from itertools import groupby
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, session
 from flask_login import login_required, current_user
 from sqlalchemy import func
@@ -198,6 +200,25 @@ def package_detail(package_id: int) -> str:
     for img in package.images:
         all_images.append(img.path)
 
+    # Only show departures that haven't happened yet, grouped by month so
+    # a package with dates spread across several months (weekly departures
+    # over half a year, say) can be browsed by jumping to a month instead
+    # of scrolling one long flat list. groupby only merges *consecutive*
+    # matching keys, which is safe here because upcoming_dates is sorted
+    # by date first — so all rows for a given month are always adjacent.
+    today = date.today()
+    upcoming_dates = sorted(
+        (d for d in package.travel_dates if (d.end_date or d.date) >= today),
+        key=lambda d: d.date,
+    )
+    next_departure = upcoming_dates[0] if upcoming_dates else None
+    dates_by_month = [
+        {"key": f"{year}-{month:02d}", "label": group[0].date.strftime("%B %Y"), "dates": group}
+        for (year, month), group in (
+            (k, list(g)) for k, g in groupby(upcoming_dates, key=lambda d: (d.date.year, d.date.month))
+        )
+    ]
+
     is_saved = (
         current_user.is_authenticated
         and WishlistItem.query.filter_by(user_id=current_user.id, package_id=package_id).first() is not None
@@ -234,6 +255,9 @@ def package_detail(package_id: int) -> str:
         is_saved=is_saved,
         related_packages=related_packages,
         saved_package_ids=saved_package_ids,
+        upcoming_dates=upcoming_dates,
+        next_departure=next_departure,
+        dates_by_month=dates_by_month,
     )
 
 

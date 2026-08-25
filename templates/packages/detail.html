@@ -529,38 +529,179 @@
   }
 
   /* TRAVEL DATES */
-  .dates-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  .dates-toolbar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
     gap: .75rem;
+    margin-bottom: .85rem;
   }
 
-  .date-card {
-    background: var(--sand);
+  .dates-count {
+    font-size: .8rem;
+    color: var(--mist);
+    margin-top: .15rem;
+  }
+
+  .dates-expand-btn {
+    border: 1px solid var(--linen);
+    background: transparent;
+    color: var(--teal);
+    font-size: .78rem;
+    font-weight: 600;
     border-radius: var(--radius);
-    padding: .85rem 1rem;
-    display: flex;
-    flex-direction: column;
+    padding: .4rem .7rem;
+    cursor: pointer;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
     gap: .35rem;
   }
 
-  .date-card-day {
+  .dates-expand-btn:hover {
+    background: var(--sand);
+  }
+
+  .dates-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin-bottom: 1rem;
+  }
+
+  .dates-pill {
+    border: 1px solid var(--linen);
+    background: transparent;
+    color: var(--bark);
+    font-size: .78rem;
+    border-radius: 999px;
+    padding: .3rem .75rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .dates-pill:hover {
+    border-color: var(--teal);
+    color: var(--teal);
+  }
+
+  .dates-next {
+    background: var(--white);
+    border: 2px solid var(--teal);
+    border-radius: var(--radius);
+    padding: .75rem 1rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+  }
+
+  .dates-next-tag {
+    font-size: .65rem;
+    font-weight: 700;
+    color: #1c7a3f;
+    background: #e7f6ec;
+    border-radius: 999px;
+    padding: .12rem .55rem;
+    display: inline-block;
+  }
+
+  .dates-next-range {
     font-size: .95rem;
     font-weight: 700;
     color: var(--bark);
+    margin-top: .35rem;
   }
 
-  .date-card-note {
+  .dates-month {
+    margin-bottom: .1rem;
+  }
+
+  .dates-month-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .55rem .1rem;
+    cursor: pointer;
+  }
+
+  .dates-month-label {
+    font-size: .72rem;
+    font-weight: 700;
+    color: #a86830;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  .dates-month-chevron {
+    color: var(--mist);
+    font-size: .7rem;
+    transition: transform .15s;
+  }
+
+  .dates-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .6rem .5rem;
+    border-bottom: 1px solid var(--linen);
+    border-left: 3px solid transparent;
+    font-size: .87rem;
+    color: var(--bark);
+    cursor: pointer;
+  }
+
+  .dates-month-body .dates-row:last-child {
+    border-bottom: none;
+  }
+
+  .dates-row:hover {
+    background: var(--sand);
+  }
+
+  .dates-row.selected {
+    background: #e7f6ec;
+    border-left: 3px solid var(--teal);
+  }
+
+  .dates-row-check {
+    color: var(--teal);
+    margin-right: .4rem;
+    display: none;
+  }
+
+  .dates-row.selected .dates-row-check {
+    display: inline-block;
+  }
+
+  .dates-row-weeks {
+    font-size: .72rem;
+    color: var(--mist);
+    flex-shrink: 0;
+  }
+
+  .dates-row-note {
     display: inline-flex;
-    align-self: flex-start;
+    margin-left: .5rem;
     white-space: nowrap;
     background: #fdf3e3;
     color: #a86830;
-    font-size: .68rem;
+    font-size: .65rem;
     font-weight: 600;
-    padding: .12rem .5rem;
+    padding: .1rem .5rem;
     border-radius: 999px;
     border: 1px solid #e8c97a;
+  }
+
+  .dates-hint {
+    margin-top: .5rem;
+    padding-top: .75rem;
+    border-top: 1px solid var(--linen);
+    font-size: .8rem;
+    color: var(--teal);
+    font-weight: 600;
   }
 
   /* AMENITIES */
@@ -997,7 +1138,7 @@
         <button class="sec-tab active" onclick="goTo('s-about', this)">About</button>
     {% if package.inclusions or package.exclusions %}<button class="sec-tab"
       onclick="goTo('s-inclusions', this)">Inclusions</button>{% endif %}
-    {% if package.travel_dates %}<button class="sec-tab" onclick="goTo('s-dates', this)">Dates</button>{% endif %}
+    {% if dates_by_month %}<button class="sec-tab" onclick="goTo('s-dates', this)">Dates</button>{% endif %}
     {% if package.itinerary_days or package.itinerary %}<button class="sec-tab"
       onclick="goTo('s-itinerary', this)">Itinerary</button>{% endif %}
     {% if package.amenities %}<button class="sec-tab" onclick="goTo('s-amenities', this)">Amenities</button>{% endif %}
@@ -1104,17 +1245,69 @@
     {% endif %}
 
     <!-- TRAVEL DATES -->
-    {% if package.travel_dates %}
+    {% if dates_by_month %}
     <div class="detail-section" id="s-dates">
-      <h3>Available travel dates</h3>
-      <div class="dates-grid">
-        {% for d in package.travel_dates %}
-        <div class="date-card">
-          <div class="date-card-day">{{ d.display_range }}</div>
-          {% if d.note %}<span class="date-card-note">{{ d.note }}</span>{% endif %}
+      <div class="dates-toolbar">
+        <div>
+          <h3 style="margin-bottom:0">Available travel dates</h3>
+          <div class="dates-count">
+            {{ upcoming_dates|length }} upcoming departure{{ 's' if upcoming_dates|length != 1 else '' }}
+          </div>
         </div>
+        {% if dates_by_month|length > 1 %}
+        <button type="button" class="dates-expand-btn" id="datesExpandAllBtn" onclick="toggleAllDateMonths(this)">
+          <i class="fas fa-arrows-up-down" aria-hidden="true"></i> Expand all
+        </button>
+        {% endif %}
+      </div>
+
+      {% if dates_by_month|length > 1 %}
+      <div class="dates-pills">
+        {% for m in dates_by_month %}
+        <button type="button" class="dates-pill" onclick="jumpToDateMonth('dates-month-{{ m.key }}')">
+          {{ m.label }} ({{ m.dates|length }})
+        </button>
         {% endfor %}
       </div>
+      {% endif %}
+
+      {% if next_departure %}
+      <div class="dates-next">
+        <div>
+          <span class="dates-next-tag">Next departure</span>
+          <div class="dates-next-range">
+            {{ next_departure.display_range }} &middot;
+            {% if next_departure.weeks_away == 0 %}this week{% else %}in {{ next_departure.weeks_away }} wk{{ 's' if next_departure.weeks_away != 1 else '' }}{% endif %}
+          </div>
+        </div>
+        <i class="fas fa-arrow-right" style="color:var(--teal)" aria-hidden="true"></i>
+      </div>
+      {% endif %}
+
+      {% for m in dates_by_month %}
+      <div class="dates-month" id="dates-month-{{ m.key }}">
+        <div class="dates-month-header" onclick="toggleDateMonth(this)">
+          <span class="dates-month-label">{{ m.label }}</span>
+          <i class="fas fa-chevron-down dates-month-chevron" aria-hidden="true"></i>
+        </div>
+        <div class="dates-month-body">
+          {% for d in m.dates %}
+          <div class="dates-row" data-date="{{ d.date.isoformat() }}"
+            data-end-date="{{ (d.end_date or d.date).isoformat() }}" onclick="selectTravelDate(this)">
+            <span>
+              <i class="fas fa-check dates-row-check" aria-hidden="true"></i>{{ d.display_range }}
+              {% if d.note %}<span class="dates-row-note">{{ d.note }}</span>{% endif %}
+            </span>
+            <span class="dates-row-weeks">
+              {% if d.weeks_away == 0 %}this week{% else %}in {{ d.weeks_away }} wk{{ 's' if d.weeks_away != 1 else '' }}{% endif %}
+            </span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+
+      <div class="dates-hint" id="datesSelectedHint">Tap a date to set it as your preferred travel date.</div>
     </div>
     {% endif %}
 
@@ -1591,6 +1784,81 @@
   document.addEventListener('DOMContentLoaded', function () {
     const btn = document.getElementById('amenities-btn');
     if (btn) btn.dataset.label = btn.textContent;
+  });
+
+  function jumpToDateMonth(id) {
+    const section = document.getElementById(id);
+    if (!section) return;
+    const body = section.querySelector('.dates-month-body');
+    const chevron = section.querySelector('.dates-month-chevron');
+    body.style.display = 'block';
+    chevron.style.transform = 'rotate(0deg)';
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function toggleDateMonth(header) {
+    const body = header.nextElementSibling;
+    const chevron = header.querySelector('.dates-month-chevron');
+    const open = body.style.display !== 'none';
+    body.style.display = open ? 'none' : 'block';
+    chevron.style.transform = open ? 'rotate(-90deg)' : 'rotate(0deg)';
+  }
+
+  function toggleAllDateMonths(btn) {
+    const wasOpen = btn.dataset.open === 'true';
+    document.querySelectorAll('.dates-month').forEach(function (section) {
+      const body = section.querySelector('.dates-month-body');
+      const chevron = section.querySelector('.dates-month-chevron');
+      body.style.display = wasOpen ? 'none' : 'block';
+      chevron.style.transform = wasOpen ? 'rotate(-90deg)' : 'rotate(0deg)';
+    });
+    btn.dataset.open = wasOpen ? 'false' : 'true';
+    btn.innerHTML = wasOpen
+      ? '<i class="fas fa-arrows-up-down" aria-hidden="true"></i> Expand all'
+      : '<i class="fas fa-arrows-up-down" aria-hidden="true"></i> Collapse all';
+  }
+
+  // Selecting a date fills the inquiry modal's From/To fields with that
+  // exact departure and opens the modal — so a customer books off one of
+  // the dates you actually scheduled instead of free-typing a date that
+  // was never offered. dispatchEvent('change') is required, not optional:
+  // initDateDisplay() (static/js/main.js) only repaints the visible
+  // overlay text on the input's native 'change' event, and setting
+  // .value via JS doesn't fire that event on its own.
+  function selectTravelDate(row) {
+    document.querySelectorAll('.dates-row.selected').forEach(function (r) {
+      r.classList.remove('selected');
+    });
+    row.classList.add('selected');
+
+    const fromInput = document.getElementById('detailDateFrom');
+    const toInput = document.getElementById('detailDateTo');
+    if (fromInput && toInput) {
+      fromInput.value = row.dataset.date;
+      toInput.value = row.dataset.endDate;
+      fromInput.dispatchEvent(new Event('change'));
+      toInput.dispatchEvent(new Event('change'));
+    }
+
+    const hint = document.getElementById('datesSelectedHint');
+    if (hint) hint.textContent = 'Date selected — opening the inquiry form...';
+
+    openInquireModal();
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    // Collapse every month section after the first two, so a package with
+    // many departures (weekly across half a year, say) doesn't dump its
+    // whole list open by default. The pills and "Expand all" still reach
+    // every section from here.
+    document.querySelectorAll('.dates-month').forEach(function (section, i) {
+      if (i > 1) {
+        const body = section.querySelector('.dates-month-body');
+        const chevron = section.querySelector('.dates-month-chevron');
+        body.style.display = 'none';
+        chevron.style.transform = 'rotate(-90deg)';
+      }
+    });
   });
 
   function openInquireModal() {

@@ -1,4 +1,5 @@
 """Travel date model for admin-managed departure dates on a tour package."""
+from datetime import date as _date
 from app import db
 
 
@@ -38,6 +39,20 @@ class TravelDate(db.Model):
         if self.end_date.month != self.date.month:
             return f"{self.date.strftime('%B %d')} - {self.end_date.strftime('%B %d, %Y')}"
         return f"{self.date.strftime('%B %d')} - {self.end_date.strftime('%d, %Y')}"
+
+    @property
+    def weeks_away(self) -> int:
+        """Roughly how many full weeks from today until this date starts.
+
+        Used for the "in X wks" label on the public dates list, which
+        matters more than the month name alone once a package has
+        departures spread across several months. Clamps to 0 instead of
+        going negative for a past date — callers that only want future
+        departures should filter those out first (see package_detail()
+        in routes/packages.py), this is just a display safeguard.
+        """
+        days = (self.date - _date.today()).days
+        return max(round(days / 7), 0)
 
     def __repr__(self) -> str:
         return f"<TravelDate {self.date} for package {self.package_id}>"
