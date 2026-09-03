@@ -79,6 +79,24 @@
     display: flex;
     align-items: center;
     gap: .5rem;
+    /* Package titles can be long ("Batanes Bliss Discover Paradise up
+       North"), and left to wrap they cost four lines above the fold on a
+       phone. Keep the trail on one line and let the title truncate — the
+       full title is already the h1 immediately below, so nothing is lost. */
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .breadcrumb a,
+  .breadcrumb .crumb-sep {
+    flex: 0 0 auto;
+  }
+
+  .breadcrumb .crumb-current {
+    flex: 0 1 auto;
+    min-width: 0;          /* without this a flex item refuses to shrink below its text */
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .breadcrumb a {
@@ -88,6 +106,25 @@
 
   .breadcrumb a:hover {
     text-decoration: underline;
+  }
+
+  @media (max-width: 768px) {
+    .breadcrumb {
+      margin-top: .85rem;
+      padding: 0 1rem;
+      font-size: .76rem;
+      gap: .35rem;
+    }
+  }
+
+  /* On the narrowest screens drop "Home" so the title keeps the room —
+     "Packages" is the useful step back, and the header logo already
+     links home. */
+  @media (max-width: 480px) {
+    .breadcrumb .crumb-home,
+    .breadcrumb .crumb-sep-home {
+      display: none;
+    }
   }
 
   /* ── PHOTO GRID ── */
@@ -1047,11 +1084,11 @@
 
 <!-- BREADCRUMB -->
 <div class="breadcrumb">
-  <a href="{{ url_for('main.home') }}">Home</a>
-  <i class="fas fa-chevron-right" style="font-size:.65rem"></i>
+  <a class="crumb-home" href="{{ url_for('main.home') }}">Home</a>
+  <i class="fas fa-chevron-right crumb-sep crumb-sep-home" style="font-size:.65rem" aria-hidden="true"></i>
   <a href="{{ url_for('packages.list_packages') }}">Packages</a>
-  <i class="fas fa-chevron-right" style="font-size:.65rem"></i>
-  <span>{{ package.title }}</span>
+  <i class="fas fa-chevron-right crumb-sep" style="font-size:.65rem" aria-hidden="true"></i>
+  <span class="crumb-current" title="{{ package.title }}">{{ package.title }}</span>
 </div>
 
 <!-- PHOTO GRID -->
