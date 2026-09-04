@@ -609,10 +609,14 @@
       <div class="form-group" style="margin-bottom:0;">
         <label style="font-size:.82rem;">Photo <span style="color:var(--mist);font-weight:400;">(optional — shown as a thumbnail on the itinerary)</span></label>
         <input type="hidden" name="itinerary_day_image_existing" value="${prefill && prefill.image ? prefill.image : ''}" />
-        <div style="display:flex;align-items:center;gap:.6rem;">
+        <div class="file-upload-wrapper">
           <img class="day-thumb" src="${prefill && prefill.image ? prefill.image : ''}"
-            style="width:52px;height:52px;object-fit:cover;border-radius:var(--radius);border:1px solid var(--linen);${prefill && prefill.image ? '' : 'display:none;'}" alt="" />
-          <input type="file" name="itinerary_day_image" accept="image/*" class="form-control day-photo-input" style="flex:1;" />
+            style="width:44px;height:44px;object-fit:cover;border-radius:var(--radius);border:1px solid var(--linen);${prefill && prefill.image ? '' : 'display:none;'}" alt="" />
+          <button type="button" class="file-upload-btn" onclick="this.nextElementSibling.click()">
+            <i class="fas fa-image"></i> ${prefill && prefill.image ? 'Replace Photo' : 'Choose Photo'}
+          </button>
+          <input type="file" name="itinerary_day_image" accept="image/*" class="day-photo-input" />
+          <span class="file-upload-label day-photo-name">${prefill && prefill.image ? 'Current photo' : 'No file chosen'}</span>
         </div>
       </div>
     `;
@@ -637,15 +641,20 @@
     }
   });
 
-  // Swap the thumbnail to the newly picked file so the admin can see what
-  // they selected before saving.
+  // Show the chosen file as a thumbnail and its name, matching how the
+  // Package Image field behaves.
   daysContainer.addEventListener('change', function (e) {
     const input = e.target.closest('.day-photo-input');
-    if (!input || !input.files || !input.files[0]) return;
-    const thumb = input.closest('.form-group').querySelector('.day-thumb');
-    if (!thumb) return;
-    thumb.src = URL.createObjectURL(input.files[0]);
-    thumb.style.display = '';
+    if (!input) return;
+    const group = input.closest('.form-group');
+    const thumb = group.querySelector('.day-thumb');
+    const name = group.querySelector('.day-photo-name');
+    const file = input.files && input.files[0];
+    if (name) name.textContent = file ? file.name : 'No file chosen';
+    if (thumb && file) {
+      thumb.src = URL.createObjectURL(file);
+      thumb.style.display = '';
+    }
   });
 
   document.getElementById('add-day-btn').addEventListener('click', () => addDayBlock());
