@@ -513,10 +513,14 @@
         <div class="file-upload-wrapper">
           <img class="day-thumb" src="" style="width:44px;height:44px;object-fit:cover;border-radius:var(--radius);border:1px solid var(--linen);display:none;" alt="" />
           <button type="button" class="file-upload-btn" onclick="this.nextElementSibling.click()">
-            <i class="fas fa-image"></i> Choose Photo
+            <i class="fas fa-image"></i> <span class="day-photo-btn-text">Choose Photo</span>
           </button>
           <input type="file" name="itinerary_day_image" accept="image/*" class="day-photo-input" />
           <span class="file-upload-label day-photo-name">No file chosen</span>
+          <button type="button" class="day-photo-remove"
+            style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:.8rem;display:none;">
+            <i class="fas fa-trash-can"></i> Remove
+          </button>
         </div>
       </div>
     `;
@@ -547,14 +551,38 @@
     const input = e.target.closest('.day-photo-input');
     if (!input) return;
     const group = input.closest('.form-group');
-    const thumb = group.querySelector('.day-thumb');
-    const name = group.querySelector('.day-photo-name');
     const file = input.files && input.files[0];
+    const name = group.querySelector('.day-photo-name');
+    const thumb = group.querySelector('.day-thumb');
+    const removeBtn = group.querySelector('.day-photo-remove');
+    const btnText = group.querySelector('.day-photo-btn-text');
     if (name) name.textContent = file ? file.name : 'No file chosen';
     if (thumb && file) {
       thumb.src = URL.createObjectURL(file);
       thumb.style.display = '';
     }
+    if (file) {
+      if (removeBtn) removeBtn.style.display = '';
+      if (btnText) btnText.textContent = 'Replace Photo';
+    }
+  });
+
+  // Undo a photo choice before saving.
+  daysContainer.addEventListener('click', function (e) {
+    const btn = e.target.closest('.day-photo-remove');
+    if (!btn) return;
+    const group = btn.closest('.form-group');
+    const hidden = group.querySelector('input[name="itinerary_day_image_existing"]');
+    const input = group.querySelector('.day-photo-input');
+    const thumb = group.querySelector('.day-thumb');
+    const name = group.querySelector('.day-photo-name');
+    const btnText = group.querySelector('.day-photo-btn-text');
+    if (hidden) hidden.value = '';
+    if (input) input.value = '';
+    if (thumb) { thumb.removeAttribute('src'); thumb.style.display = 'none'; }
+    if (name) name.textContent = 'No file chosen';
+    if (btnText) btnText.textContent = 'Choose Photo';
+    btn.style.display = 'none';
   });
 
   document.getElementById('add-day-btn').addEventListener('click', () => addDayBlock());
