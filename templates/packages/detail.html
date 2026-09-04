@@ -127,6 +127,232 @@
     }
   }
 
+  /* ── SECTION LABEL (numeral + rule) ── */
+  .sec-label {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    margin-bottom: .9rem;
+  }
+
+  .sec-label-num {
+    font-size: 1.9rem;
+    font-weight: 300;
+    color: #d8cdb8;
+    line-height: .8;
+    letter-spacing: -.03em;
+  }
+
+  .sec-label-text {
+    font-size: .72rem;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--ink, #1e1610);
+    font-weight: 600;
+  }
+
+  .sec-label-rule {
+    flex: 1;
+    height: 1px;
+    background: var(--linen);
+  }
+
+  /* ── AT A GLANCE BAND ── */
+  .glance {
+    background: #123f4a;
+    color: var(--sand);
+    border-radius: var(--radius);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    overflow: hidden;
+    margin: 1rem 0 .5rem;
+  }
+
+  .glance-cell {
+    padding: .85rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+  }
+
+  .glance-cell + .glance-cell {
+    box-shadow: inset 1px 0 0 rgba(245, 239, 230, .12);
+  }
+
+  .glance-cell i {
+    font-size: 1.05rem;
+    color: #7fb0ae;
+    flex-shrink: 0;
+  }
+
+  .glance-k {
+    display: block;
+    font-size: .6rem;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: #7fb0ae;
+    margin-bottom: .1rem;
+  }
+
+  .glance-v {
+    font-size: .95rem;
+    font-weight: 600;
+    letter-spacing: -.01em;
+  }
+
+  /* ── INCLUSIONS ── */
+  .inc-panel {
+    border-radius: var(--radius);
+    padding: .9rem 1rem;
+  }
+
+  .inc-panel-yes { background: #e4efe9; }
+  .inc-panel-no { background: #efe8dc; }
+
+  .inc-cap {
+    font-size: .62rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    margin-bottom: .6rem;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-weight: 600;
+  }
+
+  .inc-line {
+    display: flex;
+    gap: .55rem;
+    padding: .3rem 0;
+    font-size: .84rem;
+    line-height: 1.45;
+    align-items: flex-start;
+  }
+
+  .inc-line i {
+    font-size: .9rem;
+    flex-shrink: 0;
+    margin-top: .15rem;
+    width: 1rem;
+    text-align: center;
+  }
+
+  /* ── ITINERARY ── */
+  .itin-day {
+    display: flex;
+    gap: .8rem;
+    margin-bottom: .55rem;
+  }
+
+  .itin-rail {
+    flex: 0 0 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .itin-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--amber);
+    color: #fff;
+    font-size: .78rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .itin-line {
+    flex: 1;
+    width: 1px;
+    background: var(--linen);
+    margin-top: .3rem;
+  }
+
+  .itin-card {
+    flex: 1;
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: .8rem .9rem;
+    display: flex;
+    gap: .8rem;
+    min-width: 0;
+  }
+
+  .itin-thumb {
+    flex: 0 0 76px;
+    height: 76px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: var(--linen);
+  }
+
+  .itin-body { min-width: 0; flex: 1; }
+
+  .itin-route {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .3rem;
+    margin-bottom: .45rem;
+  }
+
+  .itin-leg {
+    font-size: .76rem;
+    color: var(--bark);
+    background: var(--sand);
+    border-radius: 5px;
+    padding: .1rem .45rem;
+    font-weight: 600;
+  }
+
+  .itin-arrow {
+    color: #c9bfae;
+    font-size: .65rem;
+  }
+
+  .itin-meals {
+    display: flex;
+    gap: .28rem;
+    margin-bottom: .45rem;
+  }
+
+  .itin-meal {
+    font-size: .6rem;
+    letter-spacing: .09em;
+    border-radius: 999px;
+    padding: .1rem .5rem;
+    border: 1px solid var(--linen);
+    color: var(--mist);
+    font-weight: 600;
+  }
+
+  .itin-meal.on {
+    background: #e4efe9;
+    border-color: #bcd9cd;
+    color: #0f6e56;
+  }
+
+  .itin-bullet {
+    display: flex;
+    gap: .45rem;
+    font-size: .82rem;
+    color: var(--mist);
+    line-height: 1.5;
+    padding: .05rem 0;
+  }
+
+  .itin-bullet-dot { color: var(--amber); flex-shrink: 0; }
+
+  @media (max-width: 560px) {
+    .itin-thumb { flex-basis: 58px; height: 58px; }
+    .itin-card { padding: .65rem .7rem; gap: .6rem; }
+    .sec-label-num { font-size: 1.5rem; }
+  }
+
   /* ── PHOTO GRID ── */
   .photo-grid {
     position: relative;
@@ -1246,8 +1472,33 @@
         </div>
       </div>
 
+      <div class="glance">
+        <div class="glance-cell">
+          <i class="fas fa-clock" aria-hidden="true"></i>
+          <span><span class="glance-k">Duration</span><span class="glance-v">{{ package.duration_days }} day{{ 's' if package.duration_days != 1 }}</span></span>
+        </div>
+        <div class="glance-cell">
+          <i class="fas fa-tag" aria-hidden="true"></i>
+          <span><span class="glance-k">From</span><span class="glance-v">{% if package.currency == 'USD' %}${% elif package.currency == 'EUR' %}€{% else %}₱{% endif %}{{ "{:,.0f}".format(package.price) }}</span></span>
+        </div>
+        {% if upcoming_dates %}
+        <div class="glance-cell">
+          <i class="fas fa-calendar-days" aria-hidden="true"></i>
+          <span><span class="glance-k">Departures</span><span class="glance-v">{{ upcoming_dates|length }} open</span></span>
+        </div>
+        <div class="glance-cell">
+          <i class="fas fa-plane-departure" aria-hidden="true"></i>
+          <span><span class="glance-k">Next out</span><span class="glance-v">{{ next_departure.date.strftime('%b %d') }}</span></span>
+        </div>
+        {% endif %}
+      </div>
+
       <div class="detail-section">
-        <h3>About this package</h3>
+        <div class="sec-label">
+          <span class="sec-label-num">01</span>
+          <span class="sec-label-text">About</span>
+          <span class="sec-label-rule"></span>
+        </div>
         <div class="desc-text desc-collapsed" id="desc-text">{{ package.description }}</div>
         <button class="read-more-btn" id="read-more-btn" onclick="toggleDesc()">Show more <i class="fas fa-chevron-down"
             style="font-size:.7rem"></i></button>
@@ -1257,23 +1508,31 @@
     <!-- INCLUSIONS -->
     {% if package.inclusions or package.exclusions %}
     <div class="detail-section" id="s-inclusions">
-      <h3>What's included</h3>
+      <div class="sec-label">
+        <span class="sec-label-num">02</span>
+        <span class="sec-label-text">Inclusions</span>
+        <span class="sec-label-rule"></span>
+      </div>
       <div class="inc-grid">
         {% if package.inclusions %}
-        <div class="inc-box">
-          <h4 style="color:#0f6e56"><i class="fas fa-check-circle" style="color:#0f6e56"></i> Included</h4>
+        <div class="inc-panel inc-panel-yes">
+          <div class="inc-cap" style="color:#0f6e56"><i class="fas fa-check" aria-hidden="true"></i> Included</div>
           {% for item in package.inclusions.split('\n') %}{% if item.strip() %}
-          <div class="inc-item"><i class="fas fa-check" style="color:#0f6e56;flex-shrink:0;margin-top:.15rem"></i>
-            {{ item.strip() }}</div>
+          <div class="inc-line" style="color:#04342C">
+            <i class="fas {{ item | inclusion_icon }}" style="color:#0f6e56" aria-hidden="true"></i>
+            <span>{{ item.strip() }}</span>
+          </div>
           {% endif %}{% endfor %}
         </div>
         {% endif %}
         {% if package.exclusions %}
-        <div class="inc-box">
-          <h4 style="color:#993c1d"><i class="fas fa-times-circle" style="color:#993c1d"></i> Not included</h4>
+        <div class="inc-panel inc-panel-no">
+          <div class="inc-cap" style="color:#8a8578"><i class="fas fa-minus" aria-hidden="true"></i> Not included</div>
           {% for item in package.exclusions.split('\n') %}{% if item.strip() %}
-          <div class="inc-item"><i class="fas fa-times" style="color:#993c1d;flex-shrink:0;margin-top:.15rem"></i>
-            {{ item.strip() }}</div>
+          <div class="inc-line" style="color:#6d675d">
+            <i class="fas {{ item | inclusion_icon }}" style="color:#a09a8e" aria-hidden="true"></i>
+            <span>{{ item.strip() }}</span>
+          </div>
           {% endif %}{% endfor %}
         </div>
         {% endif %}
@@ -1284,10 +1543,14 @@
     <!-- TRAVEL DATES -->
     {% if dates_by_month %}
     <div class="detail-section" id="s-dates">
+      <div class="sec-label">
+        <span class="sec-label-num">03</span>
+        <span class="sec-label-text">Dates</span>
+        <span class="sec-label-rule"></span>
+      </div>
       <div class="dates-toolbar">
         <div>
-          <h3 style="margin-bottom:0">Available travel dates</h3>
-          <div class="dates-count">
+          <div class="dates-count" style="margin-top:0">
             {{ upcoming_dates|length }} upcoming departure{{ 's' if upcoming_dates|length != 1 else '' }}
           </div>
         </div>
@@ -1351,33 +1614,59 @@
     <!-- ITINERARY -->
     {% if package.itinerary_days or package.itinerary %}
     <div class="detail-section" id="s-itinerary">
-      <h3>Itinerary</h3>
+      <div class="sec-label">
+        <span class="sec-label-num">04</span>
+        <span class="sec-label-text">Itinerary</span>
+        <span class="sec-label-rule"></span>
+      </div>
       <div class="itinerary-list">
         {% if package.itinerary_days %}
         {% for day in package.itinerary_days %}
-        <div class="itinerary-day">
-          <div class="itinerary-marker">
-            <div class="itinerary-num">{{ day.day_number }}</div>
-            {% if not loop.last %}<div class="itinerary-line"></div>{% endif %}
+        <div class="itin-day">
+          <div class="itin-rail">
+            <div class="itin-dot">{{ day.day_number }}</div>
+            {% if not loop.last %}<div class="itin-line"></div>{% endif %}
           </div>
-          <div class="itinerary-body">
-            <div class="itinerary-title">Day {{ day.day_number }}: {{ day.title }}</div>
-            {% if day.meals %}<div class="itinerary-meals">Meals: {{ day.meals }}</div>{% endif %}
-            <div class="itinerary-desc">{{ day.description | bold_markdown }}</div>
+          <div class="itin-card">
+            {% if day.image %}
+            <img class="itin-thumb" src="{{ day.image | cloudinary_card }}" alt="Day {{ day.day_number }}" loading="lazy" />
+            {% endif %}
+            <div class="itin-body">
+              <div class="itin-route">
+                {% for leg in day.title | route_legs %}
+                <span class="itin-leg">{{ leg }}</span>
+                {% if not loop.last %}<i class="fas fa-arrow-right itin-arrow" aria-hidden="true"></i>{% endif %}
+                {% endfor %}
+              </div>
+              {% set meals = day.meals | parse_meals %}
+              {% if meals %}
+              <div class="itin-meals" title="Meals included this day">
+                {% for label, included in meals %}
+                <span class="itin-meal {{ 'on' if included }}">{{ label }}</span>
+                {% endfor %}
+              </div>
+              {% elif day.meals %}
+              <div class="itinerary-meals">{{ day.meals }}</div>
+              {% endif %}
+              {% for line in (day.description or '').split('\n') %}{% if line.strip() %}
+              <div class="itin-bullet"><span class="itin-bullet-dot">·</span><span>{{ line.strip() | bold_markdown }}</span></div>
+              {% endif %}{% endfor %}
+            </div>
           </div>
         </div>
         {% endfor %}
         {% else %}
         {% set days = package.itinerary.split('\n') | map('trim') | select | list %}
         {% for day in days %}
-        <div class="itinerary-day">
-          <div class="itinerary-marker">
-            <div class="itinerary-num">{{ loop.index }}</div>
-            {% if not loop.last %}<div class="itinerary-line"></div>{% endif %}
+        <div class="itin-day">
+          <div class="itin-rail">
+            <div class="itin-dot">{{ loop.index }}</div>
+            {% if not loop.last %}<div class="itin-line"></div>{% endif %}
           </div>
-          <div class="itinerary-body">
-            <div class="itinerary-title">Day {{ loop.index }}</div>
-            <div class="itinerary-desc">{{ day }}</div>
+          <div class="itin-card">
+            <div class="itin-body">
+              <div class="itin-bullet"><span class="itin-bullet-dot">·</span><span>{{ day }}</span></div>
+            </div>
           </div>
         </div>
         {% endfor %}
@@ -1389,7 +1678,11 @@
     <!-- AMENITIES -->
     {% if package.amenities %}
     <div class="detail-section" id="s-amenities">
-      <h3>What this package offers</h3>
+      <div class="sec-label">
+        <span class="sec-label-num">05</span>
+        <span class="sec-label-text">Offers</span>
+        <span class="sec-label-rule"></span>
+      </div>
       {% set amenity_list = package.amenities.split('\n') | map('trim') | select | list %}
       <div class="amenities-grid" id="amenities-grid">
         {% for item in amenity_list[:8] %}

@@ -19,6 +19,10 @@ class ItineraryDay(db.Model):
     title: str = db.Column(db.String(200), nullable=False)
     meals: str = db.Column(db.String(50), nullable=True)
     description: str = db.Column(db.Text, nullable=True)
+    # Optional Cloudinary URL for a photo of this day, shown as a thumbnail
+    # on the public itinerary. Nullable because most existing days have no
+    # image and the itinerary has to render fine without one.
+    image: str = db.Column(db.String(500), nullable=True)
     order: int = db.Column(db.Integer, default=0)
 
     def __repr__(self) -> str:

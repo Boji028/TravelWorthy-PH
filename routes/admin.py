@@ -382,6 +382,7 @@ def add_package():
             day_titles = request.form.getlist("itinerary_day_title")
             day_meals = request.form.getlist("itinerary_day_meals")
             day_descriptions = request.form.getlist("itinerary_day_description")
+            day_images = _resolve_itinerary_day_images(len(day_titles))
             for i, day_title in enumerate(day_titles):
                 day_title = day_title.strip()
                 if not day_title:
@@ -393,6 +394,7 @@ def add_package():
                         title=day_title,
                         meals=day_meals[i].strip() if i < len(day_meals) else None,
                         description=day_descriptions[i].strip() if i < len(day_descriptions) else None,
+                        image=day_images[i] if i < len(day_images) else None,
                         order=i,
                     )
                 )
@@ -554,6 +556,7 @@ def edit_package(package_id):
             day_titles = request.form.getlist("itinerary_day_title")
             day_meals = request.form.getlist("itinerary_day_meals")
             day_descriptions = request.form.getlist("itinerary_day_description")
+            day_images = _resolve_itinerary_day_images(len(day_titles))
             for i, day_title in enumerate(day_titles):
                 day_title = day_title.strip()
                 if not day_title:
@@ -565,6 +568,7 @@ def edit_package(package_id):
                         title=day_title,
                         meals=day_meals[i].strip() if i < len(day_meals) else None,
                         description=day_descriptions[i].strip() if i < len(day_descriptions) else None,
+                        image=day_images[i] if i < len(day_images) else None,
                         order=i,
                     )
                 )
@@ -829,6 +833,35 @@ def delete_user(user_id):
 
 
 # ── Inquiries ──────────────────────────────────────────────
+def _resolve_itinerary_day_images(day_count: int) -> list:
+    """Work out the image URL for each submitted itinerary day.
+
+    Both the add and edit forms post one file input plus one hidden
+    "existing" input per day, so the lists line up with the day rows by
+    index. A day keeps its current photo unless a new file is chosen —
+    this matters because edit_package() deletes and recreates every
+    ItineraryDay row on save, so without carrying the existing URL
+    forward, editing a package's text would silently wipe its day photos.
+
+    Returns a list of URLs (or None) indexed to match the day rows.
+    """
+    files = request.files.getlist("itinerary_day_image")
+    existing = request.form.getlist("itinerary_day_image_existing")
+    out = []
+    for i in range(day_count):
+        # An untouched file input still posts, with an empty filename.
+        upload = files[i] if i < len(files) else None
+        if upload and upload.filename:
+            try:
+                out.append(ImageUploadService.upload_and_compress(upload, "itinerary")["path"])
+                continue
+            except ImageUploadException as exc:
+                flash(f"Day {i + 1} photo could not be uploaded: {exc}", "warning")
+        prior = existing[i].strip() if i < len(existing) else ""
+        out.append(prior or None)
+    return out
+
+
 def _inquiry_type(inq) -> str:
     """Classify an inquiry as 'package', 'visa', or 'trip'.
 

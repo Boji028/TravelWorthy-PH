@@ -169,6 +169,85 @@ def bold_markdown(text):
     return Markup(_BOLD_PATTERN.sub(r"<strong>\1</strong>", str(escaped)))
 
 
+@packages_bp.app_template_filter("inclusion_icon")
+def inclusion_icon(text):
+    """Pick a Font Awesome icon for a free-text inclusion/exclusion line.
+
+    Inclusions are admin-typed prose ("Seat in Tour Couch with English
+    Speaking Driver Guide"), so this is keyword matching, not a lookup —
+    it will get most lines right and fall back to a neutral dot for
+    anything unrecognised rather than guessing wildly. Order matters:
+    more specific keywords are checked before broader ones.
+    """
+    if not text:
+        return "fa-circle-small"
+    low = text.lower()
+    # Order matters — the first match wins, so narrow keywords go above
+    # broad ones. "New Zealand Tourist Visa" has to hit the visa rule
+    # before the tour rule, and "All Airline Taxes" the tax rule before
+    # the airline rule. Substrings are also chosen carefully: "fee" would
+    # match inside "coffee", so tax uses "taxes"/"surcharge" instead.
+    rules = (
+        (("visa", "passport"), "fa-passport"),
+        (("insurance",), "fa-shield-heart"),
+        (("tipping", "tips", "gratuit"), "fa-hand-holding-dollar"),
+        (("tax", "surcharge"), "fa-receipt"),
+        (("baggage", "luggage", "check in", "check-in", "hand carry"), "fa-suitcase-rolling"),
+        (("airfare", "airline", "flight", "airplane"), "fa-plane"),
+        (("hotel", "accommodation", "accomodation", "room", "night"), "fa-bed"),
+        (("breakfast", "meal", "lunch", "dinner", "buffet", "coffee", "drink", "beverage"), "fa-utensils"),
+        (("transfer", "driver", "coach", "van", "bus", "shuttle"), "fa-van-shuttle"),
+        (("optional",), "fa-circle-plus"),
+        (("supplement", "single occupancy"), "fa-user"),
+        (("guide", "tour", "sightseeing", "itinerary"), "fa-map-location-dot"),
+        (("admission", "entrance", "ticket"), "fa-ticket"),
+        (("personal", "expense", "spending", "shopping"), "fa-wallet"),
+        (("wifi", "sim card", "internet"), "fa-wifi"),
+        (("kit", "freebie", "souvenir"), "fa-gift"),
+    )
+    for keywords, icon in rules:
+        if any(k in low for k in keywords):
+            return icon
+    return "fa-circle-small"
+
+
+@packages_bp.app_template_filter("parse_meals")
+def parse_meals(text):
+    """Turn a meals string like "MEALS: B / X / D" into on/off flags.
+
+    Admins type these by hand, so the format varies ("B/L/D",
+    "MEALS: X / X / D", "b / l / x"). Anything that isn't a recognised
+    B/L/D letter counts as not included. Returns a list of
+    (label, included) tuples in breakfast/lunch/dinner order, or an
+    empty list when there's nothing parseable — so the template can skip
+    the pills entirely rather than render three empty ones.
+    """
+    if not text:
+        return []
+    cleaned = text.split(":", 1)[-1]
+    parts = [p.strip().upper() for p in cleaned.split("/")]
+    if len(parts) < 3:
+        return []
+    labels = ("B", "L", "D")
+    return [(labels[i], parts[i] == labels[i]) for i in range(3)]
+
+
+@packages_bp.app_template_filter("route_legs")
+def route_legs(title):
+    """Split an itinerary day title into route legs for chip display.
+
+    Day titles are already written as routes ("AUCKLAND - WAITOMO -
+    ROTORUA"), so splitting on dashes gives the legs for free. Handles
+    hyphen, en dash and em dash since admins mix them. A title with no
+    separator just comes back as a single leg, which renders as one chip.
+    """
+    if not title:
+        return []
+    normalised = title.replace("–", "-").replace("—", "-")
+    legs = [seg.strip() for seg in normalised.split("-")]
+    return [leg.title() for leg in legs if leg]
+
+
 @packages_bp.route("/<int:package_id>")
 def package_detail(package_id: int) -> str:
     from models.package_review import PackageReview
