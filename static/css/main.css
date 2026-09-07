@@ -730,6 +730,10 @@ select.form-control {
     display: none;
 }
 
+.mm-backdrop {
+    display: none;
+}
+
 .nav-toggle {
     display: none;
     background: none;
@@ -752,21 +756,61 @@ select.form-control {
         display: none;
     }
 
+    /* Dimmed layer behind the sheet. Kept as its own element rather than a
+       pseudo-element so it can be tapped to dismiss. */
+    .mm-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(18, 63, 74, .42);
+        opacity: 0;
+        transition: opacity .28s ease;
+        z-index: 98;
+    }
+
+    .mm-backdrop.mm-open {
+        opacity: 1;
+    }
+
+    /* The sheet slides up from the bottom so the whole menu lands in thumb
+       reach on a tall phone. translateY is used rather than display so the
+       open and close both animate. */
     .mobile-menu {
-        display: none;
-        position: absolute;
-        top: 68px;
+        display: block;
+        position: fixed;
         left: 0;
         right: 0;
+        bottom: 0;
         background: var(--white);
-        border-bottom: 1px solid var(--linen);
-        box-shadow: 0 16px 32px rgba(0,0,0,.10);
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 -8px 32px rgba(0, 0, 0, .16);
         z-index: 99;
-        max-height: calc(100vh - 68px);
+        max-height: 88vh;
         overflow-y: auto;
+        padding: 0 1rem 1rem;
+        transform: translateY(100%);
+        transition: transform .32s cubic-bezier(.32, .72, 0, 1);
+        /* keep the sheet clear of the iOS home indicator */
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
     }
 
     .mobile-menu.mm-open {
+        transform: translateY(0);
+    }
+
+    .mm-handle-wrap {
+        padding: .65rem 0 .5rem;
+        display: flex;
+        justify-content: center;
+        cursor: grab;
+        touch-action: none;
+    }
+
+    .mm-handle {
+        width: 38px;
+        height: 4px;
+        border-radius: 999px;
+        background: var(--linen);
         display: block;
     }
 
@@ -775,15 +819,16 @@ select.form-control {
         display: flex;
         align-items: center;
         gap: .75rem;
-        padding: .9rem 1.1rem;
-        background: var(--linen);
+        padding: .3rem 0 .85rem;
+        border-bottom: 1px solid var(--linen);
+        margin-bottom: .9rem;
     }
 
     .mm-avatar {
-        width: 40px;
-        height: 40px;
+        width: 38px;
+        height: 38px;
         border-radius: 50%;
-        background: var(--teal);
+        background: #123f4a;
         color: #fff;
         display: flex;
         align-items: center;
@@ -817,15 +862,17 @@ select.form-control {
 
     .mm-bell {
         position: relative;
-        color: var(--teal);
+        color: var(--bark);
         font-size: 1.15rem;
         padding: .4rem;
         text-decoration: none;
         flex-shrink: 0;
     }
+
     .mm-account .dropdown {
         position: static;
     }
+
     .mobile-menu .mm-notif-menu {
         left: 0;
         right: 0;
@@ -839,7 +886,7 @@ select.form-control {
         position: absolute;
         top: 0;
         right: -2px;
-        background: #D85A30;
+        background: var(--amber);
         color: #fff;
         font-size: .6rem;
         font-weight: 700;
@@ -872,40 +919,54 @@ select.form-control {
         color: #fff;
     }
 
-    .mm-links {
-        padding: .4rem .5rem;
+    /* Icon tiles: bigger tap targets than list rows, and three across fits
+       every label without truncating at 320px. */
+    .mm-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: .5rem;
     }
 
-    .mm-links a {
+    .mm-tile {
+        background: var(--sand);
+        border-radius: 12px;
+        padding: .8rem .3rem;
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: .8rem;
-        padding: .8rem .85rem;
-        border-radius: 10px;
-        font-size: .95rem;
-        color: #333;
+        justify-content: center;
+        gap: .35rem;
         text-decoration: none;
+        min-height: 74px;
     }
 
-    .mm-links a i {
-        width: 20px;
+    .mm-tile i {
+        font-size: 1.25rem;
+        color: var(--bark);
+    }
+
+    .mm-tile span {
+        font-size: .72rem;
+        color: var(--bark);
         text-align: center;
-        color: var(--mist);
-        font-size: .9rem;
+        line-height: 1.2;
     }
 
-    .mm-links a.mm-active {
-        background: #eaf4f2;
-        color: var(--teal);
+    .mm-tile.mm-active {
+        background: #123f4a;
+    }
+
+    .mm-tile.mm-active i {
+        color: var(--amber);
+    }
+
+    .mm-tile.mm-active span {
+        color: var(--sand);
         font-weight: 600;
     }
 
-    .mm-links a.mm-active i {
-        color: var(--teal);
-    }
-
     .mm-footer {
-        padding: .4rem 1.1rem 1.1rem;
+        padding: .95rem 0 0;
     }
 
     .mm-cta {
@@ -915,20 +976,20 @@ select.form-control {
         gap: .5rem;
         background: var(--amber);
         color: #fff;
-        border-radius: 12px;
+        border-radius: 999px;
         padding: .85rem;
         font-weight: 700;
         font-size: .95rem;
         text-decoration: none;
-        box-shadow: 0 4px 12px rgba(239,130,51,.3);
+        box-shadow: 0 4px 12px rgba(239, 130, 51, .3);
     }
 
     .mm-actions {
         display: flex;
         justify-content: space-between;
         gap: .5rem;
-        margin-top: .9rem;
-        padding-top: .9rem;
+        margin-top: .85rem;
+        padding-top: .8rem;
         border-top: 1px solid var(--linen);
         flex-wrap: wrap;
     }
@@ -938,10 +999,22 @@ select.form-control {
         font-weight: 600;
         color: var(--teal);
         text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
     }
 
     .mm-actions a.mm-logout {
         color: #b3543a;
+    }
+
+    /* Respect users who've asked for less motion — the sheet still opens,
+       it just appears instead of sliding. */
+    @media (prefers-reduced-motion: reduce) {
+        .mobile-menu,
+        .mm-backdrop {
+            transition: none;
+        }
     }
 }
 

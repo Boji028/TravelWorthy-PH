@@ -11,17 +11,76 @@ setTimeout(() => {
   });
 }, 4000);
 
-// Mobile nav toggle
+// Mobile nav — bottom sheet
 const navToggle = document.getElementById('navToggle');
 const mobileMenu = document.getElementById('mobileMenu');
 const navToggleIcon = document.getElementById('navToggleIcon');
+const mmBackdrop = document.getElementById('mmBackdrop');
+const mmHandle = document.getElementById('mmHandle');
+
 if (navToggle && mobileMenu) {
-  navToggle.addEventListener('click', () => {
-    const isOpen = mobileMenu.classList.toggle('mm-open');
-    if (navToggleIcon) {
-      navToggleIcon.className = isOpen ? 'fas fa-xmark' : 'fas fa-bars';
+  const setMenu = (open) => {
+    mobileMenu.classList.toggle('mm-open', open);
+    if (mmBackdrop) {
+      // The backdrop needs to exist before it can fade in, so unhide it
+      // first and flip the class on the next frame — setting both at once
+      // would skip the transition.
+      if (open) {
+        mmBackdrop.hidden = false;
+        requestAnimationFrame(() => mmBackdrop.classList.add('mm-open'));
+      } else {
+        mmBackdrop.classList.remove('mm-open');
+        setTimeout(() => { if (!mobileMenu.classList.contains('mm-open')) mmBackdrop.hidden = true; }, 300);
+      }
     }
+    if (navToggleIcon) {
+      navToggleIcon.className = open ? 'fas fa-xmark' : 'fas fa-bars';
+    }
+    // Stop the page scrolling underneath while the sheet is up.
+    document.body.style.overflow = open ? 'hidden' : '';
+    mobileMenu.style.transform = '';
+  };
+
+  navToggle.addEventListener('click', () => {
+    setMenu(!mobileMenu.classList.contains('mm-open'));
   });
+
+  if (mmBackdrop) {
+    mmBackdrop.addEventListener('click', () => setMenu(false));
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && mobileMenu.classList.contains('mm-open')) setMenu(false);
+  });
+
+  // Swipe the handle down to dismiss — the sheet follows the finger, and
+  // only closes past a threshold so a small accidental drag springs back.
+  if (mmHandle) {
+    let startY = null;
+    let delta = 0;
+
+    mmHandle.addEventListener('touchstart', (e) => {
+      startY = e.touches[0].clientY;
+      delta = 0;
+      mobileMenu.style.transition = 'none';
+    }, { passive: true });
+
+    mmHandle.addEventListener('touchmove', (e) => {
+      if (startY === null) return;
+      delta = Math.max(0, e.touches[0].clientY - startY);
+      mobileMenu.style.transform = `translateY(${delta}px)`;
+    }, { passive: true });
+
+    mmHandle.addEventListener('touchend', () => {
+      mobileMenu.style.transition = '';
+      if (delta > 90) {
+        setMenu(false);
+      } else {
+        mobileMenu.style.transform = '';
+      }
+      startY = null;
+    });
+  }
 }
 // Mobile dropdown — tap to toggle
 document.querySelectorAll('.dropdown-toggle').forEach(function(toggle) {
