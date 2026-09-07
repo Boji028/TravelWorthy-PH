@@ -100,82 +100,83 @@
       </button>
     </div>
 
-    <!-- MOBILE MENU — bottom sheet (hidden on desktop) -->
-    <div class="mm-backdrop" id="mmBackdrop" hidden></div>
-    <div class="mobile-menu" id="mobileMenu" role="dialog" aria-modal="true" aria-label="Menu">
-      <div class="mm-handle-wrap" id="mmHandle">
-        <span class="mm-handle"></span>
-      </div>
-      {% if current_user.is_authenticated %}
-      <div class="mm-account">
-        <div class="mm-avatar">{{ current_user.name[0]|upper }}</div>
-        <a href="{{ url_for('auth.profile') }}" class="mm-account-info">
-          <span class="mm-name">{{ current_user.name }}</span>
-          <span class="mm-sub">View profile & inquiries</span>
-        </a>
-        <div class="dropdown">
-          <a href="#" class="dropdown-toggle mm-bell" id="mmNotifBell" aria-label="Notifications">
-            <i class="fas fa-bell"></i>
-            {% if unread_notification_count and unread_notification_count > 0 %}
-            <span class="mm-badge">{{ unread_notification_count if unread_notification_count <= 8 else '9+' }}</span>
-            {% endif %}
-          </a>
-          <ul class="dropdown-menu notif-menu mm-notif-menu" id="mmNotifMenu">
-            <li class="notif-header">Notifications</li>
-            {% include '_notif_items.html' %}
-          </ul>
-        </div>
-      </div>
-      {% else %}
-      <div class="mm-account mm-guest">
-        <a href="{{ url_for('auth.login') }}" class="mm-login">Login</a>
-        <a href="{{ url_for('auth.register') }}" class="mm-signup">Sign Up</a>
-      </div>
-      {% endif %}
+  </nav>
 
-      <div class="mm-grid">
-        <a href="{{ url_for('main.home') }}" class="mm-tile {% if request.endpoint=='main.home' %}mm-active{% endif %}">
-          <i class="fas fa-house"></i><span>Home</span>
+  <!-- MOBILE MENU — bottom sheet (hidden on desktop) -->
+  <div class="mm-backdrop" id="mmBackdrop" hidden></div>
+  <div class="mobile-menu" id="mobileMenu" role="dialog" aria-modal="true" aria-label="Menu">
+    <div class="mm-handle-wrap" id="mmHandle">
+      <span class="mm-handle"></span>
+    </div>
+    {% if current_user.is_authenticated %}
+    <div class="mm-account">
+      <div class="mm-avatar">{{ current_user.name[0]|upper }}</div>
+      <a href="{{ url_for('auth.profile') }}" class="mm-account-info">
+        <span class="mm-name">{{ current_user.name }}</span>
+        <span class="mm-sub">View profile & inquiries</span>
+      </a>
+      <div class="dropdown">
+        <a href="#" class="dropdown-toggle mm-bell" id="mmNotifBell" aria-label="Notifications">
+          <i class="fas fa-bell"></i>
+          {% if unread_notification_count and unread_notification_count > 0 %}
+          <span class="mm-badge">{{ unread_notification_count if unread_notification_count <= 8 else '9+' }}</span>
+          {% endif %}
         </a>
-        <a href="{{ url_for('packages.list_packages') }}" class="mm-tile {% if request.endpoint=='packages.list_packages' %}mm-active{% endif %}">
-          <i class="fas fa-suitcase-rolling"></i><span>Packages</span>
-        </a>
-        <a href="{{ url_for('packages.visa') }}" class="mm-tile {% if request.endpoint=='packages.visa' %}mm-active{% endif %}">
-          <i class="fas fa-passport"></i><span>Visa</span>
-        </a>
-        <a href="{{ url_for('blog.blog_list') }}" class="mm-tile {% if request.endpoint and 'blog' in request.endpoint %}mm-active{% endif %}">
-          <i class="fas fa-book-open"></i><span>Stories</span>
-        </a>
-        <a href="{{ url_for('main.about') }}" class="mm-tile {% if request.endpoint=='main.about' %}mm-active{% endif %}">
-          <i class="fas fa-umbrella-beach"></i><span>About</span>
-        </a>
-        <a href="{{ url_for('main.reviews') }}" class="mm-tile {% if request.endpoint=='main.reviews' %}mm-active{% endif %}">
-          <i class="fas fa-star"></i><span>Reviews</span>
-        </a>
-        <a href="{{ url_for('main.contact') }}" class="mm-tile {% if request.endpoint=='main.contact' %}mm-active{% endif %}">
-          <i class="fas fa-envelope"></i><span>Contact</span>
-        </a>
-        {% if current_user.is_authenticated %}
-        <a href="{{ url_for('wishlist.my_wishlist') }}" class="mm-tile {% if request.endpoint=='wishlist.my_wishlist' %}mm-active{% endif %}">
-          <i class="fas fa-heart"></i><span>Wishlist</span>
-        </a>
-        <a href="{{ url_for('main.my_inquiries') }}" class="mm-tile {% if request.endpoint=='main.my_inquiries' %}mm-active{% endif %}">
-          <i class="fas fa-comment-dots"></i><span>Inquiries</span>
-        </a>
-        {% endif %}
-      </div>
-
-      <div class="mm-footer">
-        <a href="{{ url_for('bookings.plan_my_trip') }}" class="mm-cta"><i class="fas fa-plane"></i> Plan My Trip</a>
-        {% if current_user.is_authenticated %}
-        <div class="mm-actions">
-          {% if current_user.is_admin %}<a href="{{ url_for('admin.dashboard') }}"><i class="fas fa-gauge"></i> Dashboard</a>{% endif %}
-          <a href="{{ url_for('auth.logout') }}" class="mm-logout"><i class="fas fa-right-from-bracket"></i> Logout</a>
-        </div>
-        {% endif %}
+        <ul class="dropdown-menu notif-menu mm-notif-menu" id="mmNotifMenu">
+          <li class="notif-header">Notifications</li>
+          {% include '_notif_items.html' %}
+        </ul>
       </div>
     </div>
-  </nav>
+    {% else %}
+    <div class="mm-account mm-guest">
+      <a href="{{ url_for('auth.login') }}" class="mm-login">Login</a>
+      <a href="{{ url_for('auth.register') }}" class="mm-signup">Sign Up</a>
+    </div>
+    {% endif %}
+
+    <div class="mm-grid">
+      <a href="{{ url_for('main.home') }}" class="mm-tile {% if request.endpoint=='main.home' %}mm-active{% endif %}">
+        <i class="fas fa-house"></i><span>Home</span>
+      </a>
+      <a href="{{ url_for('packages.list_packages') }}" class="mm-tile {% if request.endpoint=='packages.list_packages' %}mm-active{% endif %}">
+        <i class="fas fa-suitcase-rolling"></i><span>Packages</span>
+      </a>
+      <a href="{{ url_for('packages.visa') }}" class="mm-tile {% if request.endpoint=='packages.visa' %}mm-active{% endif %}">
+        <i class="fas fa-passport"></i><span>Visa</span>
+      </a>
+      <a href="{{ url_for('blog.blog_list') }}" class="mm-tile {% if request.endpoint and 'blog' in request.endpoint %}mm-active{% endif %}">
+        <i class="fas fa-book-open"></i><span>Stories</span>
+      </a>
+      <a href="{{ url_for('main.about') }}" class="mm-tile {% if request.endpoint=='main.about' %}mm-active{% endif %}">
+        <i class="fas fa-umbrella-beach"></i><span>About</span>
+      </a>
+      <a href="{{ url_for('main.reviews') }}" class="mm-tile {% if request.endpoint=='main.reviews' %}mm-active{% endif %}">
+        <i class="fas fa-star"></i><span>Reviews</span>
+      </a>
+      <a href="{{ url_for('main.contact') }}" class="mm-tile {% if request.endpoint=='main.contact' %}mm-active{% endif %}">
+        <i class="fas fa-envelope"></i><span>Contact</span>
+      </a>
+      {% if current_user.is_authenticated %}
+      <a href="{{ url_for('wishlist.my_wishlist') }}" class="mm-tile {% if request.endpoint=='wishlist.my_wishlist' %}mm-active{% endif %}">
+        <i class="fas fa-heart"></i><span>Wishlist</span>
+      </a>
+      <a href="{{ url_for('main.my_inquiries') }}" class="mm-tile {% if request.endpoint=='main.my_inquiries' %}mm-active{% endif %}">
+        <i class="fas fa-comment-dots"></i><span>Inquiries</span>
+      </a>
+      {% endif %}
+    </div>
+
+    <div class="mm-footer">
+      <a href="{{ url_for('bookings.plan_my_trip') }}" class="mm-cta"><i class="fas fa-plane"></i> Plan My Trip</a>
+      {% if current_user.is_authenticated %}
+      <div class="mm-actions">
+        {% if current_user.is_admin %}<a href="{{ url_for('admin.dashboard') }}"><i class="fas fa-gauge"></i> Dashboard</a>{% endif %}
+        <a href="{{ url_for('auth.logout') }}" class="mm-logout"><i class="fas fa-right-from-bracket"></i> Logout</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
 
   <!-- FLASH MESSAGES -->
   {% with messages = get_flashed_messages(with_categories=true) %}

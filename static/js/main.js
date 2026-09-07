@@ -36,8 +36,10 @@ if (navToggle && mobileMenu) {
     if (navToggleIcon) {
       navToggleIcon.className = open ? 'fas fa-xmark' : 'fas fa-bars';
     }
-    // Stop the page scrolling underneath while the sheet is up.
+    // Stop the page scrolling underneath while the sheet is up, and flag
+    // the body so the nav can be lifted above the backdrop.
     document.body.style.overflow = open ? 'hidden' : '';
+    document.body.classList.toggle('mm-locked', open);
     mobileMenu.style.transform = '';
   };
 
