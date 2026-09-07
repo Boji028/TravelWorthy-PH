@@ -47,6 +47,14 @@ if (navToggle && mobileMenu) {
     setMenu(!mobileMenu.classList.contains('mm-open'));
   });
 
+  const mmClose = document.getElementById('mmClose');
+  if (mmClose) {
+    mmClose.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setMenu(false);
+    });
+  }
+
   if (mmBackdrop) {
     mmBackdrop.addEventListener('click', () => setMenu(false));
   }
@@ -62,6 +70,8 @@ if (navToggle && mobileMenu) {
     let delta = 0;
 
     mmHandle.addEventListener('touchstart', (e) => {
+      // A tap that starts on the close button isn't a drag.
+      if (e.target.closest('.mm-close')) return;
       startY = e.touches[0].clientY;
       delta = 0;
       mobileMenu.style.transition = 'none';

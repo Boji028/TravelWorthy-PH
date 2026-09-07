@@ -757,13 +757,23 @@ select.form-control {
     }
 
     /* Dimmed layer behind the sheet. Kept as its own element rather than a
-       pseudo-element so it can be tapped to dismiss. */
-    .mm-backdrop {
+       pseudo-element so it can be tapped to dismiss.
+
+       Note the display rule is scoped to :not([hidden]) — a plain
+       `display: block` here outranks the browser's `[hidden] {display:none}`
+       UA rule, which would leave this invisible layer sitting over the whole
+       page swallowing every tap, including the hamburger. pointer-events is
+       belt-and-braces for the same reason. */
+    .mm-backdrop:not([hidden]) {
         display: block;
+    }
+
+    .mm-backdrop {
         position: fixed;
         inset: 0;
         background: rgba(18, 63, 74, .42);
         opacity: 0;
+        pointer-events: none;
         transition: opacity .28s ease;
         /* above the sticky nav, which is z-index 100 */
         z-index: 200;
@@ -771,6 +781,7 @@ select.form-control {
 
     .mm-backdrop.mm-open {
         opacity: 1;
+        pointer-events: auto;
     }
 
     /* The sheet slides up from the bottom so the whole menu lands in thumb
@@ -807,11 +818,34 @@ select.form-control {
     }
 
     .mm-handle-wrap {
+        position: relative;
         padding: .65rem 0 .5rem;
         display: flex;
         justify-content: center;
+        align-items: center;
         cursor: grab;
         touch-action: none;
+    }
+
+    /* An explicit close control inside the sheet. The hamburger sits behind
+       the backdrop's stacking context, so this is the affordance that can
+       never be covered by anything. */
+    .mm-close {
+        position: absolute;
+        right: 0;
+        top: .35rem;
+        width: 36px;
+        height: 36px;
+        border: none;
+        background: var(--sand);
+        border-radius: 50%;
+        color: var(--bark);
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        touch-action: manipulation;
     }
 
     .mm-handle {
