@@ -844,7 +844,7 @@
             const stars = '⭐'.repeat(data.rating);
             const photosHtml = data.image_urls && data.image_urls.length ?
               `<div class="review-photo-grid">
-            ${data.image_urls.map(u => `<img class="review-image" src="${u}" onclick="openLightbox(this.src, this.closest('.review-photo-grid').querySelectorAll('img'))" />`).join('')}
+            ${data.image_urls.map(u => `<img class="review-image" src="${u}" alt="Customer review photo" onclick="openLightbox(this.src, this.closest('.review-photo-grid').querySelectorAll('img'))" />`).join('')}
            </div>` : '';
             const deleteBtn = data.is_admin ?
               `<button onclick="deleteReview(this,'${data.delete_url}')" style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:.78rem;flex-shrink:0;"><i class="fas fa-trash"></i></button>` :

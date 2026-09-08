@@ -269,7 +269,7 @@
       <label>Package Image</label>
       {% if package.image and package.image != 'default_tour.jpg' %}
       <div style="margin-bottom:.75rem;">
-        <img src="{{ package.image if package.image.startswith('http') else '/uploads/' + package.image }}"
+        <img alt="Current package image" src="{{ package.image if package.image.startswith('http') else '/uploads/' + package.image }}"
           style="height:120px;border-radius:var(--radius);object-fit:cover;" />
         <div style="font-size:.78rem;color:var(--mist);margin-top:.3rem">Current image</div>
       </div>
@@ -303,7 +303,7 @@
       {% if package.flier_image %}
       <div style="margin-bottom:.75rem;display:flex;align-items:flex-start;gap:1rem;">
         <div>
-          <img
+          <img alt="Current flier image"
             src="{{ package.flier_image if package.flier_image.startswith('http') else '/uploads/' + package.flier_image }}"
             style="height:120px;border-radius:var(--radius);object-fit:contain;background:#f0ebe3;padding:4px;" />
           <div style="font-size:.78rem;color:var(--mist);margin-top:.3rem;">
@@ -347,7 +347,7 @@
       <div style="display:flex;flex-wrap:wrap;gap:.75rem;margin-bottom:1rem;" id="existing-gallery">
         {% for img in package.images %}
         <div style="position:relative;width:100px;height:100px;">
-          <img src="{{ img.path if img.path.startswith('http') else '/uploads/' + img.path }}"
+          <img alt="Gallery photo" src="{{ img.path if img.path.startswith('http') else '/uploads/' + img.path }}"
             style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:2px solid var(--linen);" />
           <button type="button" onclick="deleteGalleryImage({{ img.id }}, this)"
             style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);border:none;color:white;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:.7rem;">
@@ -536,7 +536,7 @@
           // Show preview
           previewArea.innerHTML += `
             <div style="position:relative;width:100px;height:100px;">
-              <img src="${url}" style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:2px solid var(--teal);" />
+              <img src="${url}" alt="Gallery photo to upload" style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:2px solid var(--teal);" />
               <div style="position:absolute;bottom:4px;right:4px;background:var(--teal);border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;">
                 <i class="fas fa-check" style="color:white;font-size:.6rem;"></i>
               </div>

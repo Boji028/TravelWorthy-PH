@@ -137,7 +137,7 @@
         <div class="hint">Shown behind "Your Travel made worth it." at the top of the homepage.</div>
 
         <div class="img-preview-wrap" style="{{ '' if settings.hero_image else 'display:none;' }}margin-bottom:.75rem;">
-          <img class="img-preview-img" src="{{ settings.hero_image if settings.hero_image and settings.hero_image.startswith('http') else ('/uploads/' + settings.hero_image if settings.hero_image else '') }}"
+          <img class="img-preview-img" alt="Current hero image" src="{{ settings.hero_image if settings.hero_image and settings.hero_image.startswith('http') else ('/uploads/' + settings.hero_image if settings.hero_image else '') }}"
             style="height:120px;border-radius:var(--radius);object-fit:cover;" />
           <div class="img-meta" style="font-size:.78rem;color:var(--mist);margin-top:.3rem">
             {% if settings.hero_image %}
@@ -171,7 +171,7 @@
         <div class="hint">The blurred, darkened background behind the rotating traveler quotes.</div>
 
         <div class="img-preview-wrap" style="{{ '' if settings.testimonial_image else 'display:none;' }}margin-bottom:.75rem;">
-          <img class="img-preview-img" src="{{ settings.testimonial_image if settings.testimonial_image and settings.testimonial_image.startswith('http') else ('/uploads/' + settings.testimonial_image if settings.testimonial_image else '') }}"
+          <img class="img-preview-img" alt="Current testimonial image" src="{{ settings.testimonial_image if settings.testimonial_image and settings.testimonial_image.startswith('http') else ('/uploads/' + settings.testimonial_image if settings.testimonial_image else '') }}"
             style="height:120px;border-radius:var(--radius);object-fit:cover;" />
           <div class="img-meta" style="font-size:.78rem;color:var(--mist);margin-top:.3rem">
             {% if settings.testimonial_image %}
@@ -205,7 +205,7 @@
         <div class="hint">Shown behind "Ready to plan your trip?" near the bottom of the homepage.</div>
 
         <div class="img-preview-wrap" style="{{ '' if settings.cta_image else 'display:none;' }}margin-bottom:.75rem;">
-          <img class="img-preview-img" src="{{ settings.cta_image if settings.cta_image and settings.cta_image.startswith('http') else ('/uploads/' + settings.cta_image if settings.cta_image else '') }}"
+          <img class="img-preview-img" alt="Current call-to-action image" src="{{ settings.cta_image if settings.cta_image and settings.cta_image.startswith('http') else ('/uploads/' + settings.cta_image if settings.cta_image else '') }}"
             style="height:120px;border-radius:var(--radius);object-fit:cover;" />
           <div class="img-meta" style="font-size:.78rem;color:var(--mist);margin-top:.3rem">
             {% if settings.cta_image %}

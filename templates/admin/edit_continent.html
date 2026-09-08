@@ -94,7 +94,7 @@
         <label>Region Image</label>
         {% if continent.image %}
         <div style="margin-bottom:.75rem;">
-          <img src="{{ continent.image if continent.image.startswith('http') else '/uploads/' + continent.image }}"
+          <img alt="Current image for {{ continent.name }}" src="{{ continent.image if continent.image.startswith('http') else '/uploads/' + continent.image }}"
             style="height:120px;border-radius:var(--radius);object-fit:cover;" />
           <div style="font-size:.78rem;color:var(--mist);margin-top:.3rem">
             Current image

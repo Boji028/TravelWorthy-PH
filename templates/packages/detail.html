@@ -1988,7 +1988,7 @@
   <button onclick="nextPhoto()"
     style="position:absolute;right:1rem;background:rgba(255,255,255,.15);border:none;color:white;width:44px;height:44px;border-radius:50%;font-size:1.2rem;cursor:pointer;"><i
       class="fas fa-chevron-right"></i></button>
-  <img id="viewer-img" src="" style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:8px;" />
+  <img id="viewer-img" src="" alt="{{ package.title }} photo" style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:8px;" />
   <div id="viewer-counter" style="color:rgba(255,255,255,.7);font-size:.9rem;margin-top:1rem;"></div>
 </div>
 
@@ -2214,6 +2214,7 @@
     "{{ (img | cloudinary_enhance) if img.startswith('http') else img }}"{% if not loop.last %},{% endif %}
   {% endfor %}
   ];
+  const packageTitle = {{ package.title | tojson }};
   let currentPhoto = 0;
 
   function openPhotoViewer(index) {
@@ -2230,6 +2231,12 @@
 
   function showPhoto(index) {
     document.getElementById('viewer-img').src = allPhotos[index];
+    // Keep the alt in step with the photo on show, not stuck on the first one.
+    // tojson (not |e) because this lands inside a JS template literal — an
+    // apostrophe or backtick in a package title would otherwise leak through
+    // as an HTML entity or break the string outright.
+    document.getElementById('viewer-img').alt =
+      `${packageTitle} photo ${index + 1} of ${allPhotos.length}`;
     document.getElementById('viewer-counter').textContent = `${index + 1} / ${allPhotos.length}`;
   }
 

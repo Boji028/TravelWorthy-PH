@@ -114,7 +114,7 @@
         <label>Country Photo</label>
         {% if country.image %}
         <div style="margin-bottom:.75rem;">
-          <img src="{{ country.image if country.image.startswith('http') else '/uploads/' + country.image }}"
+          <img alt="Current image for {{ country.name }}" src="{{ country.image if country.image.startswith('http') else '/uploads/' + country.image }}"
             style="height:100px;border-radius:var(--radius);object-fit:cover;" />
           <div style="font-size:.78rem;color:var(--mist);margin-top:.3rem">
             Current image
