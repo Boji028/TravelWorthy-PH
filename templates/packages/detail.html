@@ -1384,13 +1384,13 @@
     <button type="button" class="photo-strip-all" onclick="openPhotoViewer(0)">View all</button>
   </div>
   <div class="photo-strip">
-    {% for img in gallery[:4] %}
-    <div class="photo-strip-item {% if loop.last and gallery|length > 4 %}photo-strip-more{% endif %}"
+    {% for img in gallery[:6] %}
+    <div class="photo-strip-item {% if loop.last and gallery|length > 6 %}photo-strip-more{% endif %}"
       onclick="openPhotoViewer({{ loop.index0 + offset }})">
       <img src="{{ (img.path | cloudinary_card) if img.path.startswith('http') else img.path }}"
         alt="{{ package.title }} photo {{ loop.index }}" loading="lazy" />
-      {% if loop.last and gallery|length > 4 %}
-      <div class="photo-strip-overlay">+{{ gallery|length - 4 }}</div>
+      {% if loop.last and gallery|length > 6 %}
+      <div class="photo-strip-overlay">+{{ gallery|length - 6 }}</div>
       {% endif %}
     </div>
     {% endfor %}
