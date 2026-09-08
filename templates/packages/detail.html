@@ -354,102 +354,122 @@
   }
 
   /* ── PHOTO GRID ── */
-  .photo-grid {
+  .photo-hero-wrap {
     position: relative;
     max-width: 1100px;
     margin: 1rem auto 0;
     padding: 0 2rem;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 320px;
-    gap: 6px;
-    border-radius: var(--radius-lg);
-    overflow: hidden;
   }
 
-  .photo-main {
-    cursor: pointer;
-    overflow: hidden;
-    border-radius: var(--radius-lg) 0 0 var(--radius-lg);
-  }
-
-  .photo-main img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
+  /* The flier is shown whole on a tinted band rather than cropped to a
+     fixed frame — the price and dates are printed on the image itself. */
+  .photo-hero {
     background: var(--sand);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 220px;
+  }
+
+  .photo-hero img {
+    max-width: 100%;
+    max-height: 420px;
+    width: auto;
+    height: auto;
+    border-radius: var(--radius);
+    cursor: pointer;
     transition: transform .3s;
   }
 
-  .photo-main:hover img {
-    transform: scale(1.03);
+  .photo-hero img:hover {
+    transform: scale(1.015);
   }
 
-  .photo-side {
+  .photo-hero-empty {
+    width: 100%;
+    height: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    color: var(--mist);
+  }
+
+  .photo-strip-head {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin: 1rem 0 .6rem;
+  }
+
+  .photo-strip-label {
+    font-size: .72rem;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: #a86830;
+    font-weight: 600;
+  }
+
+  .photo-strip-count {
+    font-size: .72rem;
+    color: var(--mist);
+  }
+
+  .photo-strip-rule {
+    flex: 1;
+    height: 1px;
+    background: var(--linen);
+  }
+
+  .photo-strip-all {
+    background: none;
+    border: none;
+    color: var(--teal);
+    font-size: .78rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  /* auto-fit means one uploaded photo fills the row rather than sitting
+     in a four-slot grid with three gaps beside it */
+  .photo-strip {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 6px;
   }
 
-  .photo-side-item {
+  .photo-strip-item {
     position: relative;
     cursor: pointer;
     overflow: hidden;
+    border-radius: var(--radius);
+    aspect-ratio: 4 / 3;
   }
 
-  .photo-side-item:nth-child(2) {
-    border-radius: 0 var(--radius-lg) 0 0;
-  }
-
-  .photo-side-item:nth-child(4) {
-    border-radius: 0 0 var(--radius-lg) 0;
-  }
-
-  .photo-side-item img {
+  .photo-strip-item img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     transition: transform .3s;
   }
 
-  .photo-side-item:hover img {
+  .photo-strip-item:hover img {
     transform: scale(1.05);
   }
 
-  .photo-more-overlay {
+  .photo-strip-overlay {
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, .5);
-    color: white;
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: .5rem;
-    font-size: 1rem;
-    font-weight: 500;
-  }
-
-  .show-all-btn {
-    position: absolute;
-    bottom: .75rem;
-    right: 2.5rem;
-    background: white;
-    border: 1.5px solid var(--bark);
-    border-radius: var(--radius);
-    padding: .4rem .9rem;
-    font-size: .82rem;
+    font-size: 1.1rem;
     font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: .4rem;
-    transition: background .18s;
-    color: var(--bark);
-  }
-
-  .show-all-btn:hover {
-    background: var(--linen);
   }
 
   .detail-save-btn {
@@ -1271,22 +1291,21 @@
       gap: 0;
     }
 
-    .photo-grid {
-      grid-template-columns: 1fr;
-      grid-template-rows: 220px;
+    .photo-hero-wrap {
+      padding: 0 1rem;
     }
 
-    .photo-side {
-      display: none;
+    .photo-hero {
+      padding: .6rem;
+      min-height: 160px;
     }
 
-    .photo-main {
-      border-radius: var(--radius-lg);
+    .photo-hero img {
+      max-height: 260px;
     }
 
-    .show-all-btn {
-      right: 1rem;
-      bottom: .75rem;
+    .photo-strip {
+      grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
     }
 
     .photo-actions {
@@ -1317,17 +1336,13 @@
   <span class="crumb-current" title="{{ package.title }}">{{ package.title }}</span>
 </div>
 
-<!-- PHOTO GRID -->
-{% set all_images = [] %}
-{% if package.image and package.image != 'default_tour.jpg' %}
-{% set _ = all_images.append(package.image) %}
-{% endif %}
-{% for img in package.images %}
-{% set _ = all_images.append(img.path) %}
-{% endfor %}
+<!-- PHOTO HERO + OPTIONAL GALLERY -->
+{% set hero_image = package.image if (package.image and package.image != 'default_tour.jpg') else None %}
+{% set gallery = package.images | list %}
+{# The viewer indexes into this combined list, hero first. #}
+{% set all_images = ([hero_image] if hero_image else []) + (gallery | map(attribute='path') | list) %}
 
-{% if all_images %}
-<div class="photo-grid" id="s-photos">
+<div class="photo-hero-wrap" id="s-photos">
   <div class="photo-actions">
     <button type="button" class="photo-icon-btn" id="webShareBtn" style="display:none;" onclick="shareViaWebShare()"
       aria-label="Share">
@@ -1346,54 +1361,42 @@
       <i class="{{ 'fas' if is_saved else 'far' }} fa-heart"></i>
     </button>
   </div>
-  <div class="photo-main" onclick="openPhotoViewer(0)">
-    <img src="{{ (all_images[0] | cloudinary_enhance) if all_images[0].startswith('http') else all_images[0] }}"
-      alt="{{ package.title }}" loading="lazy" />
+
+  {# The flier is always the hero, shown whole rather than cropped — the
+     dates and price are printed on it, so cropping would lose them. #}
+  <div class="photo-hero">
+    {% if hero_image %}
+    <img src="{{ (hero_image | cloudinary_enhance) if hero_image.startswith('http') else hero_image }}"
+      alt="{{ package.title }}" onclick="openPhotoViewer(0)" />
+    {% else %}
+    <div class="photo-hero-empty"><i class="fas fa-mountain"></i></div>
+    {% endif %}
   </div>
-  <div class="photo-side">
-    {% for i in range(1, [all_images|length, 5]|min) %}
-    <div class="photo-side-item {% if loop.last and all_images|length > 5 %}photo-more{% endif %}"
-      onclick="openPhotoViewer({{ i }})">
-      <img src="{{ (all_images[i] | cloudinary_card) if all_images[i].startswith('http') else all_images[i] }}"
-        alt="{{ package.title }} photo {{ i }}" loading="lazy" />
-      {% if loop.last and all_images|length > 5 %}
-      <div class="photo-more-overlay"><i class="fas fa-images"></i> +{{ all_images|length - 5 }} more</div>
+
+  {# Gallery is additive: with no uploads this whole block is absent, so
+     there is no reserved column left sitting empty. #}
+  {% if gallery %}
+  {% set offset = 1 if hero_image else 0 %}
+  <div class="photo-strip-head">
+    <span class="photo-strip-label">Photos</span>
+    <span class="photo-strip-count">{{ gallery|length }}</span>
+    <span class="photo-strip-rule"></span>
+    <button type="button" class="photo-strip-all" onclick="openPhotoViewer(0)">View all</button>
+  </div>
+  <div class="photo-strip">
+    {% for img in gallery[:4] %}
+    <div class="photo-strip-item {% if loop.last and gallery|length > 4 %}photo-strip-more{% endif %}"
+      onclick="openPhotoViewer({{ loop.index0 + offset }})">
+      <img src="{{ (img.path | cloudinary_card) if img.path.startswith('http') else img.path }}"
+        alt="{{ package.title }} photo {{ loop.index }}" loading="lazy" />
+      {% if loop.last and gallery|length > 4 %}
+      <div class="photo-strip-overlay">+{{ gallery|length - 4 }}</div>
       {% endif %}
     </div>
     {% endfor %}
   </div>
-  {% if all_images|length > 1 %}
-  <button class="show-all-btn" onclick="openPhotoViewer(0)">
-    <i class="fas fa-grip-horizontal"></i> Show all photos
-  </button>
   {% endif %}
 </div>
-{% else %}
-<div style="max-width:1100px;margin:1rem auto 0;padding:0 2rem;position:relative;">
-  <div class="photo-actions">
-    <button type="button" class="photo-icon-btn" id="webShareBtn" style="display:none;" onclick="shareViaWebShare()"
-      aria-label="Share">
-      <i class="fas fa-share-nodes"></i>
-    </button>
-    <a href="#" class="photo-icon-btn" id="fbShareBtn" style="display:none;" target="_blank" rel="noopener"
-      aria-label="Share on Facebook">
-      <i class="fab fa-facebook-f"></i>
-    </a>
-    <button type="button" class="photo-icon-btn" id="copyLinkBtn" style="display:none;" onclick="copyPackageLink(this)"
-      aria-label="Copy link">
-      <i class="fas fa-link"></i>
-    </button>
-    <button type="button" class="wishlist-btn detail-save-btn {{ 'active' if is_saved else '' }}" data-type="package"
-      data-id="{{ package.id }}" aria-label="Save to wishlist" onclick="toggleWishlist(this)">
-      <i class="{{ 'fas' if is_saved else 'far' }} fa-heart"></i>
-    </button>
-  </div>
-  <div
-    style="width:100%;height:320px;background:var(--linen);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;font-size:4rem;color:var(--mist);">
-    <i class="fas fa-mountain"></i>
-  </div>
-</div>
-{% endif %}
 
 <!-- SECTION NAV -->
 <div class="sec-nav">
