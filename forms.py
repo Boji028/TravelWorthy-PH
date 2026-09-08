@@ -179,6 +179,12 @@ class InquiryForm(FlaskForm):
     special_requests = TextAreaField(
         "Special Requests", validators=[Optional(), Length(max=2000, message="Special requests must be under 2000 characters")]
     )
+    # DataRequired on a BooleanField rejects an unticked box, which is what
+    # makes consent mandatory rather than merely offered.
+    privacy_consent = BooleanField(
+        "Privacy consent",
+        validators=[DataRequired("Please agree to the Privacy Policy to continue")],
+    )
 
     def validate_travel_date_from(self, field):
         if field.data and field.data <= date.today():

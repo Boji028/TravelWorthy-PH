@@ -2072,6 +2072,12 @@
         Our team will contact you within <strong style="color:var(--bark)">24 hours</strong> to finalize your
         inquiry.
       </div>
+      <div class="form-group consent-group">
+        <label class="consent-label">
+          <input type="checkbox" name="privacy_consent" value="y" required />
+          <span>I agree to the <a href="{{ url_for('main.privacy_policy') }}" target="_blank" rel="noopener">Privacy Policy</a> and consent to Travel Worthy PH storing and using these details to respond to my inquiry.</span>
+        </label>
+      </div>
       <div
         style="display:flex;gap:.75rem;justify-content:flex-end;border-top:1px solid var(--linen);padding-top:1.5rem;">
         <button type="button" onclick="closeInquireModal()" class="btn btn-ghost">Cancel</button>

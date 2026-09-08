@@ -1,0 +1,825 @@
+diff --git a/docs/colour-contrast-audit.md b/docs/colour-contrast-audit.md
+new file mode 100644
+index 0000000..19ffb0b
+--- /dev/null
++++ b/docs/colour-contrast-audit.md
+@@ -0,0 +1,81 @@
++# Colour Contrast Audit
++
++Date: September 2026
++Standard: WCAG 2.1 AA (4.5:1 for normal text, 3:1 for large text and UI)
++Status: documented, not fixed. Brand colours are intentionally unchanged.
++
++## Why this is open
++
++Fixing these means darkening brand colours. That decision was made
++against, so this file records the findings for later rather than
++tracking work in progress. Nothing here is a bug; it is a known
++trade-off between brand and readability.
++
++## Palette ratios
++
++Ratios of each text colour against the backgrounds it is used on.
++Values below 4.5 fail for normal text, below 3.0 fail for everything.
++
++| Text colour | on --white | on --sand | on --linen | on --teal |
++|---|---|---|---|---|
++| --ink #1e1610 | 17.14 | 15.60 | 14.27 | 2.26 |
++| --bark #424142 | 9.77 | 8.89 | 8.13 | 1.29 |
++| --teal #175968 | 7.57 | 6.89 | 6.30 | 1.00 |
++| --amber #EF8233 | 2.55 | 2.32 | 2.12 | 2.97 |
++| --amber-d #a86830 | 4.31 | 3.92 | 3.58 | 1.76 |
++| --mist #8fa8a3 | 2.43 | 2.21 | 2.02 | 3.11 |
++| --teal-d #3BB9B6 | 2.29 | 2.09 | 1.91 | 3.30 |
++| --danger #c0392b | 5.23 | 4.76 | 4.35 | 1.45 |
++| --success #27ae60 | 2.76 | 2.51 | 2.30 | 2.74 |
++| --warning #e67e22 | 2.74 | 2.49 | 2.28 | 2.77 |
++| --white #fdfaf6 | 1.00 | 1.10 | 1.20 | 7.57 |
++
++White text on solid buttons:
++
++| Button background | Ratio | Verdict |
++|---|---|---|
++| --amber | 2.65 | fails |
++| --amber-d | 4.48 | large text only |
++| --teal | 7.88 | passes |
++| --danger | 5.44 | passes |
++| --success | 2.87 | fails |
++| --warning | 2.85 | fails |
++| --info | 4.30 | large text only |
++
++## Findings by impact
++
++1. `--mist` as text, 336 uses. At 2.21:1 on sand this is the largest
++   issue on the site. It carries secondary text: captions, subtitles,
++   metadata, helper lines.
++2. `--amber` as text, 82 uses. At 2.32:1 on sand it fails both the
++   normal and large text thresholds.
++3. White on `--amber` buttons at 2.65:1. Affects every primary CTA
++   including Plan My Trip.
++4. `--success` (9 uses) and `--warning` (6 uses) as text, both under
++   2.8:1. Low volume but they carry status meaning.
++5. `--teal-d` as text, 7 uses, 2.09:1 on sand.
++
++## Options if this is revisited
++
++- Increase font size where `--mist` is used. Large text only needs
++  3:1, which `--mist` still misses on sand, so this helps only in
++  places, not everywhere.
++- Substitute `--amber-d` for `--amber` on small text. It is already
++  in the palette so this is not a new colour.
++- Darken the button fill only. The label is large and the fill is
++  solid, so a small shift there is barely visible.
++- Darken `--mist` and `--amber` globally. One change fixes every use
++  at once and is the largest visual change.
++
++## What passes today
++
++`--ink`, `--bark`, `--teal` and `--danger` all pass comfortably on
++light backgrounds, and white on `--teal` passes on dark. The main
++body text of the site is readable; the problem is confined to
++secondary and accent text.
++
++## Method
++
++Ratios computed from the sRGB relative luminance formula in WCAG 2.1
++against the variables defined in `static/css/main.css`. Usage counts
++from grep across `static/css/main.css` and `templates/`.
+diff --git a/forms.py b/forms.py
+index 317c8ae..2e672b6 100644
+--- a/forms.py
++++ b/forms.py
+@@ -179,6 +179,12 @@ class InquiryForm(FlaskForm):
+     special_requests = TextAreaField(
+         "Special Requests", validators=[Optional(), Length(max=2000, message="Special requests must be under 2000 characters")]
+     )
++    # DataRequired on a BooleanField rejects an unticked box, which is what
++    # makes consent mandatory rather than merely offered.
++    privacy_consent = BooleanField(
++        "Privacy consent",
++        validators=[DataRequired("Please agree to the Privacy Policy to continue")],
++    )
+ 
+     def validate_travel_date_from(self, field):
+         if field.data and field.data <= date.today():
+diff --git a/migrations/versions/b4d1f8e307c2_add_privacy_consent_to_inquiries.py b/migrations/versions/b4d1f8e307c2_add_privacy_consent_to_inquiries.py
+new file mode 100644
+index 0000000..a2e46b6
+--- /dev/null
++++ b/migrations/versions/b4d1f8e307c2_add_privacy_consent_to_inquiries.py
+@@ -0,0 +1,32 @@
++"""add privacy consent to inquiries
++
++Revision ID: b4d1f8e307c2
++Revises: a7c2e9f14b60
++Create Date: 2026-09-08 12:00:00.000000
++
++"""
++from alembic import op
++import sqlalchemy as sa
++
++
++# revision identifiers, used by Alembic.
++revision = 'b4d1f8e307c2'
++down_revision = 'a7c2e9f14b60'
++branch_labels = None
++depends_on = None
++
++
++def upgrade():
++    # Existing rows default to false: consent was never actually collected
++    # for them, so recording it as given would be untrue.
++    with op.batch_alter_table('inquiries', schema=None) as batch_op:
++        batch_op.add_column(
++            sa.Column('privacy_consent', sa.Boolean(), nullable=False, server_default='false')
++        )
++        batch_op.add_column(sa.Column('privacy_consent_at', sa.DateTime(), nullable=True))
++
++
++def downgrade():
++    with op.batch_alter_table('inquiries', schema=None) as batch_op:
++        batch_op.drop_column('privacy_consent_at')
++        batch_op.drop_column('privacy_consent')
+diff --git a/models/inquiry.py b/models/inquiry.py
+index 523d289..315ea29 100644
+--- a/models/inquiry.py
++++ b/models/inquiry.py
+@@ -30,6 +30,9 @@ class Inquiry(db.Model):
+     inquiry_type: str = db.Column(db.String(20), default="general")
+     admin_response: Optional[str] = db.Column(db.Text, nullable=True)
+     responded_at: Optional[datetime] = db.Column(db.DateTime, nullable=True)
++    # Records that the customer ticked the privacy consent box, and when.
++    privacy_consent: bool = db.Column(db.Boolean, nullable=False, default=False, server_default="false")
++    privacy_consent_at: Optional[datetime] = db.Column(db.DateTime, nullable=True)
+     created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+     last_exported_at: Optional[datetime] = db.Column(db.DateTime, nullable=True, index=True)
+     # Set when the async customer confirmation email fails to send (see
+diff --git a/routes/bookings.py b/routes/bookings.py
+index c161dfe..819888c 100644
+--- a/routes/bookings.py
++++ b/routes/bookings.py
+@@ -7,6 +7,7 @@ cancel_booking) was removed since it was never reachable from the live site —
+ every customer-facing path (Plan My Trip, package inquiries, visa requests)
+ creates an Inquiry, not a Booking.
+ """
++from datetime import datetime, timezone
+ from flask import Blueprint, render_template, redirect, url_for, flash, current_app, request
+ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+ from app import db, limiter
+@@ -37,6 +38,8 @@ def plan_my_trip():
+                 num_infants=form.num_infants.data or 0,
+                 special_requests=form.special_requests.data,
+                 status=InquiryStatus.NEW.value,
++                privacy_consent=True,
++                privacy_consent_at=datetime.now(timezone.utc),
+                 user_id=current_user.id if current_user.is_authenticated else None,
+             )
+             db.session.add(inquiry)
+@@ -99,6 +102,8 @@ def inquire_package(package_id):
+                 special_requests=form.special_requests.data,
+                 package_id=package_id,
+                 status=InquiryStatus.NEW.value,
++                privacy_consent=True,
++                privacy_consent_at=datetime.now(timezone.utc),
+                 user_id=current_user.id if current_user.is_authenticated else None,
+             )
+             db.session.add(inquiry)
+diff --git a/routes/main.py b/routes/main.py
+index a214405..6d3219a 100644
+--- a/routes/main.py
++++ b/routes/main.py
+@@ -83,6 +83,24 @@ def about():
+     return render_template("main/about.html")
+ 
+ 
++@main_bp.route("/privacy-policy")
++def privacy_policy():
++    """Privacy policy page."""
++    return render_template("main/privacy_policy.html")
++
++
++@main_bp.route("/terms-and-conditions")
++def terms():
++    """Terms and conditions page."""
++    return render_template("main/terms.html")
++
++
++@main_bp.route("/cookie-policy")
++def cookie_policy():
++    """Cookie policy page."""
++    return render_template("main/cookie_policy.html")
++
++
+ @main_bp.route("/reviews")
+ def reviews():
+     """Reviews/testimonials page with pagination."""
+diff --git a/static/css/main.css b/static/css/main.css
+index 1dac767..4c0ea36 100644
+--- a/static/css/main.css
++++ b/static/css/main.css
+@@ -1484,4 +1484,33 @@ select.form-control {
+   text-align: center;
+   color: var(--mist);
+   font-size: .85rem;
+-}
+\ No newline at end of file
++}
++
++/* Inquiry form privacy consent checkbox */
++.consent-group {
++    margin-bottom: 1rem;
++}
++
++.consent-label {
++    display: flex;
++    align-items: flex-start;
++    gap: .6rem;
++    font-size: .85rem;
++    line-height: 1.5;
++    color: var(--bark);
++    cursor: pointer;
++}
++
++.consent-label input[type="checkbox"] {
++    margin-top: .2rem;
++    width: 17px;
++    height: 17px;
++    flex-shrink: 0;
++    accent-color: var(--teal);
++    cursor: pointer;
++}
++
++.consent-label a {
++    color: var(--teal);
++    font-weight: 600;
++}
+diff --git a/templates/base.html b/templates/base.html
+index 7f0f71f..683c825 100644
+--- a/templates/base.html
++++ b/templates/base.html
+@@ -238,6 +238,14 @@
+           <li><a href="{{ url_for('main.contact') }}">Contact</a></li>
+         </ul>
+       </div>
++      <div class="footer-col">
++        <h4>Legal</h4>
++        <ul>
++          <li><a href="{{ url_for('main.privacy_policy') }}">Privacy Policy</a></li>
++          <li><a href="{{ url_for('main.terms') }}">Terms &amp; Conditions</a></li>
++          <li><a href="{{ url_for('main.cookie_policy') }}">Cookie Policy</a></li>
++        </ul>
++      </div>
+       <div class="footer-col">
+         <h4>Account</h4>
+         <ul>
+diff --git a/templates/bookings/plan_my_trip.html b/templates/bookings/plan_my_trip.html
+index f7918fd..15c5b9c 100644
+--- a/templates/bookings/plan_my_trip.html
++++ b/templates/bookings/plan_my_trip.html
+@@ -366,6 +366,16 @@
+             placeholder="Honeymoon setup, dietary restrictions, preferred hotel type, activities you want to include…">{{ form.special_requests.data or '' }}</textarea>
+         </div>
+ 
++
++        <div class="form-group consent-group">
++          <label class="consent-label">
++            <input type="checkbox" name="privacy_consent" value="y" required />
++            <span>I agree to the <a href="{{ url_for('main.privacy_policy') }}" target="_blank" rel="noopener">Privacy Policy</a> and consent to Travel Worthy PH storing and using these details to respond to my inquiry.</span>
++          </label>
++          {% if form.privacy_consent.errors %}
++          <div style="color:var(--danger);font-size:.82rem;margin-top:.3rem;">{{ form.privacy_consent.errors[0] }}</div>
++          {% endif %}
++        </div>
+         <button type="submit" class="btn btn-amber"
+           style="width:100%;justify-content:center;padding:.9rem;font-size:.95rem">
+           <i class="fas fa-paper-plane"></i> Send My Inquiry
+diff --git a/templates/main/cookie_policy.html b/templates/main/cookie_policy.html
+new file mode 100644
+index 0000000..d0893c9
+--- /dev/null
++++ b/templates/main/cookie_policy.html
+@@ -0,0 +1,113 @@
++{% extends "base.html" %}
++{% block title %}Cookie Policy — Travel Worthy PH{% endblock %}
++
++{% block extra_styles %}
++<style>
++  .legal-hero {
++    background: linear-gradient(135deg, var(--teal-d), var(--teal));
++    color: var(--white);
++    padding: 3rem 2rem 3.5rem;
++    text-align: center;
++  }
++
++  .legal-hero h1 {
++    font-family: 'Pogonia', serif;
++    font-size: 2.6rem;
++    font-weight: 300;
++    margin-bottom: .4rem;
++  }
++
++  .legal-hero p { font-size: .9rem; opacity: .85; }
++
++  .legal-body {
++    max-width: 780px;
++    margin: 0 auto;
++    padding: 3rem 1.5rem 4rem;
++    color: var(--bark);
++    line-height: 1.75;
++  }
++
++  .legal-body h2 { font-size: 1.25rem; color: var(--ink); margin: 2.25rem 0 .75rem; }
++  .legal-body h2:first-of-type { margin-top: 0; }
++  .legal-body p { margin-bottom: 1rem; }
++  .legal-body ul { margin: 0 0 1rem 1.25rem; }
++  .legal-body li { margin-bottom: .4rem; }
++  .legal-body a { color: var(--teal); }
++
++  .legal-note {
++    background: var(--sand);
++    border-radius: var(--radius);
++    padding: 1rem 1.25rem;
++    font-size: .9rem;
++    margin-bottom: 2rem;
++  }
++
++  @media (max-width: 768px) {
++    .legal-hero { padding: 2.25rem 1rem 2.5rem; }
++    .legal-hero h1 { font-size: 1.9rem; }
++    .legal-body { padding: 2rem 1.25rem 3rem; }
++  }
++</style>
++{% endblock %}
++
++{% block content %}
++<div class="legal-hero">
++  <h1>Cookie Policy</h1>
++  <p>What this website stores in your browser, and why</p>
++</div>
++
++<div class="legal-body">
++  <div class="legal-note">
++    This website uses very few cookies. We do not use advertising cookies, and
++    we do not track you across other websites.
++  </div>
++
++  <h2>What cookies we use</h2>
++  <p>
++    We set one cookie, a session cookie, which keeps you signed in while you
++    use the site and protects forms against cross-site request forgery. It is
++    strictly necessary for the website to work and expires after 24 hours or
++    when you sign out.
++  </p>
++  <p>
++    This cookie is marked HttpOnly, meaning scripts cannot read it, and
++    SameSite Lax, meaning it is not sent from other websites.
++  </p>
++
++  <h2>What we do not use</h2>
++  <ul>
++    <li>No advertising or retargeting cookies</li>
++    <li>No analytics or visitor tracking cookies</li>
++    <li>No social media tracking pixels</li>
++  </ul>
++
++  <h2>Third party services</h2>
++  <p>
++    Some files on this site are served by other companies. These do not set
++    cookies for us, but they do receive your IP address as part of delivering
++    the file, which is how the web works for any externally hosted resource.
++  </p>
++  <ul>
++    <li>Cloudinary, which stores and delivers our package images</li>
++    <li>Google Fonts and Cloudflare, which deliver fonts and icons</li>
++  </ul>
++  <p>
++    Links to our Facebook, Instagram, and TikTok pages are ordinary links. They
++    load nothing until you click them, and no content from those platforms is
++    embedded here.
++  </p>
++
++  <h2>Managing cookies</h2>
++  <p>
++    You can clear or block cookies in your browser settings. Blocking the
++    session cookie will prevent you from signing in or submitting forms, since
++    the site relies on it to keep you logged in and to validate submissions.
++  </p>
++
++  <h2>Related policies</h2>
++  <p>
++    See our <a href="{{ url_for('main.privacy_policy') }}">Privacy Policy</a>
++    for how we handle the personal information you send us.
++  </p>
++</div>
++{% endblock %}
+diff --git a/templates/main/privacy_policy.html b/templates/main/privacy_policy.html
+new file mode 100644
+index 0000000..71c5caf
+--- /dev/null
++++ b/templates/main/privacy_policy.html
+@@ -0,0 +1,194 @@
++{% extends "base.html" %}
++{% block title %}Privacy Policy — Travel Worthy PH{% endblock %}
++
++{% block extra_styles %}
++<style>
++  .legal-hero {
++    background: linear-gradient(135deg, var(--teal-d), var(--teal));
++    color: var(--white);
++    padding: 3rem 2rem 3.5rem;
++    text-align: center;
++  }
++
++  .legal-hero h1 {
++    font-family: 'Pogonia', serif;
++    font-size: 2.6rem;
++    font-weight: 300;
++    margin-bottom: .4rem;
++  }
++
++  .legal-hero p {
++    font-size: .9rem;
++    opacity: .85;
++  }
++
++  .legal-body {
++    max-width: 780px;
++    margin: 0 auto;
++    padding: 3rem 1.5rem 4rem;
++    color: var(--bark);
++    line-height: 1.75;
++  }
++
++  .legal-body h2 {
++    font-size: 1.25rem;
++    color: var(--ink);
++    margin: 2.25rem 0 .75rem;
++  }
++
++  .legal-body h2:first-of-type {
++    margin-top: 0;
++  }
++
++  .legal-body p {
++    margin-bottom: 1rem;
++  }
++
++  .legal-body ul {
++    margin: 0 0 1rem 1.25rem;
++  }
++
++  .legal-body li {
++    margin-bottom: .4rem;
++  }
++
++  .legal-body a {
++    color: var(--teal);
++  }
++
++  .legal-note {
++    background: var(--sand);
++    border-radius: var(--radius);
++    padding: 1rem 1.25rem;
++    font-size: .9rem;
++    margin-bottom: 2rem;
++  }
++
++  @media (max-width: 768px) {
++    .legal-hero { padding: 2.25rem 1rem 2.5rem; }
++    .legal-hero h1 { font-size: 1.9rem; }
++    .legal-body { padding: 2rem 1.25rem 3rem; }
++  }
++</style>
++{% endblock %}
++
++{% block content %}
++<div class="legal-hero">
++  <h1>Privacy Policy</h1>
++  <p>How Travel Worthy PH handles your personal information</p>
++</div>
++
++<div class="legal-body">
++  <div class="legal-note">
++    This policy explains what we collect when you send an inquiry or create an
++    account, why we collect it, and what rights you have under the Philippine
++    Data Privacy Act of 2012 (Republic Act No. 10173).
++  </div>
++
++  <h2>Who we are</h2>
++  <p>
++    Travel Worthy PH is a travel agency based in Batangas City, Philippines. We
++    arrange tour packages and assist with visa applications. For any question
++    about this policy or your personal data, contact us through our
++    <a href="{{ url_for('main.contact') }}">contact page</a>.
++  </p>
++
++  <h2>What we collect</h2>
++  <p>When you submit a trip or visa inquiry, we collect:</p>
++  <ul>
++    <li>Your full name</li>
++    <li>Your email address</li>
++    <li>Your contact number</li>
++    <li>Your intended destination and travel dates</li>
++    <li>The number of adults, children, and infants travelling</li>
++    <li>Any special requests you choose to write</li>
++  </ul>
++  <p>
++    If you create an account, we also store your login details. Passwords are
++    stored in hashed form and are never readable by us.
++  </p>
++  <p>
++    The special requests field is free text. Please avoid entering health
++    information, dietary or medical conditions, or other sensitive details
++    unless they are necessary for your trip. If you do, we treat that
++    information as sensitive personal information and limit access to the
++    staff handling your booking.
++  </p>
++
++  <h2>Why we collect it</h2>
++  <ul>
++    <li>To respond to your inquiry and prepare a quotation</li>
++    <li>To arrange bookings, transfers, and visa assistance on your behalf</li>
++    <li>To send you updates about an inquiry you have already made</li>
++    <li>To keep records required for our own accounting and operations</li>
++  </ul>
++  <p>
++    We process this information on the basis of your consent, which you give by
++    ticking the consent box on our inquiry forms, and where necessary to
++    perform the service you have asked us for.
++  </p>
++
++  <h2>Who we share it with</h2>
++  <p>
++    We share only what is necessary, only with parties involved in delivering
++    your trip. This may include airlines, hotels, local tour operators, and
++    embassies or consulates processing a visa application. We do not sell your
++    personal information, and we do not share it for advertising.
++  </p>
++  <p>
++    Our website uses Cloudinary to store images and loads fonts and icons from
++    Google Fonts and Cloudflare. These services may receive your IP address as
++    a normal part of serving those files.
++  </p>
++
++  <h2>How long we keep it</h2>
++  <p>
++    We keep inquiry records for as long as needed to serve you and to meet our
++    legal and accounting obligations. Inquiries that do not lead to a booking
++    are removed from our active records once they are no longer relevant.
++  </p>
++
++  <h2>Your rights</h2>
++  <p>Under the Data Privacy Act you have the right to:</p>
++  <ul>
++    <li>Be informed about how your data is used</li>
++    <li>Access the personal data we hold about you</li>
++    <li>Correct inaccurate or outdated information</li>
++    <li>Object to processing, or withdraw consent</li>
++    <li>Request erasure or blocking of your data</li>
++    <li>Be notified if your data is affected by a security breach</li>
++    <li>Complain to the National Privacy Commission</li>
++  </ul>
++  <p>
++    To exercise any of these, contact us and we will respond as promptly as we
++    can. Withdrawing consent will not affect processing already carried out,
++    and may mean we can no longer continue arranging your trip.
++  </p>
++
++  <h2>Security</h2>
++  <p>
++    We use encrypted connections, hashed passwords, and access controls that
++    limit inquiry records to staff who need them. No system is completely
++    secure, but we take reasonable steps to protect your information.
++  </p>
++
++  <h2>Children</h2>
++  <p>
++    Our services are intended for adults booking travel. We record the number
++    of children and infants travelling, but we do not knowingly collect
++    personal details directly from children.
++  </p>
++
++  <h2>Cookies</h2>
++  <p>
++    We use a single session cookie to keep you signed in. See our
++    <a href="{{ url_for('main.cookie_policy') }}">Cookie Policy</a> for details.
++  </p>
++
++  <h2>Changes to this policy</h2>
++  <p>
++    We may update this policy as our services change. The current version is
++    always available on this page.
++  </p>
++</div>
++{% endblock %}
+diff --git a/templates/main/terms.html b/templates/main/terms.html
+new file mode 100644
+index 0000000..739404c
+--- /dev/null
++++ b/templates/main/terms.html
+@@ -0,0 +1,147 @@
++{% extends "base.html" %}
++{% block title %}Terms and Conditions — Travel Worthy PH{% endblock %}
++
++{% block extra_styles %}
++<style>
++  .legal-hero {
++    background: linear-gradient(135deg, var(--teal-d), var(--teal));
++    color: var(--white);
++    padding: 3rem 2rem 3.5rem;
++    text-align: center;
++  }
++
++  .legal-hero h1 {
++    font-family: 'Pogonia', serif;
++    font-size: 2.6rem;
++    font-weight: 300;
++    margin-bottom: .4rem;
++  }
++
++  .legal-hero p { font-size: .9rem; opacity: .85; }
++
++  .legal-body {
++    max-width: 780px;
++    margin: 0 auto;
++    padding: 3rem 1.5rem 4rem;
++    color: var(--bark);
++    line-height: 1.75;
++  }
++
++  .legal-body h2 { font-size: 1.25rem; color: var(--ink); margin: 2.25rem 0 .75rem; }
++  .legal-body h2:first-of-type { margin-top: 0; }
++  .legal-body p { margin-bottom: 1rem; }
++  .legal-body ul { margin: 0 0 1rem 1.25rem; }
++  .legal-body li { margin-bottom: .4rem; }
++  .legal-body a { color: var(--teal); }
++
++  .legal-note {
++    background: var(--sand);
++    border-radius: var(--radius);
++    padding: 1rem 1.25rem;
++    font-size: .9rem;
++    margin-bottom: 2rem;
++  }
++
++  @media (max-width: 768px) {
++    .legal-hero { padding: 2.25rem 1rem 2.5rem; }
++    .legal-hero h1 { font-size: 1.9rem; }
++    .legal-body { padding: 2rem 1.25rem 3rem; }
++  }
++</style>
++{% endblock %}
++
++{% block content %}
++<div class="legal-hero">
++  <h1>Terms and Conditions</h1>
++  <p>The terms that apply when you use this website and book with us</p>
++</div>
++
++<div class="legal-body">
++  <div class="legal-note">
++    By using this website or sending an inquiry, you agree to these terms.
++    Please read them alongside our
++    <a href="{{ url_for('main.privacy_policy') }}">Privacy Policy</a>.
++  </div>
++
++  <h2>About us</h2>
++  <p>
++    Travel Worthy PH is a travel agency based in Batangas City, Philippines. We
++    arrange tour packages and provide visa assistance.
++  </p>
++
++  <h2>Inquiries are not bookings</h2>
++  <p>
++    Submitting an inquiry through this website does not create a booking or
++    reserve any slot. It is a request for a quotation. A booking exists only
++    once we have confirmed it with you directly and any required payment has
++    been arranged and received.
++  </p>
++  <p>
++    This website does not process payments. Any payment arrangement is made
++    separately with our team.
++  </p>
++
++  <h2>Prices and availability</h2>
++  <p>
++    Prices shown are indicative starting rates per person and can change
++    without notice. Final pricing depends on your travel dates, group size,
++    room arrangement, airline fares, and availability at the time of booking.
++  </p>
++  <p>
++    Travel dates listed on a package are planned departures. Availability is
++    confirmed only when we respond to your inquiry.
++  </p>
++
++  <h2>Your responsibilities</h2>
++  <ul>
++    <li>Give accurate details when you inquire, including names as they appear on travel documents</li>
++    <li>Hold a passport valid for the period required by your destination</li>
++    <li>Obtain any visa required for your trip</li>
++    <li>Arrive at departure points on time</li>
++  </ul>
++  <p>
++    We assist with visa applications but cannot guarantee any visa outcome. A
++    refused visa is decided by the embassy or consulate concerned, not by us.
++  </p>
++
++  <h2>Changes and cancellations</h2>
++  <p>
++    Changes and cancellations follow the terms of the airlines, hotels, and
++    operators involved in your trip. Those terms vary by supplier and are
++    confirmed to you before you commit to a booking. Some bookings are
++    non-refundable.
++  </p>
++
++  <h2>Third party services</h2>
++  <p>
++    Your trip involves airlines, hotels, transport providers, and local
++    operators. We arrange these on your behalf. We are not responsible for
++    their acts or omissions, or for delays, cancellations, or disruptions
++    outside our control, including weather and government action.
++  </p>
++
++  <h2>Website content</h2>
++  <p>
++    We take care to keep package details, itineraries, and images accurate, but
++    content may change. Images are illustrative of the destination and may not
++    show the exact hotel, room, or vehicle used on your trip.
++  </p>
++  <p>
++    Content on this website belongs to Travel Worthy PH or its licensors and
++    may not be copied or reused without permission.
++  </p>
++
++  <h2>Reviews and submitted content</h2>
++  <p>
++    If you post a review or photo, you confirm it is your own and you allow us
++    to display it on this website. We may remove content that is misleading,
++    offensive, or not yours to post.
++  </p>
++
++  <h2>Contact</h2>
++  <p>
++    Questions about these terms can be sent through our
++    <a href="{{ url_for('main.contact') }}">contact page</a>.
++  </p>
++</div>
++{% endblock %}
+diff --git a/templates/packages/detail.html b/templates/packages/detail.html
+index c502d84..1301d40 100644
+--- a/templates/packages/detail.html
++++ b/templates/packages/detail.html
+@@ -2072,6 +2072,12 @@
+         Our team will contact you within <strong style="color:var(--bark)">24 hours</strong> to finalize your
+         inquiry.
+       </div>
++      <div class="form-group consent-group">
++        <label class="consent-label">
++          <input type="checkbox" name="privacy_consent" value="y" required />
++          <span>I agree to the <a href="{{ url_for('main.privacy_policy') }}" target="_blank" rel="noopener">Privacy Policy</a> and consent to Travel Worthy PH storing and using these details to respond to my inquiry.</span>
++        </label>
++      </div>
+       <div
+         style="display:flex;gap:.75rem;justify-content:flex-end;border-top:1px solid var(--linen);padding-top:1.5rem;">
+         <button type="button" onclick="closeInquireModal()" class="btn btn-ghost">Cancel</button>
+diff --git a/templates/packages/visa.html b/templates/packages/visa.html
+index 95b704d..d8a57a1 100644
+--- a/templates/packages/visa.html
++++ b/templates/packages/visa.html
+@@ -347,6 +347,12 @@
+         <label style="font-size:.78rem;font-weight:600;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:.3rem;">Message / Special Requests</label>
+         <textarea id="visa-message" class="form-control" rows="3" placeholder="Any questions about the visa process..." style="width:100%;box-sizing:border-box;resize:vertical;"></textarea>
+       </div>
++      <div class="form-group consent-group" style="margin-bottom:0;">
++        <label class="consent-label">
++          <input id="visa-consent" type="checkbox" />
++          <span>I agree to the <a href="{{ url_for('main.privacy_policy') }}" target="_blank" rel="noopener">Privacy Policy</a> and consent to Travel Worthy PH storing and using these details to respond to my inquiry.</span>
++        </label>
++      </div>
+     </div>
+     <div class="visa-modal-footer" style="display:flex;gap:.75rem;justify-content:flex-end;border-top:1px solid var(--linen);">
+       <button onclick="closeAssistantForm()" class="btn btn-ghost">Cancel</button>
+@@ -472,6 +478,15 @@
+     }
+ 
+     var btn = document.getElementById('visa-submit-btn');
++    var consent = document.getElementById('visa-consent');
++    if (!consent.checked) {
++      msgEl.style.display = 'block';
++      msgEl.style.background = '#fde8e8';
++      msgEl.style.color = 'var(--danger)';
++      msgEl.textContent = 'Please agree to the Privacy Policy to continue.';
++      return;
++    }
++
+     btn.disabled = true;
+     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+ 
+@@ -486,6 +501,7 @@
+     formData.append('num_children', 0);
+     formData.append('num_infants', 0);
+     formData.append('special_requests', '[FOR VISA] ' + message);
++    formData.append('privacy_consent', 'y');
+     formData.append('csrf_token', '{{ csrf_token() }}');
+ 
+     fetch('{{ url_for("bookings.plan_my_trip") }}', {

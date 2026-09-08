@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}Privacy Policy — Travel Worthy PH{% endblock %}
+
+{% block extra_styles %}
+<style>
+  .legal-hero {
+    background: linear-gradient(135deg, var(--teal-d), var(--teal));
+    color: var(--white);
+    padding: 3rem 2rem 3.5rem;
+    text-align: center;
+  }
+
+  .legal-hero h1 {
+    font-family: 'Pogonia', serif;
+    font-size: 2.6rem;
+    font-weight: 300;
+    margin-bottom: .4rem;
+  }
+
+  .legal-hero p {
+    font-size: .9rem;
+    opacity: .85;
+  }
+
+  .legal-body {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 4rem;
+    color: var(--bark);
+    line-height: 1.75;
+  }
+
+  .legal-body h2 {
+    font-size: 1.25rem;
+    color: var(--ink);
+    margin: 2.25rem 0 .75rem;
+  }
+
+  .legal-body h2:first-of-type {
+    margin-top: 0;
+  }
+
+  .legal-body p {
+    margin-bottom: 1rem;
+  }
+
+  .legal-body ul {
+    margin: 0 0 1rem 1.25rem;
+  }
+
+  .legal-body li {
+    margin-bottom: .4rem;
+  }
+
+  .legal-body a {
+    color: var(--teal);
+  }
+
+  .legal-note {
+    background: var(--sand);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    font-size: .9rem;
+    margin-bottom: 2rem;
+  }
+
+  @media (max-width: 768px) {
+    .legal-hero { padding: 2.25rem 1rem 2.5rem; }
+    .legal-hero h1 { font-size: 1.9rem; }
+    .legal-body { padding: 2rem 1.25rem 3rem; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="legal-hero">
+  <h1>Privacy Policy</h1>
+  <p>How Travel Worthy PH handles your personal information</p>
+</div>
+
+<div class="legal-body">
+  <div class="legal-note">
+    This policy explains what we collect when you send an inquiry or create an
+    account, why we collect it, and what rights you have under the Philippine
+    Data Privacy Act of 2012 (Republic Act No. 10173).
+  </div>
+
+  <h2>Who we are</h2>
+  <p>
+    Travel Worthy PH is a travel agency based in Batangas City, Philippines. We
+    arrange tour packages and assist with visa applications. For any question
+    about this policy or your personal data, contact us through our
+    <a href="{{ url_for('main.contact') }}">contact page</a>.
+  </p>
+
+  <h2>What we collect</h2>
+  <p>When you submit a trip or visa inquiry, we collect:</p>
+  <ul>
+    <li>Your full name</li>
+    <li>Your email address</li>
+    <li>Your contact number</li>
+    <li>Your intended destination and travel dates</li>
+    <li>The number of adults, children, and infants travelling</li>
+    <li>Any special requests you choose to write</li>
+  </ul>
+  <p>
+    If you create an account, we also store your login details. Passwords are
+    stored in hashed form and are never readable by us.
+  </p>
+  <p>
+    The special requests field is free text. Please avoid entering health
+    information, dietary or medical conditions, or other sensitive details
+    unless they are necessary for your trip. If you do, we treat that
+    information as sensitive personal information and limit access to the
+    staff handling your booking.
+  </p>
+
+  <h2>Why we collect it</h2>
+  <ul>
+    <li>To respond to your inquiry and prepare a quotation</li>
+    <li>To arrange bookings, transfers, and visa assistance on your behalf</li>
+    <li>To send you updates about an inquiry you have already made</li>
+    <li>To keep records required for our own accounting and operations</li>
+  </ul>
+  <p>
+    We process this information on the basis of your consent, which you give by
+    ticking the consent box on our inquiry forms, and where necessary to
+    perform the service you have asked us for.
+  </p>
+
+  <h2>Who we share it with</h2>
+  <p>
+    We share only what is necessary, only with parties involved in delivering
+    your trip. This may include airlines, hotels, local tour operators, and
+    embassies or consulates processing a visa application. We do not sell your
+    personal information, and we do not share it for advertising.
+  </p>
+  <p>
+    Our website uses Cloudinary to store images and loads fonts and icons from
+    Google Fonts and Cloudflare. These services may receive your IP address as
+    a normal part of serving those files.
+  </p>
+
+  <h2>How long we keep it</h2>
+  <p>
+    We keep inquiry records for as long as needed to serve you and to meet our
+    legal and accounting obligations. Inquiries that do not lead to a booking
+    are removed from our active records once they are no longer relevant.
+  </p>
+
+  <h2>Your rights</h2>
+  <p>Under the Data Privacy Act you have the right to:</p>
+  <ul>
+    <li>Be informed about how your data is used</li>
+    <li>Access the personal data we hold about you</li>
+    <li>Correct inaccurate or outdated information</li>
+    <li>Object to processing, or withdraw consent</li>
+    <li>Request erasure or blocking of your data</li>
+    <li>Be notified if your data is affected by a security breach</li>
+    <li>Complain to the National Privacy Commission</li>
+  </ul>
+  <p>
+    To exercise any of these, contact us and we will respond as promptly as we
+    can. Withdrawing consent will not affect processing already carried out,
+    and may mean we can no longer continue arranging your trip.
+  </p>
+
+  <h2>Security</h2>
+  <p>
+    We use encrypted connections, hashed passwords, and access controls that
+    limit inquiry records to staff who need them. No system is completely
+    secure, but we take reasonable steps to protect your information.
+  </p>
+
+  <h2>Children</h2>
+  <p>
+    Our services are intended for adults booking travel. We record the number
+    of children and infants travelling, but we do not knowingly collect
+    personal details directly from children.
+  </p>
+
+  <h2>Cookies</h2>
+  <p>
+    We use a single session cookie to keep you signed in. See our
+    <a href="{{ url_for('main.cookie_policy') }}">Cookie Policy</a> for details.
+  </p>
+
+  <h2>Changes to this policy</h2>
+  <p>
+    We may update this policy as our services change. The current version is
+    always available on this page.
+  </p>
+</div>
+{% endblock %}

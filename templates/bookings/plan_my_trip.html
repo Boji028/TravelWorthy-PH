@@ -366,6 +366,16 @@
             placeholder="Honeymoon setup, dietary restrictions, preferred hotel type, activities you want to include…">{{ form.special_requests.data or '' }}</textarea>
         </div>
 
+
+        <div class="form-group consent-group">
+          <label class="consent-label">
+            <input type="checkbox" name="privacy_consent" value="y" required />
+            <span>I agree to the <a href="{{ url_for('main.privacy_policy') }}" target="_blank" rel="noopener">Privacy Policy</a> and consent to Travel Worthy PH storing and using these details to respond to my inquiry.</span>
+          </label>
+          {% if form.privacy_consent.errors %}
+          <div style="color:var(--danger);font-size:.82rem;margin-top:.3rem;">{{ form.privacy_consent.errors[0] }}</div>
+          {% endif %}
+        </div>
         <button type="submit" class="btn btn-amber"
           style="width:100%;justify-content:center;padding:.9rem;font-size:.95rem">
           <i class="fas fa-paper-plane"></i> Send My Inquiry

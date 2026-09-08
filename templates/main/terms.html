@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Terms and Conditions — Travel Worthy PH{% endblock %}
+
+{% block extra_styles %}
+<style>
+  .legal-hero {
+    background: linear-gradient(135deg, var(--teal-d), var(--teal));
+    color: var(--white);
+    padding: 3rem 2rem 3.5rem;
+    text-align: center;
+  }
+
+  .legal-hero h1 {
+    font-family: 'Pogonia', serif;
+    font-size: 2.6rem;
+    font-weight: 300;
+    margin-bottom: .4rem;
+  }
+
+  .legal-hero p { font-size: .9rem; opacity: .85; }
+
+  .legal-body {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 4rem;
+    color: var(--bark);
+    line-height: 1.75;
+  }
+
+  .legal-body h2 { font-size: 1.25rem; color: var(--ink); margin: 2.25rem 0 .75rem; }
+  .legal-body h2:first-of-type { margin-top: 0; }
+  .legal-body p { margin-bottom: 1rem; }
+  .legal-body ul { margin: 0 0 1rem 1.25rem; }
+  .legal-body li { margin-bottom: .4rem; }
+  .legal-body a { color: var(--teal); }
+
+  .legal-note {
+    background: var(--sand);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    font-size: .9rem;
+    margin-bottom: 2rem;
+  }
+
+  @media (max-width: 768px) {
+    .legal-hero { padding: 2.25rem 1rem 2.5rem; }
+    .legal-hero h1 { font-size: 1.9rem; }
+    .legal-body { padding: 2rem 1.25rem 3rem; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="legal-hero">
+  <h1>Terms and Conditions</h1>
+  <p>The terms that apply when you use this website and book with us</p>
+</div>
+
+<div class="legal-body">
+  <div class="legal-note">
+    By using this website or sending an inquiry, you agree to these terms.
+    Please read them alongside our
+    <a href="{{ url_for('main.privacy_policy') }}">Privacy Policy</a>.
+  </div>
+
+  <h2>About us</h2>
+  <p>
+    Travel Worthy PH is a travel agency based in Batangas City, Philippines. We
+    arrange tour packages and provide visa assistance.
+  </p>
+
+  <h2>Inquiries are not bookings</h2>
+  <p>
+    Submitting an inquiry through this website does not create a booking or
+    reserve any slot. It is a request for a quotation. A booking exists only
+    once we have confirmed it with you directly and any required payment has
+    been arranged and received.
+  </p>
+  <p>
+    This website does not process payments. Any payment arrangement is made
+    separately with our team.
+  </p>
+
+  <h2>Prices and availability</h2>
+  <p>
+    Prices shown are indicative starting rates per person and can change
+    without notice. Final pricing depends on your travel dates, group size,
+    room arrangement, airline fares, and availability at the time of booking.
+  </p>
+  <p>
+    Travel dates listed on a package are planned departures. Availability is
+    confirmed only when we respond to your inquiry.
+  </p>
+
+  <h2>Your responsibilities</h2>
+  <ul>
+    <li>Give accurate details when you inquire, including names as they appear on travel documents</li>
+    <li>Hold a passport valid for the period required by your destination</li>
+    <li>Obtain any visa required for your trip</li>
+    <li>Arrive at departure points on time</li>
+  </ul>
+  <p>
+    We assist with visa applications but cannot guarantee any visa outcome. A
+    refused visa is decided by the embassy or consulate concerned, not by us.
+  </p>
+
+  <h2>Changes and cancellations</h2>
+  <p>
+    Changes and cancellations follow the terms of the airlines, hotels, and
+    operators involved in your trip. Those terms vary by supplier and are
+    confirmed to you before you commit to a booking. Some bookings are
+    non-refundable.
+  </p>
+
+  <h2>Third party services</h2>
+  <p>
+    Your trip involves airlines, hotels, transport providers, and local
+    operators. We arrange these on your behalf. We are not responsible for
+    their acts or omissions, or for delays, cancellations, or disruptions
+    outside our control, including weather and government action.
+  </p>
+
+  <h2>Website content</h2>
+  <p>
+    We take care to keep package details, itineraries, and images accurate, but
+    content may change. Images are illustrative of the destination and may not
+    show the exact hotel, room, or vehicle used on your trip.
+  </p>
+  <p>
+    Content on this website belongs to Travel Worthy PH or its licensors and
+    may not be copied or reused without permission.
+  </p>
+
+  <h2>Reviews and submitted content</h2>
+  <p>
+    If you post a review or photo, you confirm it is your own and you allow us
+    to display it on this website. We may remove content that is misleading,
+    offensive, or not yours to post.
+  </p>
+
+  <h2>Contact</h2>
+  <p>
+    Questions about these terms can be sent through our
+    <a href="{{ url_for('main.contact') }}">contact page</a>.
+  </p>
+</div>
+{% endblock %}

@@ -7,6 +7,7 @@ cancel_booking) was removed since it was never reachable from the live site —
 every customer-facing path (Plan My Trip, package inquiries, visa requests)
 creates an Inquiry, not a Booking.
 """
+from datetime import datetime, timezone
 from flask import Blueprint, render_template, redirect, url_for, flash, current_app, request
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from app import db, limiter
@@ -37,6 +38,8 @@ def plan_my_trip():
                 num_infants=form.num_infants.data or 0,
                 special_requests=form.special_requests.data,
                 status=InquiryStatus.NEW.value,
+                privacy_consent=True,
+                privacy_consent_at=datetime.now(timezone.utc),
                 user_id=current_user.id if current_user.is_authenticated else None,
             )
             db.session.add(inquiry)
@@ -99,6 +102,8 @@ def inquire_package(package_id):
                 special_requests=form.special_requests.data,
                 package_id=package_id,
                 status=InquiryStatus.NEW.value,
+                privacy_consent=True,
+                privacy_consent_at=datetime.now(timezone.utc),
                 user_id=current_user.id if current_user.is_authenticated else None,
             )
             db.session.add(inquiry)

@@ -83,6 +83,24 @@ def about():
     return render_template("main/about.html")
 
 
+@main_bp.route("/privacy-policy")
+def privacy_policy():
+    """Privacy policy page."""
+    return render_template("main/privacy_policy.html")
+
+
+@main_bp.route("/terms-and-conditions")
+def terms():
+    """Terms and conditions page."""
+    return render_template("main/terms.html")
+
+
+@main_bp.route("/cookie-policy")
+def cookie_policy():
+    """Cookie policy page."""
+    return render_template("main/cookie_policy.html")
+
+
 @main_bp.route("/reviews")
 def reviews():
     """Reviews/testimonials page with pagination."""

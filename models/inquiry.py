@@ -30,6 +30,9 @@ class Inquiry(db.Model):
     inquiry_type: str = db.Column(db.String(20), default="general")
     admin_response: Optional[str] = db.Column(db.Text, nullable=True)
     responded_at: Optional[datetime] = db.Column(db.DateTime, nullable=True)
+    # Records that the customer ticked the privacy consent box, and when.
+    privacy_consent: bool = db.Column(db.Boolean, nullable=False, default=False, server_default="false")
+    privacy_consent_at: Optional[datetime] = db.Column(db.DateTime, nullable=True)
     created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
     last_exported_at: Optional[datetime] = db.Column(db.DateTime, nullable=True, index=True)
     # Set when the async customer confirmation email fails to send (see

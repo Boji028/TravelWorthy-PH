@@ -239,6 +239,14 @@
         </ul>
       </div>
       <div class="footer-col">
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="{{ url_for('main.privacy_policy') }}">Privacy Policy</a></li>
+          <li><a href="{{ url_for('main.terms') }}">Terms &amp; Conditions</a></li>
+          <li><a href="{{ url_for('main.cookie_policy') }}">Cookie Policy</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
         <h4>Account</h4>
         <ul>
           {% if current_user.is_authenticated %}
