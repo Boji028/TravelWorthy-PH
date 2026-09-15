@@ -15,6 +15,23 @@ from flask_mail import Message
 from app import mail
 
 
+def _admin_recipients() -> list:
+    """Return the email of every admin user, falling back to ADMIN_EMAIL."""
+    # Imported here rather than at module level to avoid a circular import.
+    from models.user import User
+
+    try:
+        emails = [u.email for u in User.query.filter_by(is_admin=True).all() if u.email]
+    except Exception as e:
+        current_app.logger.error(f"Could not load admin recipients: {e}")
+        emails = []
+    if emails:
+        return emails
+    # No admin users found, so fall back rather than send the inquiry nowhere.
+    fallback = os.getenv("ADMIN_EMAIL", "").strip()
+    return [fallback] if fallback else []
+
+
 def _send(subject: str, recipients: list, body: str, html: str = None, cc: list = None) -> bool:
     """Send an email, silently failing if mail is not configured.
 
@@ -68,7 +85,7 @@ def send_inquiry_reply(inquiry, admin_response: str) -> None:
     _send(subject, [inquiry.email], body)
 
 
-def send_admin_new_inquiry(admin_email: str, inquiry, base_url: str = None) -> None:
+def send_admin_new_inquiry(admin_emails, inquiry, base_url: str = None) -> None:
     """Notify admin when a customer submits a new inquiry.
 
     If the inquiry's package has an assigned agent, that agent is CC'd
@@ -211,7 +228,9 @@ def send_admin_new_inquiry(admin_email: str, inquiry, base_url: str = None) -> N
     </body></html>
     """
 
-    _send(subject, [admin_email], body, html=html, cc=cc_list)
+    # Accept either a single address or a list so older callers still work.
+    recipients = [admin_emails] if isinstance(admin_emails, str) else list(admin_emails)
+    _send(subject, recipients, body, html=html, cc=cc_list)
 
 
 def send_inquiry_confirmed(inquiry) -> None:
@@ -316,8 +335,8 @@ def send_inquiry_confirmed(inquiry) -> None:
     _send(subject, [inquiry.email], body, html=html)
 
     # Notify admin and CC assigned agent for paper trail.
-    admin_email = os.getenv("ADMIN_EMAIL", "")
-    if admin_email:
+    admin_emails = _admin_recipients()
+    if admin_emails:
         cc_list = None
         if inquiry.package_id and inquiry.package:
             agent = inquiry.package.assigned_agent
@@ -389,7 +408,7 @@ def send_inquiry_confirmed(inquiry) -> None:
         </table>
         </body></html>
         """
-        _send(admin_subject, [admin_email], admin_body, html=admin_html, cc=cc_list)
+        _send(admin_subject, admin_emails, admin_body, html=admin_html, cc=cc_list)
 
 
 def send_inquiry_receipt(inquiry, base_url: str = None) -> bool:
@@ -667,10 +686,10 @@ def send_inquiry_emails_async(inquiry_id: int, base_url: str) -> None:
                 inquiry.confirmation_email_failed = True
                 db.session.commit()
 
-            admin_email = os.getenv("ADMIN_EMAIL", "")
-            if admin_email:
+            admin_emails = _admin_recipients()
+            if admin_emails:
                 try:
-                    send_admin_new_inquiry(admin_email, inquiry, base_url=base_url)
+                    send_admin_new_inquiry(admin_emails, inquiry, base_url=base_url)
                 except Exception as e:
                     app.logger.warning(f"Admin alert email failed for inquiry #{inquiry_id}: {e}", exc_info=True)
 

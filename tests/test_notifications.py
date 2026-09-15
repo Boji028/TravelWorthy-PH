@@ -24,6 +24,7 @@ def _valid_inquiry_form_data(**overrides):
         "num_adults": 2,
         "num_children": 0,
         "num_infants": 0,
+        "privacy_consent": "y",
         "special_requests": "",
     }
     data.update(overrides)

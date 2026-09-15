@@ -20,6 +20,7 @@ def _valid_form(**overrides):
         num_adults=2,
         num_children=0,
         num_infants=0,
+        privacy_consent="y",
     )
     data.update(overrides)
     return data
