@@ -411,6 +411,65 @@ def send_inquiry_confirmed(inquiry) -> None:
         _send(admin_subject, admin_emails, admin_body, html=admin_html, cc=cc_list)
 
 
+def send_subscriber_welcome(subscriber, base_url: str = None) -> None:
+    """Send a one-time welcome email the moment someone subscribes.
+
+    This is the only automatic email in the Subscribe flow - the actual
+    "new packages are available" announcements are sent manually by
+    admin later, using the exported subscriber list.
+    """
+    base_url = (base_url or current_app.config.get("SITE_URL") or request.host_url).rstrip("/")
+    unsubscribe_url = f"{base_url}/unsubscribe/{subscriber.unsubscribe_token}"
+    subject = "You're subscribed to Travel Worthy PH updates!"
+
+    body = (
+        f"Hi {subscriber.name},\n\n"
+        "Thanks for subscribing! We'll email you whenever we add new travel packages.\n\n"
+        "No spam, no fluff - just new packages as they go up.\n\n"
+        f"Didn't mean to sign up, or want to stop? Unsubscribe anytime here:\n{unsubscribe_url}\n\n"
+        "Sincerely,\nTravel Worthy PH Team\n"
+        "Making Your Travel Dreams Real"
+    )
+
+    logo_url = "https://res.cloudinary.com/dbcjxuxhl/image/upload/brand_logo_ip0yv0.png"
+    safe_name = html_escape(subscriber.name)
+
+    html = f"""
+    <html><body style="margin:0;padding:0;background:#ffffff;font-family:Arial,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="height:4px;background:#175968;line-height:4px;font-size:0;">&nbsp;</td></tr>
+      <tr><td style="padding:22px 26px;background:#fdfaf6;">
+
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:18px;">
+          <tr>
+            <td><img src="{logo_url}" width="110" style="display:block;" alt="Travel Worthy PH" /></td>
+            <td align="right"><span style="display:inline-block;background:#e1f5ee;color:#085041;font-size:11px;font-weight:bold;padding:4px 10px;border-radius:12px;">&#10003; SUBSCRIBED</span></td>
+          </tr>
+        </table>
+
+        <p style="font-size:15px;color:#222222;margin:0 0 4px;">Hi {safe_name},</p>
+        <p style="font-size:14px;color:#444444;line-height:1.6;margin:0 0 20px;">Thanks for subscribing! We'll email you whenever we add new travel packages - no spam, no fluff, just new packages as they go up.</p>
+
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-top:2px solid #f5a623;padding-top:14px;margin-top:6px;">
+          <tr>
+            <td>
+              <p style="font-size:13px;color:#444444;margin:0 0 2px;">Sincerely,</p>
+              <p style="font-size:13px;font-weight:bold;color:#222222;margin:0;">Travel Worthy PH Team</p>
+              <p style="font-size:12px;color:#8fa8a3;margin:4px 0 0;">Making Your Travel Dreams Real</p>
+            </td>
+          </tr>
+        </table>
+
+        <p style="font-size:11px;color:#a89e8c;margin:18px 0 0;">Didn't mean to sign up, or want to stop these emails? <a href="{unsubscribe_url}" style="color:#8fa8a3;">Unsubscribe here</a>.</p>
+
+      </td></tr>
+    </table>
+    </body></html>
+    """
+
+    _send(subject, [subscriber.email], body, html=html)
+
+
 def send_inquiry_receipt(inquiry, base_url: str = None) -> bool:
     """Send immediate receipt confirmation to customer after inquiry submission.
 

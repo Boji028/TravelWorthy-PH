@@ -46,7 +46,8 @@ def subscribe():
         return jsonify(success=True, message="You're already subscribed. Thanks for being with us!")
 
     try:
-        db.session.add(Subscriber(name=name, email=email))
+        new_subscriber = Subscriber(name=name, email=email)
+        db.session.add(new_subscriber)
         db.session.commit()
     except Exception as e:
         db.session.rollback()
@@ -54,11 +55,28 @@ def subscribe():
         return jsonify(success=False, error="Something went wrong. Please try again."), 500
 
     current_app.logger.info(f"New newsletter subscriber: {email}")
+
+    try:
+        from email_service import send_subscriber_welcome
+
+        send_subscriber_welcome(new_subscriber, base_url=request.host_url)
+    except Exception as e:
+        current_app.logger.error(f"Failed to send subscriber welcome email to {email}: {e}", exc_info=True)
+
     return jsonify(
         success=True,
         message="Thanks for subscribing! We'll email you when new packages are added.",
     )
 
+@main_bp.route("/unsubscribe/<token>")
+def unsubscribe(token):
+    """Public, no-login unsubscribe link included in the welcome email."""
+    subscriber = Subscriber.query.filter_by(unsubscribe_token=token).first()
+    if subscriber:
+        current_app.logger.info(f"Subscriber unsubscribed: {subscriber.email}")
+        db.session.delete(subscriber)
+        db.session.commit()
+    return render_template("main/unsubscribed.html")
 
 @main_bp.route("/")
 def home():
