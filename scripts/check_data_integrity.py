@@ -130,13 +130,6 @@ def run_checks(app):
              WHERE NOT EXISTS (SELECT 1 FROM testimonials t WHERE t.id = ti.testimonial_id)"""),
         lambda r: f"TestimonialImage id={r[0]} -> missing testimonial_id={r[1]}",
     )
-    check(
-        "Email verification tokens whose user no longer exists",
-        q("""SELECT e.id, e.user_id FROM email_verification_tokens e
-             WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = e.user_id)"""),
-        lambda r: f"Token id={r[0]} -> missing user_id={r[1]}",
-    )
-
     # ------------------------------------------------------------------
     print("\n--- Uniqueness & singleton assumptions ---")
 

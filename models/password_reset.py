@@ -29,11 +29,10 @@ class PasswordResetToken(db.Model):
     def _aware(dt: Optional[datetime]) -> Optional[datetime]:
         """Normalize a datetime read back from the DB to timezone-aware UTC.
 
-        Same reasoning as EmailVerificationToken._aware: expires_at is
-        stored as a plain db.DateTime, so SQLAlchemy hands back a naive
-        datetime after a commit or fresh query even though it was written
-        as tz-aware UTC. Treat naive as UTC since every write path uses
-        datetime.now(timezone.utc).
+        expires_at is stored as a plain db.DateTime, so SQLAlchemy hands
+        back a naive datetime after a commit or fresh query even though
+        it was written as tz-aware UTC. Treat naive as UTC since every
+        write path uses datetime.now(timezone.utc).
         """
         if dt is not None and dt.tzinfo is None:
             return dt.replace(tzinfo=timezone.utc)

@@ -27,7 +27,6 @@ from models.testimonial import Testimonial
 from models.subscriber import Subscriber
 from models.inquiry_notification import InquiryNotification
 from models.site_settings import SiteSettings
-from models.email_verification import EmailVerificationToken
 from models.agent import Agent
 from models.itinerary_day import ItineraryDay
 from models.travel_date import TravelDate
@@ -859,8 +858,6 @@ def delete_user(user_id):
         )
         return redirect(url_for("admin.users"))
 
-    # Verification tokens are purely functional with no content worth preserving.
-    EmailVerificationToken.query.filter_by(user_id=user.id).delete()
     # PackageReview.user now has cascade='all, delete-orphan' configured, so
     # any reviews by this user are removed automatically when the user is deleted.
     InquiryNotification.query.filter_by(user_id=user.id).delete()

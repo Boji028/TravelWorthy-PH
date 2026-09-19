@@ -1,8 +1,7 @@
 """OAuth client registration for Google sign-in.
 
-Kept in its own module (mirrors email_verification_service.py,
-backup_service.py) rather than bolted directly into app.py, since
-create_app() is already long.
+Kept in its own module (mirrors backup_service.py) rather than bolted
+directly into app.py, since create_app() is already long.
 """
 import os
 from authlib.integrations.flask_client import OAuth
