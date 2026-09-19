@@ -1,0 +1,188 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Subscribers — Admin{% endblock %}
+
+{% block admin_styles %}
+<style>
+  .table-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(58,46,34,.07);
+  }
+
+  .table-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--linen);
+    flex-wrap: wrap;
+    gap: .75rem;
+  }
+
+  .table-toolbar h3 {
+    font-family: 'Pogonia', serif;
+    font-size: 1.2rem;
+    color: var(--bark);
+  }
+
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .87rem;
+  }
+
+  .admin-table th {
+    text-align: left;
+    padding: .6rem .75rem;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--mist);
+    border-bottom: 1px solid var(--linen);
+    font-weight: 600;
+  }
+
+  .admin-table td {
+    padding: .85rem .75rem;
+    border-bottom: 1px solid var(--linen);
+    color: var(--bark);
+    vertical-align: middle;
+  }
+
+  .admin-table tr:last-child td { border-bottom: none; }
+  .admin-table tr:hover td { background: #faf6f0; }
+
+  .subscriber-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--teal), var(--teal-d));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: .88rem;
+    color: var(--white);
+    margin-right: .6rem;
+    vertical-align: middle;
+    text-transform: uppercase;
+  }
+
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--linen);
+    background: var(--sand);
+    flex-wrap: wrap;
+  }
+
+  .filter-search {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    background: var(--white);
+    border: 1px solid var(--linen);
+    border-radius: 999px;
+    padding: .45rem .9rem;
+    flex: 1;
+    min-width: 220px;
+    max-width: 320px;
+  }
+
+  .filter-search input {
+    border: none;
+    background: none;
+    outline: none;
+    font-size: .85rem;
+    color: var(--bark);
+    width: 100%;
+    font-family: inherit;
+  }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <h1>Subscribers</h1>
+  <p>Everyone who opted in via the "Subscribe" box on package pages — export this list to send a manual update about new packages.</p>
+</div>
+
+<div class="table-card">
+  <div class="table-toolbar">
+    <h3>{{ pagination.total }} Subscriber{{ 's' if pagination.total != 1 }}</h3>
+    <a href="{{ url_for('admin.export_subscribers') }}" class="btn btn-outline btn-sm no-ajax">
+      <i class="fas fa-file-excel"></i> Export Excel
+    </a>
+  </div>
+
+  <form method="GET" action="{{ url_for('admin.subscribers') }}" class="filter-bar">
+    <div class="filter-search">
+      <i class="fas fa-search" style="color:var(--mist);font-size:.8rem"></i>
+      <input type="text" name="search" placeholder="Search name, email…" value="{{ search }}" />
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Apply</button>
+    {% if search %}
+    <a href="{{ url_for('admin.subscribers') }}" class="btn btn-ghost btn-sm">Clear</a>
+    {% endif %}
+  </form>
+
+  <div style="overflow-x:auto">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Subscribed</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for subscriber in subscribers %}
+          <tr>
+            <td>
+              <span class="subscriber-avatar">{{ subscriber.name[0] }}</span>
+              <strong>{{ subscriber.name }}</strong>
+            </td>
+            <td>{{ subscriber.email }}</td>
+            <td style="font-size:.82rem;color:var(--mist)">{{ subscriber.subscribed_at.strftime('%b %d, %Y') }}</td>
+            <td>
+              <form method="POST" action="{{ url_for('admin.delete_subscriber', subscriber_id=subscriber.id) }}"
+                data-confirm="Remove {{ subscriber.email }} from the subscriber list?">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button type="submit" class="btn btn-danger btn-sm" title="Remove"><i class="fas fa-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="4" style="text-align:center;color:var(--mist);padding:3rem">
+              {% if search %}
+              No subscribers match your search. <a href="{{ url_for('admin.subscribers') }}" style="color:var(--teal)">Clear search →</a>
+              {% else %}
+              No one has subscribed yet. The Subscribe box on package pages will start filling this list in.
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if pagination.pages > 1 %}
+<div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+  {% for p in pagination.iter_pages() %}
+    {% if p %}
+      <a href="?page={{ p }}{% if search %}&search={{ search }}{% endif %}"
+         class="btn btn-sm {% if p == pagination.page %}btn-amber{% else %}btn-outline{% endif %}">{{ p }}</a>
+    {% else %}
+      <span style="padding:.3rem .5rem;color:var(--mist)">…</span>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

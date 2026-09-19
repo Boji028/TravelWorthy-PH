@@ -1,0 +1,47 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Add Staff Account — Admin{% endblock %}
+
+{% block admin_styles %}
+<style>
+  .form-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    box-shadow: 0 2px 12px rgba(58, 46, 34, .07);
+    max-width: 560px;
+  }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <h1>Add Staff Account</h1>
+  <p>Create a new login for a staff member — there's no public sign-up anymore, so this is the only way to add one.</p>
+</div>
+
+<div class="form-card">
+  <form method="POST" action="{{ url_for('admin.add_user') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <div class="form-group">
+      <label>Name <span style="color:var(--danger)">*</span></label>
+      <input type="text" name="name" class="form-control" placeholder="e.g. Liza Cruz" required />
+    </div>
+    <div class="form-group">
+      <label>Email <span style="color:var(--danger)">*</span></label>
+      <input type="email" name="email" class="form-control" placeholder="staff@travelworthyph.com" required />
+    </div>
+    <div class="form-group">
+      <label>Password <span style="color:var(--danger)">*</span></label>
+      <input type="password" name="password" class="form-control" placeholder="At least 8 characters, 1 uppercase, 1 number" required />
+    </div>
+    <div class="form-group">
+      <label>Confirm Password <span style="color:var(--danger)">*</span></label>
+      <input type="password" name="confirm_password" class="form-control" required />
+    </div>
+    <div style="display:flex;gap:1rem;">
+      <button type="submit" class="btn btn-amber"><i class="fas fa-user-plus"></i> Create Staff Account</button>
+      <a href="{{ url_for('admin.users') }}" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

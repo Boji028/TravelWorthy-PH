@@ -168,14 +168,14 @@ class TestPasswordResetRoutes:
 
     def test_forgot_password_get_renders_form(self, client):
         """Test the forgot password page renders."""
-        response = client.get("/auth/forgot-password")
+        response = client.get("/forgot-password")
         assert response.status_code == 200
 
     def test_forgot_password_post_existing_user(self, client, test_user, monkeypatch):
         """Test submitting the forgot password form for a real user."""
         monkeypatch.setattr(PasswordResetService, "_send_reset_email", staticmethod(lambda *args, **kwargs: True))
 
-        response = client.post("/auth/forgot-password", data={"email": test_user.email}, follow_redirects=True)
+        response = client.post("/forgot-password", data={"email": test_user.email}, follow_redirects=True)
 
         assert response.status_code == 200
         tokens = PasswordResetToken.query.filter_by(user_id=test_user.id, is_used=False).all()
@@ -183,7 +183,7 @@ class TestPasswordResetRoutes:
 
     def test_forgot_password_post_nonexistent_user(self, client):
         """Test submitting the forgot password form for a non-existent email still returns 200 with generic message."""
-        response = client.post("/auth/forgot-password", data={"email": "nobody@example.com"}, follow_redirects=True)
+        response = client.post("/forgot-password", data={"email": "nobody@example.com"}, follow_redirects=True)
 
         assert response.status_code == 200
         assert b"If an account" in response.data
@@ -196,7 +196,7 @@ class TestPasswordResetRoutes:
         crash with an uncaught AttributeError — a 500 — before the view
         even ran, rather than reaching the route's own validation."""
         response = client.post(
-            "/auth/forgot-password",
+            "/forgot-password",
             data={},
             environ_overrides={"REMOTE_ADDR": None},
         )
@@ -208,7 +208,7 @@ class TestPasswordResetRoutes:
         the sixth visitor got a 429 without ever submitting anything.
         The limit is meant to throttle email-sending POSTs only."""
         for _ in range(7):
-            response = client.get("/auth/forgot-password")
+            response = client.get("/forgot-password")
             assert response.status_code == 200
 
     def test_proxyfix_builds_https_reset_link_behind_forwarded_proto_header(self, app, test_user, client, monkeypatch):
@@ -228,13 +228,13 @@ class TestPasswordResetRoutes:
         monkeypatch.setattr(app_mail, "send", lambda msg: sent_messages.append(msg))
 
         client.post(
-            "/auth/forgot-password",
+            "/forgot-password",
             data={"email": test_user.email},
             headers={"X-Forwarded-Proto": "https", "X-Forwarded-Host": "travelworthyph.com"},
         )
 
         assert len(sent_messages) == 1
-        assert "https://travelworthyph.com/auth/reset-password/" in sent_messages[0].body
+        assert "https://travelworthyph.com/reset-password/" in sent_messages[0].body
 
     def test_reset_password_get_with_valid_token_renders_form(self, client, test_user, app):
         """Test the reset password page renders for a valid token."""
@@ -244,12 +244,12 @@ class TestPasswordResetRoutes:
         db.session.add(token_obj)
         db.session.commit()
 
-        response = client.get(f"/auth/reset-password/{token_obj.token}")
+        response = client.get(f"/reset-password/{token_obj.token}")
         assert response.status_code == 200
 
     def test_reset_password_get_with_invalid_token_redirects(self, client):
         """Test the reset password page redirects for an invalid token."""
-        response = client.get("/auth/reset-password/invalid_token", follow_redirects=True)
+        response = client.get("/reset-password/invalid_token", follow_redirects=True)
 
         assert response.status_code == 200
         assert b"forgot" in response.request.path.encode() or b"invalid" in response.data.lower()
@@ -263,7 +263,7 @@ class TestPasswordResetRoutes:
         db.session.commit()
 
         response = client.post(
-            f"/auth/reset-password/{token_obj.token}",
+            f"/reset-password/{token_obj.token}",
             data={"password": "BrandNewPass123", "confirm_password": "BrandNewPass123"},
             follow_redirects=True,
         )
@@ -282,7 +282,7 @@ class TestPasswordResetRoutes:
         db.session.commit()
 
         client.post(
-            f"/auth/reset-password/{token_obj.token}",
+            f"/reset-password/{token_obj.token}",
             data={"password": "BrandNewPass123", "confirm_password": "DifferentPass123"},
             follow_redirects=True,
         )
@@ -317,7 +317,7 @@ class TestPasswordResetRoutes:
         # setting the session key directly, which wouldn't exercise this
         # code path at all.
         device_a = app.test_client()
-        device_a.post("/auth/login", data={"email": test_user.email, "password": "TestPass123!"})
+        device_a.post("/staff-portal", data={"email": test_user.email, "password": "TestPass123!"})
         g.pop("_login_user", None)
         assert device_a.get("/my-inquiries").status_code == 200  # confirms actually logged in
         g.pop("_login_user", None)
@@ -328,7 +328,7 @@ class TestPasswordResetRoutes:
         db.session.commit()
         device_b = app.test_client()
         device_b.post(
-            f"/auth/reset-password/{token_obj.token}",
+            f"/reset-password/{token_obj.token}",
             data={"password": "BrandNewPass123", "confirm_password": "BrandNewPass123"},
         )
         g.pop("_login_user", None)
@@ -338,7 +338,7 @@ class TestPasswordResetRoutes:
         # a @login_required route), not still authenticated.
         response = device_a.get("/my-inquiries")
         assert response.status_code == 302
-        assert "/auth/login" in response.headers["Location"]
+        assert "/staff-portal" in response.headers["Location"]
 
     def test_password_reset_does_not_invalidate_the_new_login_itself(self, app, test_user):
         """Sanity check the fix isn't overly broad: logging in *after* the
@@ -352,14 +352,14 @@ class TestPasswordResetRoutes:
 
         client = app.test_client()
         client.post(
-            f"/auth/reset-password/{token_obj.token}",
+            f"/reset-password/{token_obj.token}",
             data={"password": "BrandNewPass123", "confirm_password": "BrandNewPass123"},
         )
-        client.post("/auth/login", data={"email": test_user.email, "password": "BrandNewPass123"})
+        client.post("/staff-portal", data={"email": test_user.email, "password": "BrandNewPass123"})
 
         assert client.get("/my-inquiries").status_code == 200
 
     def test_login_page_links_to_forgot_password(self, client):
         """Test the login page's Forgot password link points at the real route, not a placeholder."""
-        response = client.get("/auth/login")
-        assert b'href="/auth/forgot-password"' in response.data
+        response = client.get("/staff-portal")
+        assert b'href="/forgot-password"' in response.data

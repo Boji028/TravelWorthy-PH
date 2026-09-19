@@ -1,11 +1,13 @@
 """Main routes for public pages and contact functionality."""
+import re
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 from flask_login import current_user, login_required
 from sqlalchemy.orm import selectinload
 import bleach
-from app import db
+from app import db, limiter
 from models.testimonial import Testimonial
 from models.package import TourPackage
+from models.subscriber import Subscriber
 from image_service import ImageUploadService, ImageUploadException
 from utils import delete_old_image
 from models.blog import BlogPost
@@ -13,6 +15,49 @@ from sqlalchemy import func
 main_bp = Blueprint("main", __name__)
 
 ALLOWED_TAGS = ["b", "i", "u", "em", "strong", "p", "br", "ul", "ol", "li"]
+SUBSCRIBE_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+@main_bp.route("/subscribe", methods=["POST"])
+@limiter.limit(
+    "5 per hour",
+    key_func=lambda: (request.form.get("email", request.remote_addr) or "unknown").lower(),
+)
+def subscribe():
+    """Add an email to the marketing subscriber list.
+
+    AJAX-only: called via fetch() from the Subscribe box on the package
+    detail page (see static/js/subscribe.js), so it always returns JSON
+    rather than redirecting or rendering a page.
+    """
+    name = bleach.clean(request.form.get("name", "").strip(), tags=[], strip=True)
+    email = request.form.get("email", "").strip().lower()
+
+    if not name:
+        return jsonify(success=False, error="Please enter your name."), 400
+    if not email or not SUBSCRIBE_EMAIL_RE.match(email):
+        return jsonify(success=False, error="Please enter a valid email address."), 400
+
+    existing = Subscriber.query.filter_by(email=email).first()
+    if existing:
+        # Already on the list. Returning success here (instead of an
+        # error) avoids using the form to reveal whether a given email
+        # is already subscribed.
+        return jsonify(success=True, message="You're already subscribed. Thanks for being with us!")
+
+    try:
+        db.session.add(Subscriber(name=name, email=email))
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Subscriber signup failed for {email}: {e}", exc_info=True)
+        return jsonify(success=False, error="Something went wrong. Please try again."), 500
+
+    current_app.logger.info(f"New newsletter subscriber: {email}")
+    return jsonify(
+        success=True,
+        message="Thanks for subscribing! We'll email you when new packages are added.",
+    )
 
 
 @main_bp.route("/")

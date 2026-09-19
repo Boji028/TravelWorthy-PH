@@ -174,7 +174,7 @@ def create_app():
     from routes.wishlist import wishlist_bp
 
     app.register_blueprint(main_bp)
-    app.register_blueprint(auth_bp, url_prefix="/auth")
+    app.register_blueprint(auth_bp)
     app.register_blueprint(packages_bp, url_prefix="/packages")
     app.register_blueprint(bookings_bp, url_prefix="/bookings")
     app.register_blueprint(admin_bp, url_prefix="/admin")

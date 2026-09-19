@@ -9,6 +9,7 @@ from .testimonial import Testimonial
 from .visa import VisaCountry
 from .email_verification import EmailVerificationToken
 from .password_reset import PasswordResetToken
+from .subscriber import Subscriber
 __all__ = [
     "User",
     "TourPackage",
@@ -19,4 +20,5 @@ __all__ = [
     "Testimonial",
     "VisaCountry",
     "EmailVerificationToken",
+    "Subscriber",
 ]

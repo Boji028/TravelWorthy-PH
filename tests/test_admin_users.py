@@ -116,3 +116,80 @@ class TestDeleteUser:
         response = admin_client.post(f"/admin/users/delete/{user.id}", follow_redirects=False)
         assert response.status_code == 302
         assert "/admin/users" in response.headers["Location"]
+
+
+class TestAddUser:
+    """The public registration form is gone — this route is now the only
+    way any new User row (always staff) gets created."""
+
+    VALID_DATA = {
+        "name": "New Staff",
+        "email": "newstaff@example.com",
+        "password": "SecurePass123",
+        "confirm_password": "SecurePass123",
+    }
+
+    def test_requires_login(self, client):
+        response = client.post("/admin/users/add", data=self.VALID_DATA)
+        assert response.status_code in (302, 401, 403)
+        assert User.query.filter_by(email=self.VALID_DATA["email"]).first() is None
+
+    def test_rejects_non_admin(self, authenticated_client):
+        authenticated_client.post("/admin/users/add", data=self.VALID_DATA)
+        assert User.query.filter_by(email=self.VALID_DATA["email"]).first() is None
+
+    def test_admin_can_create_staff_account(self, admin_client):
+        response = admin_client.post("/admin/users/add", data=self.VALID_DATA, follow_redirects=True)
+        assert response.status_code == 200
+        user = User.query.filter_by(email=self.VALID_DATA["email"]).first()
+        assert user is not None
+        assert user.name == "New Staff"
+
+    def test_created_account_is_always_admin(self, admin_client):
+        admin_client.post("/admin/users/add", data=self.VALID_DATA)
+        user = User.query.filter_by(email=self.VALID_DATA["email"]).first()
+        assert user.is_admin is True
+
+    def test_created_account_can_log_in(self, app, admin_client):
+        admin_client.post("/admin/users/add", data=self.VALID_DATA)
+        # A fresh, unauthenticated client — admin_client's underlying
+        # client is already logged in as the admin, so reusing it here
+        # would short-circuit the login route before it does anything.
+        # g.pop clears Flask-Login's current_user cache left over from
+        # admin_client's own request, same fix used in
+        # test_password_reset.py when switching test clients mid-test.
+        from flask import g
+
+        g.pop("_login_user", None)
+        fresh_client = app.test_client()
+        response = fresh_client.post(
+            "/staff-portal",
+            data={"email": self.VALID_DATA["email"], "password": self.VALID_DATA["password"]},
+            follow_redirects=True,
+        )
+        assert b"Welcome back" in response.data
+
+    def test_rejects_duplicate_email(self, admin_client, admin_user):
+        response = admin_client.post(
+            "/admin/users/add",
+            data={**self.VALID_DATA, "email": admin_user.email},
+            follow_redirects=True,
+        )
+        assert b"already exists" in response.data
+
+    def test_rejects_mismatched_passwords(self, admin_client):
+        admin_client.post("/admin/users/add", data={**self.VALID_DATA, "confirm_password": "DifferentPass123"})
+        assert User.query.filter_by(email=self.VALID_DATA["email"]).first() is None
+
+    def test_rejects_weak_password(self, admin_client):
+        admin_client.post("/admin/users/add", data={**self.VALID_DATA, "password": "weak", "confirm_password": "weak"})
+        assert User.query.filter_by(email=self.VALID_DATA["email"]).first() is None
+
+    def test_rejects_missing_fields(self, admin_client):
+        response = admin_client.post(
+            "/admin/users/add",
+            data={"name": "", "email": "", "password": "", "confirm_password": ""},
+            follow_redirects=True,
+        )
+        assert b"required" in response.data
+        assert User.query.filter_by(email="").first() is None

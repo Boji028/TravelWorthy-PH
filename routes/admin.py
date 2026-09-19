@@ -8,6 +8,8 @@ import bleach
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy import or_, func
 import io
+import re
+from werkzeug.security import generate_password_hash
 from app import db
 from decorators import admin_required
 from utils import delete_old_image, save_image_metadata
@@ -22,6 +24,7 @@ from models.continent import Continent
 from models.country import Country
 from models.visa import VisaCountry
 from models.testimonial import Testimonial
+from models.subscriber import Subscriber
 from models.inquiry_notification import InquiryNotification
 from models.site_settings import SiteSettings
 from models.email_verification import EmailVerificationToken
@@ -772,6 +775,42 @@ def users():
         search=search,
         role_filter=role_filter,
     )
+
+
+@admin_bp.route("/users/add", methods=["GET", "POST"])
+@admin_required
+def add_user():
+    """Create a new staff login. This is the replacement for public
+    registration now that customers no longer have accounts — every
+    account created here is staff, so it's always an admin account."""
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+
+        if not name or not email or not password:
+            flash("Name, email, and password are required.", "danger")
+            return redirect(url_for("admin.add_user"))
+        if password != confirm_password:
+            flash("Passwords do not match.", "danger")
+            return redirect(url_for("admin.add_user"))
+        if len(password) < 8 or not re.search(r"[A-Z]", password) or not re.search(r"[0-9]", password):
+            flash("Password must be at least 8 characters with 1 uppercase letter and 1 digit.", "danger")
+            return redirect(url_for("admin.add_user"))
+
+        existing = User.query.filter_by(email=email).first()
+        if existing:
+            flash("An account with this email already exists.", "danger")
+            return redirect(url_for("admin.add_user"))
+
+        staff = User(name=name, email=email, password=generate_password_hash(password), is_admin=True, email_verified=True)
+        db.session.add(staff)
+        db.session.commit()
+        current_app.logger.info(f"New staff account created by {current_user.email}: {email}")
+        flash(f"{name} can now log in as staff.", "success")
+        return redirect(url_for("admin.users"))
+    return render_template("admin/add_user.html")
 
 
 @admin_bp.route("/users/toggle-admin/<int:user_id>", methods=["POST"])
@@ -1929,6 +1968,85 @@ def delete_testimonial_photo(testimonial_id):
         db.session.commit()
         flash("Testimonial photo(s) removed.", "success")
     return redirect(url_for("admin.testimonials"))
+
+
+# ── Subscribers ──────────────────────────────────────────
+@admin_bp.route("/subscribers")
+@admin_required
+def subscribers():
+    """List everyone who opted in via the public Subscribe box (package
+    detail pages). Admin uses this list to manually email updates about
+    new packages — there's no automated sending here by design."""
+    page = request.args.get("page", 1, type=int)
+    search = request.args.get("search", "").strip()
+
+    query = Subscriber.query
+    if search:
+        query = query.filter(or_(Subscriber.name.ilike(f"%{search}%"), Subscriber.email.ilike(f"%{search}%")))
+
+    subscribers_data = query.order_by(Subscriber.subscribed_at.desc()).paginate(page=page, per_page=25, error_out=False)
+    return render_template(
+        "admin/subscribers.html",
+        subscribers=subscribers_data.items,
+        pagination=subscribers_data,
+        search=search,
+    )
+
+
+@admin_bp.route("/subscribers/delete/<int:subscriber_id>", methods=["POST"])
+@admin_required
+def delete_subscriber(subscriber_id):
+    subscriber = db.get_or_404(Subscriber, subscriber_id)
+    db.session.delete(subscriber)
+    db.session.commit()
+    flash("Subscriber removed.", "info")
+    return redirect(url_for("admin.subscribers"))
+
+
+@admin_bp.route("/subscribers/export")
+@admin_required
+def export_subscribers():
+    from flask import Response
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.utils import get_column_letter
+
+    subscribers_list = Subscriber.query.order_by(Subscriber.subscribed_at.desc()).all()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Subscribers"
+
+    headers = ["Name", "Email", "Subscribed At"]
+    ws.append(headers)
+    header_fill = PatternFill(start_color="175968", end_color="175968", fill_type="solid")
+    header_font = Font(color="FDFAF6", bold=True)
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(vertical="center")
+    ws.freeze_panes = "A2"
+
+    for sub in subscribers_list:
+        ws.append([sub.name, sub.email, sub.subscribed_at.replace(tzinfo=None) if sub.subscribed_at else ""])
+
+    last_row = ws.max_row
+    for r in range(2, last_row + 1):
+        ws.cell(row=r, column=3).number_format = "yyyy-mm-dd hh:mm"
+
+    widths = [24, 32, 20]
+    for i, w in enumerate(widths, start=1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    return Response(
+        buffer.getvalue(),
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=subscribers.xlsx"},
+    )
 
 
 # ── Photo Removal Routes (for quick deletion) ──────────────

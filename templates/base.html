@@ -90,9 +90,6 @@
             <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
           </ul>
         </li>
-        {% else %}
-        <li><a href="{{ url_for('auth.login') }}">Login</a></li>
-        <li><a href="{{ url_for('auth.register') }}" class="btn-nav">Sign Up</a></li>
         {% endif %}
       </ul>
       <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
@@ -127,11 +124,6 @@
           {% include '_notif_items.html' %}
         </ul>
       </div>
-    </div>
-    {% else %}
-    <div class="mm-account mm-guest">
-      <a href="{{ url_for('auth.login') }}" class="mm-login">Login</a>
-      <a href="{{ url_for('auth.register') }}" class="mm-signup">Sign Up</a>
     </div>
     {% endif %}
 
@@ -246,21 +238,9 @@
           <li><a href="{{ url_for('main.cookie_policy') }}">Cookie Policy</a></li>
         </ul>
       </div>
-      <div class="footer-col">
-        <h4>Account</h4>
-        <ul>
-          {% if current_user.is_authenticated %}
-          <li><a href="{{ url_for('auth.profile') }}">My Profile</a></li>
-          <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
-          {% else %}
-          <li><a href="{{ url_for('auth.login') }}">Login</a></li>
-          <li><a href="{{ url_for('auth.register') }}">Register</a></li>
-          {% endif %}
-        </ul>
-      </div>
     </div>
     <div class="footer-bottom">
-      <span>&copy; 2026 Travel Worthy PH. All rights reserved.</span>
+      <span>&copy; 2026 Travel Worthy PH. All rights reserved. · <a href="{{ url_for('auth.login') }}" style="color:inherit;opacity:.6;text-decoration:none;">Staff Login</a></span>
       <div class="footer-socials">
         <a href="https://www.facebook.com/travelworthyph" target="_blank" rel="noopener" aria-label="Facebook">
           <i class="fab fa-facebook-f"></i>
@@ -276,6 +256,7 @@
     </div>
   </footer>
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/subscribe.js') }}"></script>
   <script>
     // Mark a single notification as read when its link is clicked.
     // Covers every notif menu on the page (desktop bell + mobile bell) since

@@ -268,6 +268,10 @@
       class="sidebar-link {% if 'testimonials' in request.endpoint %}active{% endif %}">
       <i class="fas fa-star"></i> Reviews
     </a>
+    <a href="{{ url_for('admin.subscribers') }}"
+      class="sidebar-link {% if 'subscribers' in request.endpoint %}active{% endif %}">
+      <i class="fas fa-envelope"></i> Subscribers
+    </a>
 
     <div class="sidebar-label">Site</div>
     <a href="{{ url_for('admin.site_settings') }}"
