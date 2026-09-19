@@ -1278,11 +1278,15 @@
 
   .package-subscribe-form input {
     flex: 1 1 200px;
+    min-width: 0;
+    height: 44px;
     padding: .7rem 1rem;
     border-radius: var(--radius);
     border: 1px solid var(--linen);
     font-size: .9rem;
-  }
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: normal;
+}
 
   .package-subscribe-form button {
     background: var(--amber);
@@ -1323,9 +1327,14 @@
 
   @media (max-width: 600px) {
     .package-subscribe-form {
-      flex-direction: column;
+        flex-direction: column;
     }
-  }
+
+    .package-subscribe-form input {
+        flex: 1 1 auto;
+        width: 100%;
+    }
+}
 
   /* LOCATION MAP */
   .location-section {
