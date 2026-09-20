@@ -124,14 +124,6 @@
 
     <div class="form-row">
       <div class="form-group">
-        <label>Package Type <span style="color:var(--danger)">*</span></label>
-        <select name="package_type" class="form-control">
-          <option value="domestic" {% if package.package_type != 'international' %}selected{% endif %}>Domestic</option>
-          <option value="international" {% if package.package_type == 'international' %}selected{% endif %}>International</option>
-        </select>
-        <div style="font-size:.78rem;color:var(--mist);margin-top:.3rem">Shown to customers on the public filter.</div>
-      </div>
-      <div class="form-group">
         <label>Assigned Agent <span style="font-size:.8rem;color:var(--mist)">(optional)</span></label>
         <select name="assigned_agent_id" class="form-control">
           <option value="">— No agent assigned —</option>

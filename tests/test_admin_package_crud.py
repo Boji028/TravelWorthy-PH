@@ -125,17 +125,48 @@ class TestAddPackage:
         assert response.status_code == 302
         assert "/admin/packages" in response.headers["Location"]
 
-    def test_package_type_defaults_to_domestic(self, app, admin_client):
+    def test_package_type_is_derived_from_country_not_the_form(self, app, admin_client):
+        """package_type is no longer an admin field - it's worked out
+        from the selected country, so a value posted directly is
+        ignored rather than trusted."""
         from app import db
+        from models.continent import Continent
+        from models.country import Country
 
-        admin_client.post("/admin/packages/add", data=_valid_package_form())
+        continent = Continent(name="Asia", is_active=True)
+        db.session.add(continent)
+        db.session.commit()
+        ph = Country(name="Philippines", continent_id=continent.id, is_active=True)
+        db.session.add(ph)
+        db.session.commit()
+
+        admin_client.post(
+            "/admin/packages/add",
+            data=_valid_package_form(country_id=str(ph.id), package_type="international"),
+        )
         pkg = TourPackage.query.first()
         assert pkg.package_type == "domestic"
 
-    def test_package_type_international_saved(self, app, admin_client):
+    def test_package_type_is_international_for_a_non_ph_country(self, app, admin_client):
+        from app import db
+        from models.continent import Continent
+        from models.country import Country
+
+        continent = Continent(name="Asia", is_active=True)
+        db.session.add(continent)
+        db.session.commit()
+        jp = Country(name="Japan", continent_id=continent.id, is_active=True)
+        db.session.add(jp)
+        db.session.commit()
+
+        admin_client.post("/admin/packages/add", data=_valid_package_form(country_id=str(jp.id)))
+        pkg = TourPackage.query.first()
+        assert pkg.package_type == "international"
+
+    def test_package_type_falls_back_to_international_with_no_country(self, app, admin_client):
         from app import db
 
-        admin_client.post("/admin/packages/add", data=_valid_package_form(package_type="international"))
+        admin_client.post("/admin/packages/add", data=_valid_package_form())
         pkg = TourPackage.query.first()
         assert pkg.package_type == "international"
 

@@ -351,9 +351,7 @@ def add_package():
                     flash("Flier upload error. You can add it later via Edit Package.", "warning")
 
             is_featured = request.form.get("is_featured") == "on"
-            package_type = request.form.get("package_type", "domestic")
-            if package_type not in ("domestic", "international"):
-                package_type = "domestic"
+            package_type = _derive_package_type(country_id)
             raw_agent_id = request.form.get("assigned_agent_id")
             assigned_agent_id = int(raw_agent_id) if raw_agent_id else None
             if assigned_agent_id and not db.session.get(Agent, assigned_agent_id):
@@ -607,11 +605,7 @@ def edit_package(package_id):
             package.latitude = float(request.form.get("latitude")) if request.form.get("latitude") else None
             package.longitude = float(request.form.get("longitude")) if request.form.get("longitude") else None
             package.currency = request.form.get("currency", "PHP")
-            package.package_type = (
-                request.form.get("package_type")
-                if request.form.get("package_type") in ("domestic", "international")
-                else "domestic"
-            )
+            package.package_type = _derive_package_type(package.country_id)
             raw_agent_id = request.form.get("assigned_agent_id")
             agent_id_val = int(raw_agent_id) if raw_agent_id else None
             package.assigned_agent_id = agent_id_val if (agent_id_val and db.session.get(Agent, agent_id_val)) else None
@@ -1968,6 +1962,24 @@ def delete_testimonial_photo(testimonial_id):
 
 
 # ── Subscribers ──────────────────────────────────────────
+def _derive_package_type(country_id):
+    """Work out domestic vs international from the selected country.
+
+    Replaces the old admin-facing Package Type dropdown - the country
+    already carries this information, so asking for it separately was
+    redundant and could disagree with itself. Packages with no country
+    fall back to international, which is the safer default: it's the
+    larger category, and a mislabelled domestic package would otherwise
+    suggest local trips alongside an overseas one.
+    """
+    if not country_id:
+        return "international"
+    country = db.session.get(Country, country_id)
+    if country and country.name and country.name.strip().lower() == "philippines":
+        return "domestic"
+    return "international"
+
+
 @admin_bp.route("/subscribers")
 @admin_required
 def subscribers():
