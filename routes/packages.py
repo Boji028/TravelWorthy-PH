@@ -128,6 +128,24 @@ def list_packages() -> Union[str, object]:
     active_continent = db.session.get(Continent, continent_id) if continent_id else None
     active_country = db.session.get(Country, country_id) if country_id else None
 
+    # Package counts for the continent badges and country pills. One
+    # grouped query for the whole page rather than a count per row -
+    # the filter UI renders every continent and all their countries, so
+    # a per-row count would be an N+1 across the entire toolbar.
+    count_rows = (
+        db.session.query(TourPackage.country_id, func.count(TourPackage.id))
+        .filter(TourPackage.is_active.is_(True))
+        .group_by(TourPackage.country_id)
+        .all()
+    )
+    counts_by_country = {cid: n for cid, n in count_rows if cid is not None}
+    for continent in continents:
+        total = 0
+        for country in continent.countries:
+            country.package_count = counts_by_country.get(country.id, 0)
+            total += country.package_count
+        continent.package_count = total
+
     from models.wishlist import WishlistItem
 
     saved_package_ids = WishlistItem.saved_ids(current_user.id, WishlistItem.package_id) if current_user.is_authenticated else set()

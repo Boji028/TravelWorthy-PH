@@ -117,8 +117,3 @@ class TestMobileFilterSheet:
         assert "Japan" in page
         assert "Hidden Country" not in page
 
-    def test_mobile_type_segments_reflect_active_package_type(self, app, client):
-        response = client.get("/packages/?package_type=domestic")
-        page = response.get_data(as_text=True)
-        assert 'class="mobile-seg active" data-type="domestic"' in page
-        assert 'class="mobile-seg " data-type=""' in page

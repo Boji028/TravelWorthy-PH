@@ -65,39 +65,156 @@
     margin: 0 auto;
   }
 
+  /* ── CONTINENT BADGES ──
+     Replaced the old hover-dropdown pill tabs. Selecting a continent
+     now reveals its countries as a pill row underneath (see
+     .country-pill-row) rather than opening a hover menu, so desktop
+     and touch share one interaction. .country-tab is kept as the class
+     name on each badge because the existing AJAX filter handler binds
+     to it. */
   .country-tabs-inner {
     display: flex;
-    gap: .5rem;
+    gap: 1.5rem;
     flex-wrap: wrap;
-    margin-bottom: .75rem;
+    justify-content: flex-start;
+    margin-bottom: .85rem;
   }
 
   .country-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .45rem;
+    text-decoration: none;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    width: 88px;
+  }
+
+  .ct-badge {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform .18s, box-shadow .18s;
+  }
+
+  .ct-badge img {
+    width: 68px;
+    height: 68px;
+    display: block;
+    pointer-events: none;
+  }
+
+  .country-tab:hover .ct-badge {
+    transform: translateY(-2px);
+  }
+
+  .country-tab.active .ct-badge {
+    box-shadow: 0 0 0 2px var(--sand), 0 0 0 4px var(--amber);
+  }
+
+  .ct-name {
+    font-size: .8rem;
+    font-weight: 500;
+    color: var(--bark);
+    text-align: center;
+    line-height: 1.25;
+  }
+
+  .country-tab.active .ct-name {
+    color: var(--teal);
+    font-weight: 600;
+  }
+
+  .ct-count {
+    font-size: .72rem;
+    color: var(--mist);
+    text-align: center;
+  }
+
+  /* Country pills — shown only for the selected continent.
+     Scoped to :not([hidden]) deliberately: a bare `display: flex`
+     outranks the browser's `[hidden] { display: none }` rule, which
+     would leave every continent's row visible at once. Same trap as
+     the mobile menu backdrop in main.css. */
+  .country-pill-row:not([hidden]) {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: .45rem;
+    padding-top: .85rem;
+    margin-bottom: .85rem;
+    border-top: 1px solid var(--linen);
+  }
+
+  .country-pill {
     padding: .4rem 1rem;
     border-radius: 999px;
-    font-size: .82rem;
+    font-size: .8rem;
     text-decoration: none;
     border: 1px solid var(--linen);
     background: var(--white);
-    color: var(--mist);
+    color: var(--bark);
     cursor: pointer;
-    transition: background .2s, color .2s, border-color .2s, transform .15s;
-    height: 32px;
+    transition: background .2s, color .2s, border-color .2s;
     line-height: 1;
     display: inline-flex;
     align-items: center;
   }
 
-  .country-tab:hover {
+  .country-pill:hover {
     background: var(--linen);
-    color: var(--bark);
-    transform: translateY(-1px);
   }
 
-  .country-tab.active {
-    background: var(--amber);
-    color: white;
-    border-color: var(--amber);
+  .country-pill.active {
+    background: var(--teal);
+    color: var(--white);
+    border-color: var(--teal);
+  }
+
+  .cp-count {
+    margin-left: .4rem;
+    color: var(--mist);
+    font-size: .74rem;
+  }
+
+  .country-pill.active .cp-count {
+    color: rgba(253, 250, 246, .7);
+  }
+
+  @media (max-width: 768px) {
+    .country-tabs-inner {
+      gap: 1rem;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      justify-content: flex-start;
+      padding-bottom: .35rem;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .country-tab {
+      width: 72px;
+      flex: 0 0 auto;
+    }
+
+    .ct-badge,
+    .ct-badge img {
+      width: 56px;
+      height: 56px;
+    }
+
+    .ct-name {
+      font-size: .74rem;
+    }
+
+    .ct-count {
+      display: none;
+    }
   }
 
   .filter-inner {
@@ -191,7 +308,6 @@
        !important: btn-clear gets an inline display from the filter JS and the
        pill's .visible rule is more specific - both would otherwise win here. */
     .country-tabs-inner,
-    .filter-inner .type-pills,
     .filter-label,
     #btn-apply,
     #btn-clear,
@@ -310,28 +426,6 @@
       flex: 1;
       color: var(--ink);
     }
-
-    .mobile-type-seg {
-      display: flex;
-      background: var(--sand);
-      border-radius: 999px;
-      padding: 3px;
-      margin-bottom: 1.25rem;
-    }
-
-    .mobile-seg {
-      flex: 1;
-      border: none;
-      background: none;
-      padding: .5rem 0;
-      font-size: .8rem;
-      font-weight: 600;
-      color: var(--bark);
-      border-radius: 999px;
-      cursor: pointer;
-    }
-
-    .mobile-seg.active { background: var(--teal); color: #fff; }
 
     .mobile-region-label {
       font-size: .75rem;
@@ -694,75 +788,6 @@
     background: #0f3d48;
   }
 
-  .continent-dropdown {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-  }
-
-  .continent-menu {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background: white;
-    border-radius: var(--radius);
-    box-shadow: 0 8px 24px rgba(58, 46, 34, .15);
-    min-width: 180px;
-    z-index: 999;
-    padding: .5rem 0;
-    margin-top: 0;
-    /* changed from .3rem */
-  }
-
-  .continent-menu a {
-    display: block;
-    padding: .6rem 1.2rem;
-    color: var(--bark);
-    text-decoration: none;
-    font-size: .88rem;
-    transition: background .2s;
-  }
-
-  .continent-menu a:hover {
-    background: var(--sand);
-    color: var(--teal);
-  }
-
-  .continent-dropdown:hover .continent-menu {
-    display: block;
-  }
-
-  .type-pills {
-    display: flex;
-    gap: .4rem;
-  }
-
-  .type-pill {
-    padding: .4rem 1rem;
-    border-radius: 999px;
-    font-size: .82rem;
-    border: 1px solid var(--linen);
-    background: var(--white);
-    color: var(--mist);
-    cursor: pointer;
-    transition: background .2s, color .2s, border-color .2s;
-    height: 32px;
-    line-height: 1;
-    display: inline-flex;
-    align-items: center;
-  }
-
-  .type-pill:hover {
-    background: var(--linen);
-    color: var(--bark);
-  }
-
-  .type-pill.active {
-    background: var(--teal);
-    color: white;
-    border-color: var(--teal);
-  }
 
 </style>
 {% endblock %}
@@ -778,45 +803,68 @@
 <div class="toolbar">
   <div class="toolbar-inner">
     {% if continents %}
+    {# Icon filenames are matched by slugified continent name, so a
+       continent added in admin picks up its icon automatically. Any
+       name without a matching file falls back to the globe. #}
+    {% set continent_icons = ['africa', 'antarctica', 'asia', 'europe', 'north-america', 'oceania', 'south-america'] %}
+
     <div class="country-tabs-inner">
 
       <a class="country-tab {% if not active_continent %}active{% endif %}"
         href="{{ url_for('packages.list_packages') }}" data-label="">
-        🌐 All
+        <span class="ct-badge">
+          <img src="{{ url_for('static', filename='images/continents/all.svg') }}" alt="" />
+        </span>
+        <span class="ct-name">All</span>
       </a>
 
       {% for continent in continents %}
-      <div class="continent-dropdown">
-        <a class="country-tab {% if active_continent and active_continent.id == continent.id %}active{% endif %}"
-          href="{{ url_for('packages.list_packages', continent_id=continent.id) }}" data-label="{{ continent.name }}">
-          {{ continent.flag_emoji or '' }} {{ continent.name }} ▾
-        </a>
-        <div class="continent-menu">
-          <a href="{{ url_for('packages.list_packages', continent_id=continent.id) }}" data-label="{{ continent.name }}">
-            All {{ continent.name }}
-          </a>
-          {% for country in continent.countries %}
-          {% if country.is_active %}
-          <a href="{{ url_for('packages.list_packages', continent_id=continent.id, country_id=country.id) }}"
-            data-label="{{ continent.name }} → {{ country.name }}" {% if
-            active_country and active_country.id==country.id %}style="color:var(--amber);font-weight:600;" {% endif %}>
-            {{ country.flag_emoji or '' }} {{ country.name }}
-          </a>
-          {% endif %}
-          {% endfor %}
-        </div>
-      </div>
+      {% set slug = continent.name | lower | replace(' ', '-') %}
+      {% set icon = slug if slug in continent_icons else 'all' %}
+      <a class="country-tab {% if active_continent and active_continent.id == continent.id %}active{% endif %}"
+        href="{{ url_for('packages.list_packages', continent_id=continent.id) }}" data-label="{{ continent.name }}"
+        data-continent-id="{{ continent.id }}">
+        <span class="ct-badge">
+          <img src="{{ url_for('static', filename='images/continents/' + icon + '.svg') }}" alt="" />
+        </span>
+        <span class="ct-name">{{ continent.name }}</span>
+      </a>
       {% endfor %}
 
     </div>
+
+    {# Countries appear only once a continent is chosen, replacing the
+       old hover menu. Every continent's row is rendered up front and
+       hidden, because AJAX filtering only swaps the cards grid and
+       pagination - it never re-renders this toolbar, so the rows have
+       to already be here for JS to reveal on badge click.
+
+       Pills deliberately do NOT carry the .country-tab class: that
+       handler clears .active from every .country-tab, which would
+       switch off the parent continent badge when a country is picked.
+       They get their own handler instead. #}
+    {% for continent in continents %}
+    <div class="country-pill-row" data-continent="{{ continent.id }}"
+      {% if not (active_continent and active_continent.id == continent.id) %}hidden{% endif %}>
+      <a class="country-pill {% if not active_country %}active{% endif %}"
+        href="{{ url_for('packages.list_packages', continent_id=continent.id) }}"
+        data-label="{{ continent.name }}">
+        All {{ continent.name }}
+      </a>
+      {% for country in continent.countries %}
+      {% if country.is_active %}
+      <a class="country-pill {% if active_country and active_country.id == country.id %}active{% endif %}"
+        href="{{ url_for('packages.list_packages', continent_id=continent.id, country_id=country.id) }}"
+        data-label="{{ continent.name }} → {{ country.name }}">
+        {{ country.name }}{% if country.package_count %}<span class="cp-count">{{ country.package_count }}</span>{% endif %}
+      </a>
+      {% endif %}
+      {% endfor %}
+    </div>
+    {% endfor %}
     {% endif %}
 
     <div class="filter-inner">
-      <div class="type-pills">
-        <button type="button" class="type-pill {% if not package_type %}active{% endif %}" data-type="">All types</button>
-        <button type="button" class="type-pill {% if package_type == 'domestic' %}active{% endif %}" data-type="domestic">Domestic</button>
-        <button type="button" class="type-pill {% if package_type == 'international' %}active{% endif %}" data-type="international">International</button>
-      </div>
       <button type="button" class="mobile-filter-toggle" id="mobileFilterToggle">
         <i class="fas fa-sliders"></i> Filters
         {% if active_continent or active_country or package_type %}<span class="mft-dot"></span>{% endif %}
@@ -858,11 +906,6 @@
             <i class="fas fa-search"></i>
             <input id="filter-destination-mobile" type="text" placeholder="Destination…"
               value="{{ request.args.get('destination','') }}" />
-          </div>
-          <div class="mobile-type-seg">
-            <button type="button" class="mobile-seg {% if not package_type %}active{% endif %}" data-type="">All types</button>
-            <button type="button" class="mobile-seg {% if package_type == 'domestic' %}active{% endif %}" data-type="domestic">Domestic</button>
-            <button type="button" class="mobile-seg {% if package_type == 'international' %}active{% endif %}" data-type="international">International</button>
           </div>
           {% if continents %}
           <div class="mobile-region-label">Region</div>
@@ -1079,6 +1122,22 @@
       e.preventDefault();
       document.querySelectorAll('.country-tab').forEach(t => t.classList.remove('active'));
       this.classList.add('active');
+
+      // Reveal this continent's country pills (and hide the others).
+      // The rows are all pre-rendered above - see the template comment
+      // there for why. "All" has no continent id, so every row hides.
+      const continentId = this.dataset.continentId || '';
+      document.querySelectorAll('.country-pill-row').forEach(row => {
+        const match = continentId && row.dataset.continent === continentId;
+        row.hidden = !match;
+        if (match) {
+          // Reset to "All <continent>" so a country left selected from
+          // a previous visit to this row doesn't look active against
+          // results that aren't filtered to it.
+          row.querySelectorAll('.country-pill').forEach((p, i) => p.classList.toggle('active', i === 0));
+        }
+      });
+
       updateBreadcrumb(this.dataset.label);
       const url = appendType(this.getAttribute('href'));
       history.pushState({}, '', url);
@@ -1148,10 +1207,18 @@
       });
   });
 
-  // ── Country Dropdown Links ──
-  document.querySelectorAll('.continent-menu a').forEach(link => {
+  // ── Country Pills ──
+  // Replaces the old hover-dropdown links. Marks the clicked pill
+  // active within its own row only, leaving the continent badge above
+  // it switched on.
+  document.querySelectorAll('.country-pill').forEach(link => {
     link.addEventListener('click', function (e) {
       e.preventDefault();
+      const row = this.closest('.country-pill-row');
+      if (row) {
+        row.querySelectorAll('.country-pill').forEach(p => p.classList.remove('active'));
+      }
+      this.classList.add('active');
       updateBreadcrumb(this.dataset.label);
       const url = appendType(this.getAttribute('href'));
       history.pushState({}, '', url);
@@ -1182,42 +1249,6 @@
     });
   });
 
-  // ── Type Pills (Domestic / International) ──
-  document.querySelectorAll('.type-pill').forEach(pill => {
-    pill.addEventListener('click', function () {
-      document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('active'));
-      this.classList.add('active');
-      activePackageType = this.dataset.type;
-      const currentTab = document.querySelector('.country-tab.active');
-      const baseHref = currentTab ? currentTab.getAttribute('href') : "{{ url_for('packages.list_packages') }}";
-      const url = appendType(baseHref);
-      history.pushState({}, '', url);
-      grid.classList.add('loading');
-      grid.innerHTML = skeletonHTML();
-      fetch(url, {
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-          }
-        })
-        .then(r => r.text())
-        .then(html => {
-          applyAjaxResponse(html);
-          grid.classList.remove('loading');
-          grid.querySelectorAll('.pkg-card').forEach((card, i) => {
-            card.style.animationDelay = `${i * 40}ms`;
-          });
-          initGalleries();
-          const count = grid.querySelectorAll('.pkg-card').length;
-          resultsInfo.innerHTML = `Showing <strong>${count}</strong> package${count !== 1 ? 's' : ''}`;
-        })
-        .catch(() => {
-          grid.classList.remove('loading');
-          grid.innerHTML =
-            '<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-exclamation-circle"></i></div><h3>Something went wrong</h3><p>Please try again in a moment.</p></div>';
-          paginationWrap.innerHTML = '';
-        });
-    });
-  });
 
   // ── Filter Apply ──
   document.getElementById('btn-apply').addEventListener('click', () => {
@@ -1264,14 +1295,6 @@
     closeBtn.addEventListener('click', closeSheet);
     overlay.addEventListener('click', e => { if (e.target === overlay) closeSheet(); });
 
-    document.querySelectorAll('.mobile-seg').forEach(seg => {
-      seg.addEventListener('click', () => {
-        document.querySelectorAll('.mobile-seg').forEach(s => s.classList.remove('active'));
-        seg.classList.add('active');
-        mobilePackageType = seg.dataset.type;
-      });
-    });
-
     // Rebuilds the country dropdown's options from continentCountries
     // (embedded server-side, see the <script> right after the continent
     // select) whenever the continent changes. Disabled + reset to "All
@@ -1315,8 +1338,6 @@
           continentSelectEl.querySelector('.cselect-option').dataset.label;
       }
       populateCountrySelect('');
-      document.querySelectorAll('.mobile-seg').forEach(s => s.classList.remove('active'));
-      document.querySelector('.mobile-seg[data-type=""]').classList.add('active');
     });
 
     applyBtn.addEventListener('click', () => {
