@@ -74,28 +74,53 @@
      to it. */
   .country-tabs-inner {
     display: flex;
-    gap: 1.5rem;
+    gap: 1.25rem;
     flex-wrap: wrap;
     justify-content: flex-start;
-    margin-bottom: .85rem;
+    margin-bottom: .7rem;
   }
 
   .country-tab {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: .45rem;
+    gap: .4rem;
     text-decoration: none;
     cursor: pointer;
     background: none;
     border: none;
     padding: 0;
-    width: 88px;
+    width: 76px;
+  }
+
+  /* Compact mode — the toolbar is sticky, so at full size the badges
+     follow you down the page and crowd out the packages themselves.
+     .is-compact is toggled on scroll (see the observer below): full
+     size at the top of the page, condensed once you've moved past it. */
+  .toolbar.is-compact .country-tab {
+    flex-direction: row;
+    gap: .45rem;
+    width: auto;
+  }
+
+  .toolbar.is-compact .ct-badge {
+    width: 32px;
+    height: 32px;
+  }
+
+  .toolbar.is-compact .country-tabs-inner {
+    gap: .85rem;
+    margin-bottom: .5rem;
+  }
+
+  .toolbar.is-compact .ct-name {
+    font-size: .78rem;
   }
 
   .ct-badge {
-    width: 68px;
-    height: 68px;
+    width: 56px;
+    height: 56px;
+    transition: width .2s, height .2s;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -104,8 +129,8 @@
   }
 
   .ct-badge img {
-    width: 68px;
-    height: 68px;
+    width: 100%;
+    height: 100%;
     display: block;
     pointer-events: none;
   }
@@ -1206,6 +1231,28 @@
         paginationWrap.innerHTML = '';
       });
   });
+
+  // ── Compact sticky toolbar ──
+  // The toolbar sticks below the nav, so the full-size continent badges
+  // would otherwise ride down the page and leave little room for the
+  // packages. A zero-height sentinel above the toolbar tells us when
+  // the toolbar has actually stuck; IntersectionObserver rather than a
+  // scroll listener so this costs nothing on every frame.
+  (function initCompactToolbar() {
+    const toolbar = document.querySelector('.toolbar');
+    if (!toolbar || !('IntersectionObserver' in window)) return;
+
+    const sentinel = document.createElement('div');
+    sentinel.style.cssText = 'position:absolute;height:1px;width:1px;';
+    toolbar.parentNode.insertBefore(sentinel, toolbar);
+
+    new IntersectionObserver(
+      ([entry]) => toolbar.classList.toggle('is-compact', !entry.isIntersecting),
+      // Matches the toolbar's own `top: 68px` — it becomes stuck at the
+      // point the sentinel passes under the nav.
+      { rootMargin: '-68px 0px 0px 0px', threshold: 0 }
+    ).observe(sentinel);
+  })();
 
   // ── Country Pills ──
   // Replaces the old hover-dropdown links. Marks the clicked pill
