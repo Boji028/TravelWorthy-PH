@@ -1,13 +1,9 @@
-"""Tests for the mobile filter sheet markup on the packages list page.
+"""Tests for the continent/country filter markup on the packages list page.
 
-The sheet replaced an inline-expanding filter bar that looked cluttered on
-small screens. Region and country selection are two cascading custom
-dropdowns (.cselect, see static/js/main.js initCustomSelect() and
-static/css/main.css) rather than native <select> elements, since native
-select option lists render OS-native and can't be themed. Picking a
-continent repopulates the country dropdown client-side from a
-continentCountries JS object embedded in the page, so switching regions
-doesn't require another request.
+The mobile filter sheet was removed: mobile now shows the same
+continent icon badges and country pill row as desktop, scrolling
+sideways instead of collapsing into a bottom sheet with dropdowns.
+These tests cover the markup both breakpoints share.
 """
 from models.package import TourPackage
 from models.continent import Continent
@@ -51,8 +47,8 @@ def _make_package(db, country, title, **overrides):
     return package
 
 
-class TestMobileFilterSheet:
-    def test_sheet_renders_with_no_filter_active(self, app, client):
+class TestContinentFilter:
+    def test_continent_badges_render(self, app, client):
         from app import db
 
         _make_continent(db, "Asia")
@@ -60,60 +56,65 @@ class TestMobileFilterSheet:
         response = client.get("/packages/")
         assert response.status_code == 200
         page = response.get_data(as_text=True)
-        assert 'id="mobileSheetOverlay"' in page
-        assert 'id="mobileContinentCSelect"' in page
-        assert 'id="mobileCountryCSelect"' in page
-        assert 'data-value="" data-label="🌐 All continents"' in page
+        assert 'class="country-tabs-inner"' in page
+        # The "All" badge plus one per continent.
+        assert "images/continents/all.svg" in page
+        assert "images/continents/asia.svg" in page
 
-    def test_active_continent_is_marked_selected_in_dropdown(self, app, client):
+    def test_unknown_continent_name_falls_back_to_the_globe_icon(self, app, client):
+        """A continent added in admin with no matching icon file should
+        still render, using all.svg, rather than a broken image."""
         from app import db
 
-        oceania = _make_continent(db, "Oceania")
-        australia = _make_country(db, oceania, "Australia")
-        _make_package(db, australia, "Sydney Tour")
+        _make_continent(db, "Atlantis")
 
-        response = client.get(f"/packages/?continent_id={oceania.id}&country_id={australia.id}")
-        page = response.get_data(as_text=True)
+        page = client.get("/packages/").get_data(as_text=True)
+        assert "images/continents/atlantis.svg" not in page
+        assert "images/continents/all.svg" in page
 
-        assert f'data-value="{oceania.id}" data-label="🌐 Oceania"' in page or f'data-value="{oceania.id}" data-label=" Oceania"' in page
-        # The active continent's option carries the selected class
-        opt_start = page.find(f'data-value="{oceania.id}"')
-        opt_snippet = page[max(0, opt_start - 100):opt_start]
-        assert "selected" in opt_snippet
-        # The active country's id is threaded into the client-side
-        # populateCountrySelect() call so it can be preselected once the
-        # country dropdown is populated on load.
-        assert f'populateCountrySelect(continentSelect.getValue(), "{australia.id}")' in page
-
-    def test_every_continent_gets_an_entry_in_the_country_data(self, app, client):
-        """Every continent's active countries are embedded in the
-        continentCountries JS object (not just the active one), so the
-        sheet can switch regions client-side without another request."""
+    def test_every_continent_gets_its_own_country_pill_row(self, app, client):
+        """Rows for all continents are rendered up front and toggled by
+        JS, because AJAX filtering never re-renders the toolbar."""
         from app import db
 
-        oceania = _make_continent(db, "Oceania")
-        _make_country(db, oceania, "Australia")
         asia = _make_continent(db, "Asia")
+        europe = _make_continent(db, "Europe")
         _make_country(db, asia, "Japan")
+        _make_country(db, europe, "France")
 
-        response = client.get(f"/packages/?continent_id={oceania.id}")
-        page = response.get_data(as_text=True)
-
-        assert f'"{oceania.id}":' in page
-        assert f'"{asia.id}":' in page
-        assert "Australia" in page
+        page = client.get("/packages/").get_data(as_text=True)
+        assert f'data-continent="{asia.id}"' in page
+        assert f'data-continent="{europe.id}"' in page
         assert "Japan" in page
+        assert "France" in page
 
-    def test_inactive_country_excluded_from_country_data(self, app, client):
+    def test_only_the_active_continent_row_is_visible(self, app, client):
         from app import db
 
         asia = _make_continent(db, "Asia")
-        _make_country(db, asia, "Japan", is_active=True)
-        _make_country(db, asia, "Hidden Country", is_active=False)
+        europe = _make_continent(db, "Europe")
+        _make_country(db, asia, "Japan")
+        _make_country(db, europe, "France")
 
-        response = client.get("/packages/")
-        page = response.get_data(as_text=True)
+        page = client.get(f"/packages/?continent_id={asia.id}").get_data(as_text=True)
+        # The inactive continent's row carries the hidden attribute.
+        assert f'data-continent="{europe.id}"\n      hidden' in page or f'data-continent="{europe.id}" hidden' in page
 
-        assert "Japan" in page
-        assert "Hidden Country" not in page
+    def test_country_pills_show_package_counts(self, app, client):
+        from app import db
 
+        asia = _make_continent(db, "Asia")
+        japan = _make_country(db, asia, "Japan")
+        _make_package(db, japan, "Tokyo Tour")
+
+        page = client.get("/packages/").get_data(as_text=True)
+        assert 'class="cp-count"' in page
+
+    def test_the_removed_mobile_filter_sheet_is_gone(self, app, client):
+        from app import db
+
+        _make_continent(db, "Asia")
+
+        page = client.get("/packages/").get_data(as_text=True)
+        assert "mobileSheetOverlay" not in page
+        assert "mobileFilterToggle" not in page

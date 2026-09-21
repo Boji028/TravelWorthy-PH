@@ -75,15 +75,41 @@
   .country-tabs-inner {
     display: flex;
     gap: 1.25rem;
-    flex-wrap: wrap;
+    transition: gap .18s ease, margin-bottom .18s ease, padding .18s ease;
+    flex-wrap: nowrap;
     justify-content: flex-start;
     margin-bottom: .7rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    /* The active badge's ring is a box-shadow, which paints OUTSIDE the
+       element - without this padding the scroll container clips it and
+       the top of the circle looks sliced off. */
+    padding: 6px 0 2px 6px;
+    margin-left: -6px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+    mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent 100%);
+  }
+
+  .country-tabs-inner.at-end {
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+
+  .country-tabs-inner::-webkit-scrollbar {
+    display: none;
   }
 
   .country-tab {
     display: flex;
     flex-direction: column;
     align-items: center;
+    transition: gap .18s ease;
+    flex: 0 0 auto;
+    user-select: none;
+    -webkit-user-select: none;
     gap: .4rem;
     text-decoration: none;
     cursor: pointer;
@@ -93,39 +119,21 @@
     width: 76px;
   }
 
-  /* Compact mode — the toolbar is sticky, so at full size the badges
-     follow you down the page and crowd out the packages themselves.
-     .is-compact is toggled on scroll (see the observer below): full
-     size at the top of the page, condensed once you've moved past it. */
-  .toolbar.is-compact .country-tab {
-    flex-direction: row;
-    gap: .45rem;
-    width: auto;
-  }
-
-  .toolbar.is-compact .ct-badge {
-    width: 32px;
-    height: 32px;
-  }
-
-  .toolbar.is-compact .country-tabs-inner {
-    gap: .85rem;
-    margin-bottom: .5rem;
-  }
-
-  .toolbar.is-compact .ct-name {
-    font-size: .78rem;
-  }
-
   .ct-badge {
     width: 56px;
     height: 56px;
-    transition: width .2s, height .2s;
+    /* Never let the row's layout squeeze the badge itself either. */
+    flex: 0 0 auto;
+    aspect-ratio: 1 / 1;
     border-radius: 50%;
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform .18s, box-shadow .18s;
+    /* One declaration covering every property that changes - listing
+       transition twice meant the second silently replaced the first,
+       so the size change never animated. */
+    transition: width .18s ease, height .18s ease, transform .18s, box-shadow .18s;
   }
 
   .ct-badge img {
@@ -133,6 +141,13 @@
     height: 100%;
     display: block;
     pointer-events: none;
+    /* The badge is a flex container, so this image is a flex item and
+       would shrink horizontally by default - that squashed the icon
+       narrower while it kept full height, and the circle got clipped.
+       flex: 0 0 auto stops the shrinking; object-fit guarantees the
+       aspect ratio survives whatever size the badge ends up. */
+    flex: 0 0 auto;
+    object-fit: contain;
   }
 
   .country-tab:hover .ct-badge {
@@ -140,7 +155,37 @@
   }
 
   .country-tab.active .ct-badge {
-    box-shadow: 0 0 0 2px var(--sand), 0 0 0 4px var(--amber);
+    box-shadow: 0 0 0 2px var(--white), 0 0 0 4px var(--amber);
+  }
+
+  /* Compact mode on desktop: the badge shrinks and the label moves
+     alongside it, so the sticky toolbar stays one short line while
+     every continent is still named. Mobile compacts further (see the
+     768px block) since five labels won't fit across a phone. */
+  .toolbar.is-compact .country-tab {
+    flex-direction: row;
+    align-items: center;
+    gap: .45rem;
+    width: auto;
+  }
+
+  .toolbar.is-compact .ct-badge {
+    width: 34px;
+    height: 34px;
+  }
+
+  .toolbar.is-compact .ct-name {
+    font-size: .8rem;
+  }
+
+  .toolbar.is-compact .country-tabs-inner {
+    gap: 1rem;
+    margin-bottom: .4rem;
+    padding: 5px 0 3px 6px;
+  }
+
+  .toolbar.is-compact .country-tab.active .ct-badge {
+    box-shadow: 0 0 0 2px var(--white), 0 0 0 3px var(--amber);
   }
 
   .ct-name {
@@ -149,6 +194,7 @@
     color: var(--bark);
     text-align: center;
     line-height: 1.25;
+    transition: font-size .18s ease;
   }
 
   .country-tab.active .ct-name {
@@ -156,6 +202,15 @@
     font-weight: 600;
   }
 
+
+  @media (prefers-reduced-motion: reduce) {
+    .country-tabs-inner,
+    .country-tab,
+    .ct-badge,
+    .ct-name {
+      transition: none;
+    }
+  }
 
   /* Pagination links. Their own class rather than reusing
      .country-tab, which is now the continent badge (a tall flex
@@ -269,12 +324,7 @@
 
   @media (max-width: 768px) {
     .country-tabs-inner {
-      gap: 1rem;
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      justify-content: flex-start;
-      padding-bottom: .35rem;
-      -webkit-overflow-scrolling: touch;
+      gap: .9rem;
     }
 
     .country-tab {
@@ -282,204 +332,57 @@
       flex: 0 0 auto;
     }
 
-    .ct-badge,
-    .ct-badge img {
-      width: 56px;
-      height: 56px;
+    .ct-badge {
+      width: 52px;
+      height: 52px;
     }
 
     .ct-name {
       font-size: .74rem;
     }
 
+    .country-pill-row:not([hidden]) {
+      padding-top: .7rem;
+      margin-bottom: .6rem;
+    }
+
+    /* Compact mode is mobile-only. On desktop the toolbar has room for
+       the full badges and labels, so shrinking them there just made the
+       filter harder to read for no benefit. */
+    .toolbar.is-compact .country-tab {
+      width: auto;
+      gap: 0;
+    }
+
+    .toolbar.is-compact .ct-badge {
+      width: 36px;
+      height: 36px;
+    }
+
+    /* Dropping the label is what actually buys back the vertical space;
+       the name stays available as a tooltip and to screen readers. */
+    .toolbar.is-compact .ct-name {
+      display: none;
+    }
+
+    .toolbar.is-compact .country-tabs-inner {
+      gap: .8rem;
+      margin-bottom: .4rem;
+      padding: 5px 0 3px 6px;
+    }
+
+    .toolbar.is-compact .country-tab.active .ct-badge {
+      box-shadow: 0 0 0 2px var(--white), 0 0 0 3px var(--amber);
+    }
   }
-
-  .filter-inner {
-    display: flex;
-    align-items: center;
-    gap: .75rem;
-    flex-wrap: wrap;
-  }
-
-
-
-
-
-
-
-
-
 
   /* ── MOBILE COLLAPSED FILTERS ── */
-  .mobile-filter-toggle { display: none; }
-  .mobile-sheet-overlay { display: none; }
 
   @media (max-width: 768px) {
     .toolbar { padding: .6rem 1rem; }
 
     .toolbar-inner { display: flex; flex-direction: column; }
 
-    .filter-inner { flex-wrap: nowrap; gap: .5rem; }
-
-    /* the desktop tabs/pills/apply/clear/breadcrumb live inside the sheet on mobile instead.
-       !important: btn-clear gets an inline display from the filter JS and the
-       pill's .visible rule is more specific - both would otherwise win here. */
-    .country-tabs-inner { display: none !important; }
-
-    .filter-search { max-width: none; min-width: 0; flex: 1; }
-
-    .mobile-filter-toggle {
-      display: inline-flex;
-      align-items: center;
-      gap: .45rem;
-      position: relative;
-      background: var(--teal);
-      color: #fff;
-      border: none;
-      border-radius: 999px;
-      padding: .55rem 1rem;
-      font-size: .82rem;
-      font-weight: 600;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-
-    .mft-dot {
-      position: absolute;
-      top: 2px;
-      right: 4px;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--amber);
-    }
-
-    /* ── Mobile filter sheet ── */
-    .mobile-sheet-overlay.open {
-      display: flex;
-      position: fixed;
-      inset: 0;
-      background: rgba(30, 22, 16, .45);
-      z-index: 300;
-      align-items: flex-end;
-      justify-content: center;
-    }
-
-    .mobile-sheet {
-      background: var(--white);
-      width: 100%;
-      max-width: 480px;
-      max-height: 85vh;
-      border-radius: 20px 20px 0 0;
-      display: flex;
-      flex-direction: column;
-      animation: sheetSlideUp .25s ease;
-    }
-
-    @keyframes sheetSlideUp {
-      from { transform: translateY(100%); }
-      to { transform: translateY(0); }
-    }
-
-    .mobile-sheet-handle {
-      width: 36px;
-      height: 4px;
-      background: var(--linen);
-      border-radius: 2px;
-      margin: .6rem auto;
-      flex-shrink: 0;
-    }
-
-    .mobile-sheet-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 1.25rem .75rem;
-      border-bottom: 1px solid var(--linen);
-      flex-shrink: 0;
-    }
-
-    .mobile-sheet-header span {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--ink);
-    }
-
-    .mobile-sheet-close {
-      font-size: 1.1rem;
-      color: var(--mist);
-      cursor: pointer;
-      padding: .25rem;
-    }
-
-    .mobile-sheet-body {
-      padding: 1rem 1.25rem;
-      overflow-y: auto;
-      flex: 1;
-    }
-
-    .mobile-sheet-search {
-      display: flex;
-      align-items: center;
-      gap: .5rem;
-      background: var(--sand);
-      border: 1px solid var(--linen);
-      border-radius: 999px;
-      padding: .6rem 1rem;
-      margin-bottom: 1rem;
-    }
-
-    .mobile-sheet-search i { color: var(--mist); font-size: .85rem; }
-
-    .mobile-sheet-search input {
-      border: 0;
-      background: none;
-      outline: none;
-      font-size: .9rem;
-      flex: 1;
-      color: var(--ink);
-    }
-
-    .mobile-region-label {
-      font-size: .75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      color: var(--mist);
-      margin-bottom: .6rem;
-    }
-
-    .mobile-sheet-footer {
-      display: flex;
-      gap: .6rem;
-      padding: .85rem 1.25rem;
-      border-top: 1px solid var(--linen);
-      flex-shrink: 0;
-    }
-
-    .mobile-clear-btn {
-      flex: 1;
-      background: #fff;
-      border: 1px solid var(--linen);
-      border-radius: 999px;
-      padding: .7rem;
-      font-size: .82rem;
-      font-weight: 600;
-      color: var(--bark);
-      cursor: pointer;
-    }
-
-    .mobile-apply-btn {
-      flex: 2;
-      background: var(--amber);
-      border: none;
-      border-radius: 999px;
-      padding: .7rem;
-      font-size: .82rem;
-      font-weight: 600;
-      color: #fff;
-      cursor: pointer;
-    }
   }
 
   /* ── PACKAGES AREA ── */
@@ -824,7 +727,7 @@
     <div class="country-tabs-inner">
 
       <a class="country-tab {% if not active_continent %}active{% endif %}"
-        href="{{ url_for('packages.list_packages') }}" data-label="">
+        href="{{ url_for('packages.list_packages') }}" data-label="" title="All continents">
         <span class="ct-badge">
           <img src="{{ url_for('static', filename='images/continents/all.svg') }}" alt="" />
         </span>
@@ -836,7 +739,7 @@
       {% set icon = slug if slug in continent_icons else 'all' %}
       <a class="country-tab {% if active_continent and active_continent.id == continent.id %}active{% endif %}"
         href="{{ url_for('packages.list_packages', continent_id=continent.id) }}" data-label="{{ continent.name }}"
-        data-continent-id="{{ continent.id }}">
+        data-continent-id="{{ continent.id }}" title="{{ continent.name }}">
         <span class="ct-badge">
           <img src="{{ url_for('static', filename='images/continents/' + icon + '.svg') }}" alt="" />
         </span>
@@ -877,73 +780,6 @@
     {% endfor %}
     {% endif %}
 
-    <div class="filter-inner">
-      <button type="button" class="mobile-filter-toggle" id="mobileFilterToggle">
-        <i class="fas fa-sliders"></i> Filters
-        {% if active_continent or active_country or package_type %}<span class="mft-dot"></span>{% endif %}
-      </button>
-    </div>
-
-    <div class="mobile-sheet-overlay" id="mobileSheetOverlay">
-      <div class="mobile-sheet">
-        <div class="mobile-sheet-handle"></div>
-        <div class="mobile-sheet-header">
-          <span>Filters</span>
-          <i class="fas fa-times mobile-sheet-close" id="mobileSheetClose"></i>
-        </div>
-        <div class="mobile-sheet-body">
-          <div class="mobile-sheet-search">
-            <i class="fas fa-search"></i>
-            <input id="filter-destination-mobile" type="text" placeholder="Destination…"
-              value="{{ request.args.get('destination','') }}" />
-          </div>
-          {% if continents %}
-          <div class="mobile-region-label">Region</div>
-          <div class="cselect" id="mobileContinentCSelect" style="margin-bottom:.6rem;">
-            <button type="button" class="cselect-trigger">
-              <span class="cselect-label">{% if active_continent %}{{ active_continent.flag_emoji or '' }} {{ active_continent.name }}{% else %}🌐 All continents{% endif %}</span>
-              <i class="fas fa-chevron-down cselect-chevron"></i>
-            </button>
-            <div class="cselect-list">
-              <div class="cselect-option {% if not active_continent %}selected{% endif %}" data-value="" data-label="🌐 All continents">
-                🌐 All continents{% if not active_continent %}<i class="fas fa-check"></i>{% endif %}
-              </div>
-              {% for continent in continents %}
-              <div class="cselect-option {% if active_continent and active_continent.id == continent.id %}selected{% endif %}"
-                data-value="{{ continent.id }}" data-label="{{ continent.flag_emoji or '' }} {{ continent.name }}">
-                {{ continent.flag_emoji or '' }} {{ continent.name }}{% if active_continent and active_continent.id == continent.id %}<i class="fas fa-check"></i>{% endif %}
-              </div>
-              {% endfor %}
-            </div>
-          </div>
-          <div class="cselect" id="mobileCountryCSelect">
-            <button type="button" class="cselect-trigger">
-              <span class="cselect-label">All countries</span>
-              <i class="fas fa-chevron-down cselect-chevron"></i>
-            </button>
-            <div class="cselect-list">
-              <div class="cselect-option selected" data-value="" data-label="All countries">All countries<i class="fas fa-check"></i></div>
-            </div>
-          </div>
-          <script nonce="{{ csp_nonce() }}">
-            var continentCountries = {
-              {% for continent in continents %}
-              "{{ continent.id }}": [
-                {% for country in continent.countries | selectattr('is_active') | list %}
-                { id: {{ country.id }}, label: {{ (((country.flag_emoji ~ ' ') if country.flag_emoji else '') ~ country.name) | tojson }} }{{ "," if not loop.last }}
-                {% endfor %}
-              ]{{ "," if not loop.last }}
-              {% endfor %}
-            };
-          </script>
-          {% endif %}
-        </div>
-        <div class="mobile-sheet-footer">
-          <button type="button" class="mobile-clear-btn" id="mobileClearBtn">Clear</button>
-          <button type="button" class="mobile-apply-btn" id="mobileApplyBtn">Apply filters</button>
-        </div>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -1205,38 +1041,73 @@
   });
 
   // ── Compact sticky toolbar ──
-  // The toolbar sticks below the nav, so the full-size continent badges
-  // would otherwise ride down the page and leave little room for the
-  // packages. A zero-height sentinel above the toolbar tells us when
-  // the toolbar has actually stuck; IntersectionObserver rather than a
-  // scroll listener so this costs nothing on every frame.
+  // The toolbar sticks below the nav, so full-size continent badges
+  // would ride down the page and crowd out the packages.
+  //
+  // This deliberately does NOT observe an element near the toolbar.
+  // Compacting shrinks the toolbar, which moves anything positioned
+  // around it, which flips the state back - a feedback loop that shows
+  // up as flickering. Instead the trigger point is measured once from
+  // the document, so it can never be moved by the class it toggles.
   (function initCompactToolbar() {
     const toolbar = document.querySelector('.toolbar');
-    if (!toolbar || !('IntersectionObserver' in window)) return;
+    if (!toolbar) return;
 
-    const sentinel = document.createElement('div');
-    sentinel.style.cssText = 'position:absolute;height:1px;width:1px;';
-    toolbar.parentNode.insertBefore(sentinel, toolbar);
+    const NAV_HEIGHT = 68;   // matches the toolbar's own `top: 68px`
+    const HYSTERESIS = 40;   // gap between the on and off points
 
-    new IntersectionObserver(
-      ([entry]) => toolbar.classList.toggle('is-compact', !entry.isIntersecting),
-      // Matches the toolbar's own `top: 68px` — it becomes stuck at the
-      // point the sentinel passes under the nav.
-      { rootMargin: '-68px 0px 0px 0px', threshold: 0 }
-    ).observe(sentinel);
+    let triggerPoint = 0;
+    let compact = false;
+    let ticking = false;
+
+    function measure() {
+      // Measured with the toolbar expanded so the number is stable.
+      const wasCompact = compact;
+      if (wasCompact) toolbar.classList.remove('is-compact');
+      triggerPoint = toolbar.getBoundingClientRect().top + window.scrollY - NAV_HEIGHT;
+      if (wasCompact) toolbar.classList.add('is-compact');
+    }
+
+    function update() {
+      ticking = false;
+      const y = window.scrollY;
+      // Separate thresholds for switching on and off, so sitting right
+      // at the boundary can't rapidly toggle back and forth.
+      if (!compact && y > triggerPoint + HYSTERESIS) {
+        compact = true;
+        toolbar.classList.add('is-compact');
+      } else if (compact && y < triggerPoint) {
+        compact = false;
+        toolbar.classList.remove('is-compact');
+      }
+    }
+
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(update);
+    }
+
+    measure();
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', () => { measure(); update(); });
   })();
 
   // ── Country pill row scrolling ──
   // The row scrolls sideways, so the right-edge fade needs switching
   // off once you reach the end, and a selected pill sitting off-screen
   // needs bringing into view when its row is revealed.
-  function syncPillRowFade(row) {
+  function syncRowFade(row) {
     if (!row) return;
     const atEnd = row.scrollLeft + row.clientWidth >= row.scrollWidth - 2;
     // A row that doesn't overflow at all has nothing to fade either.
     const fits = row.scrollWidth <= row.clientWidth + 2;
     row.classList.toggle('at-end', atEnd || fits);
   }
+
+  // Alias kept so the badge-click handler below reads naturally.
+  const syncPillRowFade = syncRowFade;
 
   // ── Drag-to-scroll on the country pill row ──
   // Touch and trackpads scroll this row natively, but with a plain
@@ -1275,7 +1146,7 @@
         try { row.setPointerCapture(e.pointerId); } catch (err) { /* already captured */ }
       }
       row.scrollLeft = startScroll - dx;
-      syncPillRowFade(row);
+      syncRowFade(row);
     });
 
     function endDrag() {
@@ -1302,15 +1173,39 @@
     row.addEventListener('dragstart', e => e.preventDefault());
   }
 
-  document.querySelectorAll('.country-pill-row').forEach(row => {
-    row.addEventListener('scroll', () => syncPillRowFade(row), { passive: true });
-    syncPillRowFade(row);
+  // Both the continent badges and the country pills scroll sideways and
+  // support click-and-drag, so they're wired up together.
+  const SCROLL_ROWS = '.country-pill-row, .country-tabs-inner';
+
+  document.querySelectorAll(SCROLL_ROWS).forEach(row => {
+    row.addEventListener('scroll', () => syncRowFade(row), { passive: true });
+    syncRowFade(row);
     initDragScroll(row);
   });
 
   window.addEventListener('resize', () => {
-    document.querySelectorAll('.country-pill-row').forEach(syncPillRowFade);
+    document.querySelectorAll(SCROLL_ROWS).forEach(syncRowFade);
   });
+
+  // Compact mode changes the badges' size, so the row's scroll width
+  // changes with it and the fade has to be re-measured.
+  const toolbarEl = document.querySelector('.toolbar');
+  if (toolbarEl && 'MutationObserver' in window) {
+    new MutationObserver(() => {
+      document.querySelectorAll(SCROLL_ROWS).forEach(syncRowFade);
+    }).observe(toolbarEl, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  // On load, scroll the selected continent into view - otherwise a
+  // continent further along the row (Oceania, say) can sit off-screen
+  // with no sign it's there.
+  (function revealActiveContinent() {
+    const row = document.querySelector('.country-tabs-inner');
+    if (!row) return;
+    const active = row.querySelector('.country-tab.active');
+    if (active) active.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    syncRowFade(row);
+  })();
 
   function revealActivePill(row) {
     if (!row) return;
@@ -1368,122 +1263,6 @@
 
   // ── Clear Filter ──
 
-  // ── Mobile filter sheet ──
-  document.addEventListener('DOMContentLoaded', function () {
-    const trigger = document.getElementById('mobileFilterToggle');
-    const overlay = document.getElementById('mobileSheetOverlay');
-    const closeBtn = document.getElementById('mobileSheetClose');
-    const clearBtn = document.getElementById('mobileClearBtn');
-    const applyBtn = document.getElementById('mobileApplyBtn');
-    const sheetInput = document.getElementById('filter-destination-mobile');
-    const continentSelectEl = document.getElementById('mobileContinentCSelect');
-    const countrySelectEl = document.getElementById('mobileCountryCSelect');
-    if (!trigger || !overlay) return;
-
-    let mobilePackageType = "{{ package_type or '' }}";
-
-    function openSheet() { overlay.classList.add('open'); document.body.style.overflow = 'hidden'; }
-    function closeSheet() { overlay.classList.remove('open'); document.body.style.overflow = 'auto'; }
-
-    trigger.addEventListener('click', openSheet);
-    closeBtn.addEventListener('click', closeSheet);
-    overlay.addEventListener('click', e => { if (e.target === overlay) closeSheet(); });
-
-    // Rebuilds the country dropdown's options from continentCountries
-    // (embedded server-side, see the <script> right after the continent
-    // select) whenever the continent changes. Disabled + reset to "All
-    // countries" when no continent is chosen, since there's nothing to
-    // cascade from.
-    function populateCountrySelect(continentId, preselectCountryId) {
-      if (!countrySelect) return;
-      const list = (continentId && window.continentCountries) ? (continentCountries[continentId] || []) : [];
-      const options = [{ value: '', label: 'All countries' }].concat(
-        list.map(function (c) { return { value: c.id, label: c.label }; })
-      );
-      countrySelect.setOptions(options, preselectCountryId || '');
-      countrySelect.setDisabled(!continentId);
-    }
-
-    const continentSelect = continentSelectEl ? initCustomSelect(continentSelectEl, function (value) {
-      populateCountrySelect(value);
-    }) : null;
-    const countrySelect = countrySelectEl ? initCustomSelect(countrySelectEl) : null;
-
-    if (continentSelect) {
-      populateCountrySelect(continentSelect.getValue(), "{{ active_country.id if active_country else '' }}");
-    }
-
-    clearBtn.addEventListener('click', () => {
-      mobilePackageType = '';
-      sheetInput.value = '';
-      if (continentSelect && continentSelectEl) {
-        continentSelectEl.querySelectorAll('.cselect-option').forEach(function (o, i) {
-          o.classList.toggle('selected', i === 0);
-          const check = o.querySelector('i.fas.fa-check');
-          if (i === 0 && !check) {
-            const c = document.createElement('i');
-            c.className = 'fas fa-check';
-            o.appendChild(c);
-          } else if (i !== 0 && check) {
-            check.remove();
-          }
-        });
-        continentSelectEl.querySelector('.cselect-label').textContent =
-          continentSelectEl.querySelector('.cselect-option').dataset.label;
-      }
-      populateCountrySelect('');
-    });
-
-    applyBtn.addEventListener('click', () => {
-      const destination = sheetInput.value.trim();
-      const continentId = continentSelect ? continentSelect.getValue() : '';
-      const countryId = countrySelect ? countrySelect.getValue() : '';
-      const continentLabel = continentSelectEl ? continentSelectEl.querySelector('.cselect-label').textContent.trim() : '';
-      const countryLabel = countrySelectEl ? countrySelectEl.querySelector('.cselect-label').textContent.trim() : '';
-      const label = countryId ? (continentLabel + ' \u2192 ' + countryLabel) : continentLabel;
-
-      const params = new URLSearchParams();
-      if (continentId) params.set('continent_id', continentId);
-      if (countryId) params.set('country_id', countryId);
-      if (destination) params.set('destination', destination);
-      if (mobilePackageType) params.set('package_type', mobilePackageType);
-      const url = `{{ url_for('packages.list_packages') }}?${params.toString()}`;
-
-      history.pushState({}, '', url);
-      closeSheet();
-      grid.classList.add('loading');
-      grid.innerHTML = skeletonHTML();
-
-      fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(r => r.text())
-        .then(html => {
-          applyAjaxResponse(html);
-          grid.classList.remove('loading');
-          grid.querySelectorAll('.pkg-card').forEach((card, i) => {
-            card.style.animationDelay = `${i * 40}ms`;
-          });
-          initGalleries();
-          const count = grid.querySelectorAll('.pkg-card').length;
-          let info = `Showing <strong>${count}</strong> package${count !== 1 ? 's' : ''}`;
-          if (destination) info += ` for <strong>${destination}</strong>`;
-          resultsInfo.innerHTML = info;
-
-          // keep the desktop toolbar's own state in sync in case the viewport is resized
-          activeCountryId = countryId;
-          activeDestination = destination;
-          activePackageType = mobilePackageType;
-          if (filterInput) filterInput.value = destination;
-          if (btnClear) btnClear.style.display = destination ? 'inline-flex' : 'none';
-          updateBreadcrumb(label);
-        })
-        .catch(() => {
-          grid.classList.remove('loading');
-          grid.innerHTML =
-            '<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-exclamation-circle"></i></div><h3>Something went wrong</h3><p>Please try again in a moment.</p></div>';
-          paginationWrap.innerHTML = '';
-        });
-    });
-  });
 
 </script>
 <script src="{{ url_for('static', filename='js/wishlist.js') }}"></script>
