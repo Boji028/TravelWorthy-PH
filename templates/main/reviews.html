@@ -535,11 +535,11 @@
       {% if testimonials %}
       {% for t in testimonials %}
       <div class="review-row reviews-reveal" style="transition-delay: {{ (loop.index0 % 9) * 0.05 }}s">
-        <div class="review-avatar">{{ t.user.name[0].upper() }}</div>
+        <div class="review-avatar">{{ t.display_name[0].upper() }}</div>
         <div class="review-row-content">
           <div class="review-row-top">
             <div>
-              <div class="review-name">{{ t.user.name }}</div>
+              <div class="review-name">{{ t.display_name }}</div>
               <div style="display:flex;align-items:center;gap:.5rem;margin-top:.15rem;">
                 <span class="review-stars">{% for i in range(t.rating) %}⭐{% endfor %}</span>
                 <span class="review-date">{{ t.created_at.strftime('%B %d, %Y') }}</span>
@@ -611,88 +611,12 @@
     </div>
     {% endif %}
 
-    <!-- WRITE A REVIEW TRIGGER -->
-    {% if current_user.is_authenticated %}
-    <div style="text-align:center;margin:1rem 0 3rem">
-      <button class="review-trigger-btn" onclick="openReviewModal()">
-        ✍️ Write a Review
-      </button>
-      <div style="font-size:.78rem;color:var(--mist);margin-top:.6rem">
-        Share your travel experience with the community
-      </div>
-    </div>
-
-    <!-- REVIEW MODAL -->
-    <div id="review-modal-overlay" class="review-modal-overlay">
-      <div class="review-modal-card">
-        <div class="submit-header" style="display:flex;align-items:center;justify-content:space-between">
-          <div style="display:flex;align-items:center;gap:.75rem">
-            <div class="submit-header-icon">✍️</div>
-            <div>
-              <h2 style="font-family:'Pogonia',serif;font-size:1.1rem;color:white;margin-bottom:.15rem">Share your
-                experience</h2>
-              <p style="font-size:.78rem;color:rgba(255,255,255,.7)">Photos make your review more helpful to other
-                travelers</p>
-            </div>
-          </div>
-          <button class="review-modal-close" onclick="closeReviewModal()">✕</button>
-        </div>
-        <div class="submit-body">
-          <form id="review-form">
-            <input type="hidden" name="csrf_token" id="csrf-field" value="{{ csrf_token() }}" />
-
-            <span class="field-lbl">Your rating</span>
-            <div class="star-selector" id="star-selector">
-              <button type="button" class="star-sel-opt" data-val="1">★</button>
-              <button type="button" class="star-sel-opt" data-val="2">★</button>
-              <button type="button" class="star-sel-opt" data-val="3">★</button>
-              <button type="button" class="star-sel-opt" data-val="4">★</button>
-              <button type="button" class="star-sel-opt" data-val="5">★</button>
-            </div>
-            <input type="hidden" id="rating-val" value="5" />
-            <div class="star-sel-lbl" id="star-lbl">5 stars — Excellent</div>
-
-            <span class="field-lbl">Your review</span>
-            <textarea name="message" id="review-message" class="form-control" rows="3" maxlength="500"
-              placeholder="Tell us about your trip — what did you love most?" required
-              style="margin-bottom:.3rem"></textarea>
-            <div style="text-align:right;font-size:.72rem;color:var(--mist);margin-bottom:.9rem;" id="message-counter">0 / 500</div>
-
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem">
-              <span class="field-lbl" style="margin-bottom:0">Trip photos <span style="text-transform:none;font-weight:400;color:var(--mist)">(optional)</span></span>
-              <span class="photo-counter" id="photo-counter">0 / 5</span>
-            </div>
-            <div style="margin-bottom:.5rem">
-              <span style="font-size:.72rem;color:var(--mist)">Max 5 photos · JPG or PNG</span>
-            </div>
-
-            <input type="file" id="photo-input" accept="image/*" multiple style="display:none" />
-            <div class="photo-grid-ui" id="photo-grid-ui"></div>
-            <div class="photo-msg" id="photo-msg">Optional — add photos to make your review more helpful.</div>
-
-            <button type="submit" class="new-submit-btn ready" id="new-submit-btn">
-              <i class="fas fa-paper-plane"></i> Submit Review
-            </button>
-            <div class="verified-note">
-              <i class="fas fa-shield-halved" style="color:var(--teal)"></i>
-              All reviews are from real Travel Worthy PH customers
-            </div>
-
-            <div id="review-success"
-              style="display:none;margin-top:.75rem;padding:.75rem 1rem;background:#d4edda;color:#155724;border-radius:var(--radius);font-size:.88rem;">
-              <i class="fas fa-check-circle"></i> Your review has been posted!
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-    {% else %}
+    <!-- Reviews are added by admin after each trip (customers have no accounts). -->
     <div
       style="text-align:center;margin-bottom:3rem;padding:1.5rem;background:var(--linen);border-radius:var(--radius-lg);max-width:600px;margin-left:auto;margin-right:auto;">
       <i class="fas fa-info-circle" style="color:var(--teal);margin-right:.5rem;"></i>
       Travelled with us? Let your agent know and we'll add your review here.
     </div>
-    {% endif %}
 
     <!-- LIGHTBOX -->
     <div class="lightbox" id="lightbox">
@@ -717,192 +641,6 @@
         document.querySelectorAll('.reviews-reveal').forEach(function (el) { io.observe(el); });
       })();
 
-      // ── STAR SELECTOR ──
-      const starOpts = document.querySelectorAll('.star-sel-opt');
-      const starLabels = ['', '1 star — Poor', '2 stars — Fair', '3 stars — Good', '4 stars — Great',
-        '5 stars — Excellent'
-      ];
-      let selectedRating = 5;
-
-      function paintStars(val, hover) {
-        starOpts.forEach((s, i) => {
-          s.classList.toggle('off', i >= val);
-          s.style.transform = (hover && i < val) ? 'scale(1.2)' : 'scale(1)';
-        });
-        const lbl = document.getElementById('star-lbl');
-        if (lbl) lbl.textContent = starLabels[val];
-      }
-
-      starOpts.forEach(s => {
-        s.addEventListener('mouseenter', () => paintStars(+s.dataset.val, true));
-        s.addEventListener('mouseleave', () => paintStars(selectedRating, false));
-        s.addEventListener('click', () => {
-          selectedRating = +s.dataset.val;
-          document.getElementById('rating-val').value = selectedRating;
-          paintStars(selectedRating, false);
-        });
-      });
-      paintStars(5, false);
-
-      // ── MESSAGE CHARACTER COUNTER ──
-      document.getElementById('review-message').addEventListener('input', function () {
-        document.getElementById('message-counter').textContent = `${this.value.length} / 500`;
-      });
-
-      // ── PHOTO UPLOAD ──
-      const MAX_PHOTOS = 5;
-      let allFiles = [];
-
-      document.getElementById('photo-input').addEventListener('change', function () {
-        Array.from(this.files).forEach(f => {
-          if (allFiles.length < MAX_PHOTOS && f.type.startsWith('image/')) {
-            const dupe = allFiles.some(x => x.name === f.name && x.size === f.size);
-            if (!dupe) allFiles.push(f);
-          }
-        });
-        this.value = '';
-        renderGrid();
-      });
-
-      function removePhoto(i) {
-        allFiles.splice(i, 1);
-        renderGrid();
-      }
-
-      function renderGrid() {
-        const grid = document.getElementById('photo-grid-ui');
-        grid.innerHTML = '';
-
-        allFiles.forEach((file, i) => {
-          const thumb = document.createElement('div');
-          thumb.className = 'photo-thumb';
-          const img = document.createElement('img');
-          img.src = URL.createObjectURL(file);
-          img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-          const del = document.createElement('button');
-          del.type = 'button';
-          del.className = 'photo-thumb-del';
-          del.textContent = '✕';
-          del.onclick = () => removePhoto(i);
-          thumb.appendChild(img);
-          thumb.appendChild(del);
-          grid.appendChild(thumb);
-        });
-
-        if (allFiles.length < MAX_PHOTOS) {
-          const add = document.createElement('div');
-          add.className = 'photo-add-slot';
-          add.innerHTML = '<span style="font-size:1.1rem">📷</span><span>Add photo</span>';
-          add.onclick = () => document.getElementById('photo-input').click();
-          grid.appendChild(add);
-        }
-
-        const n = allFiles.length;
-        const counter = document.getElementById('photo-counter');
-        counter.textContent = `${n} / ${MAX_PHOTOS}`;
-        counter.className = 'photo-counter ok';
-
-        const msg = document.getElementById('photo-msg');
-        if (n === 0) msg.textContent = 'Optional — add photos to make your review more helpful.';
-        else if (n < MAX_PHOTOS) msg.textContent =
-          `Looking good! You can still add ${MAX_PHOTOS - n} more photo${MAX_PHOTOS - n > 1 ? 's' : ''}.`;
-        else msg.textContent = 'Maximum 5 photos reached.';
-      }
-
-      renderGrid();
-
-      // ── SUBMIT ──
-      document.getElementById('review-form').addEventListener('submit', function (e) {
-        e.preventDefault();
-
-        const btn = document.getElementById('new-submit-btn');
-        btn.textContent = 'Submitting…';
-        btn.disabled = true;
-
-        const formData = new FormData();
-        formData.append('message', this.querySelector('textarea[name="message"]').value);
-        formData.append('rating', selectedRating);
-        allFiles.forEach(f => formData.append('image', f));
-
-        fetch('{{ url_for("main.add_testimonial") }}', {
-            method: 'POST',
-            headers: {
-              'X-CSRFToken': document.getElementById('csrf-field').value
-            },
-            body: formData
-          })
-          .then(r => r.json())
-          .then(data => {
-            if (!data.success) {
-              alert(data.error || 'Something went wrong.');
-              btn.textContent = 'Submit Review';
-              btn.disabled = false;
-              return;
-            }
-
-            const stars = '⭐'.repeat(data.rating);
-            const photosHtml = data.image_urls && data.image_urls.length ?
-              `<div class="review-photo-grid">
-            ${data.image_urls.map(u => `<img class="review-image" src="${u}" alt="Customer review photo" onclick="openLightbox(this.src, this.closest('.review-photo-grid').querySelectorAll('img'))" />`).join('')}
-           </div>` : '';
-            const deleteBtn = data.is_admin ?
-              `<button onclick="deleteReview(this,'${data.delete_url}')" style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:.78rem;flex-shrink:0;"><i class="fas fa-trash"></i></button>` :
-              '';
-
-            const card = document.createElement('div');
-            card.className = 'review-row';
-            card.style.cssText = 'opacity:0;transition:opacity .4s;';
-            card.innerHTML = `
-          <div class="review-avatar">${data.user_name[0].toUpperCase()}</div>
-          <div class="review-row-content">
-            <div class="review-row-top">
-              <div>
-                <div class="review-name">${data.user_name}</div>
-                <div style="display:flex;align-items:center;gap:.5rem;margin-top:.15rem;">
-                  <span class="review-stars">${stars}</span>
-                  <span class="review-date">${data.created_at}</span>
-                </div>
-              </div>
-              ${deleteBtn}
-            </div>
-            <p class="review-text">${data.message}</p>
-            ${photosHtml}
-            <span style="display:inline-flex;align-items:center;gap:3px;font-size:.65rem;font-weight:600;color:#1a7a5a;background:#e8f5ee;padding:.12rem .45rem;border-radius:999px;">✓ Verified traveler</span>
-          </div>`;
-
-            const grid = document.getElementById('reviews-grid');
-            const empty = grid.querySelector('.empty-state');
-            if (empty) empty.remove();
-            grid.insertBefore(card, grid.firstChild);
-            setTimeout(() => card.style.opacity = '1', 50);
-
-            closeReviewModal();
-            const toast = document.createElement('div');
-            toast.style.cssText =
-              'position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:#1a5c5a;color:white;padding:.85rem 2rem;border-radius:var(--radius-lg);font-size:.92rem;font-weight:600;z-index:99999;box-shadow:0 8px 24px rgba(0,0,0,.2);display:flex;align-items:center;gap:.6rem;animation:fadeInModal .3s ease;';
-            toast.innerHTML = '<i class="fas fa-check-circle"></i> Your review has been posted! Thank you.';
-            document.body.appendChild(toast);
-            setTimeout(() => {
-              toast.style.opacity = '0';
-              toast.style.transition = 'opacity .4s';
-              setTimeout(() => toast.remove(), 400);
-            }, 3500);
-            this.querySelector('textarea').value = '';
-            document.getElementById('message-counter').textContent = '0 / 500';
-            allFiles = [];
-            renderGrid();
-            paintStars(5, false);
-            selectedRating = 5;
-            document.getElementById('rating-val').value = 5;
-            btn.textContent = 'Submit Review';
-          })
-          .catch(() => {
-            alert('Network error. Please try again.');
-            btn.textContent = 'Submit Review';
-            btn.disabled = false;
-          });
-      });
-
       // ── DELETE ──
       function deleteReview(btn, url) {
         if (!confirm('Delete this review?')) return;
@@ -910,7 +648,7 @@
         fetch(url, {
           method: 'POST',
           headers: {
-            'X-CSRFToken': document.getElementById('csrf-field').value
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
           }
         }).then(res => {
           if (res.ok || res.redirected) {
@@ -962,22 +700,6 @@
         if (e.key === 'Escape') closeLightbox();
       });
 
-      // ── REVIEW MODAL ──
-      function openReviewModal() {
-        document.getElementById('review-modal-overlay').classList.add('active');
-        document.body.style.overflow = 'hidden';
-      }
-
-      function closeReviewModal() {
-        document.getElementById('review-modal-overlay').classList.remove('active');
-        document.body.style.overflow = '';
-      }
-      document.getElementById('review-modal-overlay').addEventListener('click', function (e) {
-        if (e.target === this) closeReviewModal();
-      });
-      document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') closeReviewModal();
-      });
 
     </script>
 

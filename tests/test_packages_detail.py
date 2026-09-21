@@ -106,45 +106,6 @@ class TestPackageDetail:
         assert b"Inquire Now" in response.data
         assert b"Login to Inquire" not in response.data
 
-    def test_review_form_posts_to_submit_review(self, app, authenticated_client, test_user):
-        """Regression test: the review form must post to packages.submit_review,
-        not bookings.inquire_package — a copy-paste bug once made review
-        submission silently impossible through the UI."""
-        from app import db
-
-        pkg = _make_package(db)
-        _make_inquiry(db, user_id=test_user.id, package_id=pkg.id)
-        response = authenticated_client.get(f"/packages/{pkg.id}")
-        review_action = f'/packages/{pkg.id}/review"'.encode()
-        assert review_action in response.data
-
-    def test_already_reviewed_shows_edit_form(self, app, authenticated_client, test_user):
-        from app import db
-        from models.package_review import PackageReview
-
-        pkg = _make_package(db)
-        db.session.add(PackageReview(package_id=pkg.id, user_id=test_user.id, rating=4, message="Pretty good trip."))
-        db.session.commit()
-        response = authenticated_client.get(f"/packages/{pkg.id}")
-        assert f"/packages/{pkg.id}/review/edit".encode() in response.data
-        assert b"Pretty good trip." in response.data
-
-    def test_review_form_hidden_without_confirmed_booking(self, app, authenticated_client, test_user):
-        """Regression test: the review form used to render for any logged-in
-        user regardless of booking status — the confirmed-booking
-        requirement only ever surfaced after they wrote a review and hit
-        submit. package_detail() now computes the same eligibility check
-        submit_review() enforces, so the form itself is gated, not just
-        the submission."""
-        from app import db
-
-        pkg = _make_package(db)
-        # test_user has no Inquiry for this package at all — not eligible.
-        response = authenticated_client.get(f"/packages/{pkg.id}")
-        review_action = f'/packages/{pkg.id}/review"'.encode()
-        assert review_action not in response.data
-        assert b"confirmed booking" in response.data
-
     def test_review_form_hidden_with_unconfirmed_inquiry(self, app, authenticated_client, test_user):
         """A pending/contacted inquiry (not yet confirmed or closed) does
         not unlock the review form — same rule as submit_review()."""
@@ -237,3 +198,31 @@ class TestAutocomplete:
         response = client.get("/packages/autocomplete?q=InactiveDest")
         data = response.get_json()
         assert not any("InactiveDest" in str(item) for item in data)
+
+    def test_public_review_form_is_gone(self, app, client):
+        """Customers have no accounts - reviews are added by admin, so the
+        package page no longer offers a form to write one."""
+        from app import db
+
+        pkg = TourPackage(title="Form Check", description="d", destination="Cebu",
+                          duration_days=3, price=1000, currency="PHP", is_active=True)
+        db.session.add(pkg)
+        db.session.commit()
+        page = client.get(f"/packages/{pkg.id}").get_data(as_text=True)
+        assert "submit-review" not in page and "Share your" not in page
+        assert "No reviews for this package yet" in page
+
+    def test_admin_entered_review_shows_its_name(self, app, client):
+        from app import db
+        from models.package_review import PackageReview
+
+        pkg = TourPackage(title="Name Check", description="d", destination="Cebu",
+                          duration_days=3, price=1000, currency="PHP", is_active=True)
+        db.session.add(pkg)
+        db.session.commit()
+        db.session.add(PackageReview(package_id=pkg.id, reviewer_name="Maria Santos", rating=5, message="Amazing trip"))
+        db.session.commit()
+
+        page = client.get(f"/packages/{pkg.id}").get_data(as_text=True)
+        assert "Maria Santos" in page
+        assert "Amazing trip" in page

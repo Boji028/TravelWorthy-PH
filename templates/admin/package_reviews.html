@@ -1,0 +1,185 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Package Reviews — Admin{% endblock %}
+
+{% block admin_styles %}
+<style>
+  .table-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(58, 46, 34, .07);
+  }
+
+  .table-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--linen);
+    flex-wrap: wrap;
+    gap: .75rem;
+  }
+
+  .table-toolbar h3 {
+    font-family: 'Pogonia', serif;
+    font-size: 1.2rem;
+    color: var(--bark);
+  }
+
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--linen);
+    background: var(--sand);
+    flex-wrap: wrap;
+  }
+
+  .filter-bar select {
+    max-width: 360px;
+  }
+
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .87rem;
+  }
+
+  .admin-table th {
+    text-align: left;
+    padding: .6rem .75rem;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--mist);
+    border-bottom: 1px solid var(--linen);
+    font-weight: 600;
+  }
+
+  .admin-table td {
+    padding: .85rem .75rem;
+    border-bottom: 1px solid var(--linen);
+    color: var(--bark);
+    vertical-align: top;
+  }
+
+  .admin-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .reviewer {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    white-space: nowrap;
+  }
+
+  .reviewer-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, var(--teal), var(--teal-d));
+    color: var(--white);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: .8rem;
+  }
+
+  .stars {
+    color: var(--amber);
+    white-space: nowrap;
+  }
+
+  .review-text {
+    max-width: 380px;
+    color: var(--bark);
+    line-height: 1.5;
+  }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <h1>Package Reviews</h1>
+  <p>Client reviews shown on each package page. Add them after getting the client's permission.</p>
+</div>
+
+<div class="table-card">
+  <div class="table-toolbar">
+    <h3>{{ reviews|length }} Review{{ 's' if reviews|length != 1 }}</h3>
+    <a href="{{ url_for('admin.add_package_review', package_id=selected_package_id or '') }}" class="btn btn-amber btn-sm">
+      <i class="fas fa-plus"></i> Add Review
+    </a>
+  </div>
+
+  <form method="GET" action="{{ url_for('admin.package_reviews') }}" class="filter-bar">
+    <select name="package_id" class="form-control" onchange="this.form.submit()">
+      <option value="">All packages</option>
+      {% for pkg in packages %}
+      <option value="{{ pkg.id }}" {% if selected_package_id == pkg.id %}selected{% endif %}>{{ pkg.title }}</option>
+      {% endfor %}
+    </select>
+    {% if selected_package_id %}
+    <a href="{{ url_for('admin.package_reviews') }}" class="btn btn-ghost btn-sm">Clear</a>
+    {% endif %}
+  </form>
+
+  <div style="overflow-x:auto">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Client</th>
+          <th>Package</th>
+          <th>Rating</th>
+          <th>Review</th>
+          <th>Date</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for review in reviews %}
+        <tr>
+          <td>
+            <div class="reviewer">
+              {% if review.image %}
+              <img class="reviewer-avatar" src="{{ review.image }}" alt="" />
+              {% else %}
+              <span class="reviewer-avatar">{{ review.display_name[:2].upper() }}</span>
+              {% endif %}
+              <strong>{{ review.display_name }}</strong>
+            </div>
+          </td>
+          <td>
+            <a href="{{ url_for('packages.package_detail', package_id=review.package_id) }}" target="_blank"
+              style="color:var(--teal)">{{ review.package.title }}</a>
+          </td>
+          <td class="stars">{{ '★' * review.rating }}{{ '☆' * (5 - review.rating) }}</td>
+          <td class="review-text">{{ review.message }}</td>
+          <td style="white-space:nowrap;color:var(--mist);font-size:.82rem">{{ review.created_at.strftime('%b %d, %Y') }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('admin.delete_package_review', review_id=review.id) }}"
+              data-confirm="Delete this review from {{ review.display_name }}?">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button type="submit" class="btn btn-danger btn-sm" title="Delete"><i class="fas fa-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" style="text-align:center;color:var(--mist);padding:3rem">
+            No reviews yet{% if selected_package_id %} for this package{% endif %}.
+            <a href="{{ url_for('admin.add_package_review', package_id=selected_package_id or '') }}"
+              style="color:var(--teal)">Add the first one →</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

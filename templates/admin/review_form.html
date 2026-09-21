@@ -1,0 +1,259 @@
+{% extends "admin/base_admin.html" %}
+{% set is_package = (mode == 'package') %}
+{% block title %}{{ 'Add Package Review' if is_package else 'Add Testimonial' }} — Admin{% endblock %}
+
+{% block admin_styles %}
+<style>
+  .form-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    box-shadow: 0 2px 12px rgba(58, 46, 34, .07);
+    max-width: 640px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .star-picker {
+    display: flex;
+    gap: .3rem;
+    font-size: 1.6rem;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .star-picker span {
+    color: var(--linen);
+    transition: color .12s, transform .12s;
+  }
+
+  .star-picker span.on {
+    color: var(--amber);
+  }
+
+  .star-picker span:hover {
+    transform: scale(1.12);
+  }
+
+  .photo-preview {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--linen);
+    display: none;
+  }
+
+  .photo-row {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    flex-wrap: wrap;
+  }
+
+  .file-upload-btn {
+    background: var(--teal);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    padding: .5rem 1rem;
+    cursor: pointer;
+    font-size: .9rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-shrink: 0;
+    transition: background .2s;
+  }
+
+  .file-upload-btn:hover {
+    background: var(--bark);
+  }
+
+  .photo-name {
+    color: var(--mist);
+    font-size: .9rem;
+    min-width: 0;
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .clear-file-btn {
+    background: none;
+    border: none;
+    color: var(--danger);
+    font-size: .88rem;
+    cursor: pointer;
+    padding: .3rem;
+    line-height: 1;
+    border-radius: 6px;
+    flex-shrink: 0;
+    transition: background .15s;
+  }
+
+  .clear-file-btn:hover {
+    background: rgba(192, 57, 43, .1);
+  }
+
+  .clear-file-btn[hidden],
+  .photo-preview[hidden] {
+    display: none;
+  }
+
+  .hint {
+    font-size: .78rem;
+    color: var(--mist);
+    margin-top: .3rem;
+  }
+
+  @media (max-width: 768px) {
+    .form-row {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <h1>{{ 'Add Package Review' if is_package else 'Add Testimonial' }}</h1>
+  <p>
+    {% if is_package %}
+    Add a client's review to a package page, after getting their permission to post it.
+    {% else %}
+    Add a client testimonial to the homepage and Reviews page, after getting their permission to post it.
+    {% endif %}
+  </p>
+</div>
+
+<div class="form-card">
+  <form method="POST" enctype="multipart/form-data"
+    action="{{ url_for('admin.add_package_review') if is_package else url_for('admin.add_testimonial') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+    {% if is_package %}
+    <div class="form-group">
+      <label>Package <span style="color:var(--danger)">*</span></label>
+      <select name="package_id" class="form-control" required>
+        <option value="">— Choose a package —</option>
+        {% for pkg in packages %}
+        <option value="{{ pkg.id }}" {% if form.get('package_id')|string == pkg.id|string %}selected{% endif %}>
+          {{ pkg.title }}{% if pkg.destination %} — {{ pkg.destination }}{% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Client Name <span style="color:var(--danger)">*</span></label>
+        <input type="text" name="reviewer_name" class="form-control" maxlength="100" required
+          placeholder="e.g. Maria Santos" value="{{ form.get('reviewer_name', '') }}" />
+        <div class="hint">Shown publicly exactly as typed.</div>
+      </div>
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" name="review_date" class="form-control" value="{{ form.get('review_date', '') }}" />
+        <div class="hint">When they travelled or gave the review. Leave blank for today.</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Rating <span style="color:var(--danger)">*</span></label>
+      {% set current_rating = (form.get('rating') or 5)|int %}
+      <input type="hidden" name="rating" id="rating-input" value="{{ current_rating }}" />
+      <div class="star-picker" id="star-picker" role="radiogroup" aria-label="Rating">
+        {% for i in range(1, 6) %}
+        <span data-value="{{ i }}" class="{{ 'on' if i <= current_rating }}" role="radio"
+          aria-label="{{ i }} star{{ 's' if i > 1 }}">★</span>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Review <span style="color:var(--danger)">*</span></label>
+      <textarea name="message" class="form-control" rows="5" required
+        placeholder="What the client said about their trip…">{{ form.get('message', '') }}</textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Client Photo <span style="font-size:.8rem;color:var(--mist);font-weight:400;">(optional)</span></label>
+      <div class="photo-row">
+        <img id="photo-preview" class="photo-preview" alt="Photo preview" />
+        <button type="button" class="file-upload-btn" id="photo-choose">
+          <i class="fas fa-image"></i> <span id="photo-choose-text">Choose Photo</span>
+        </button>
+        <input type="file" name="photo" id="photo-input" accept="image/*" hidden />
+        <span class="photo-name" id="photo-name">No file chosen</span>
+        <button type="button" class="clear-file-btn" id="photo-clear" title="Remove photo" aria-label="Remove photo" hidden>
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+      <div class="hint">Shown as their profile picture beside the review. PNG, JPG, GIF or WEBP.</div>
+    </div>
+
+    <div style="display:flex;gap:1rem;margin-top:1.5rem;">
+      <button type="submit" class="btn btn-amber">
+        <i class="fas fa-plus"></i> {{ 'Add Review' if is_package else 'Add Testimonial' }}
+      </button>
+      <a href="{{ url_for('admin.package_reviews') if is_package else url_for('admin.testimonials') }}"
+        class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+  (function () {
+    const picker = document.getElementById('star-picker');
+    const input = document.getElementById('rating-input');
+    const stars = picker.querySelectorAll('span');
+    const paint = n => stars.forEach(s => s.classList.toggle('on', +s.dataset.value <= n));
+    stars.forEach(s => {
+      s.addEventListener('mouseenter', () => paint(+s.dataset.value));
+      s.addEventListener('click', () => { input.value = s.dataset.value; paint(+s.dataset.value); });
+    });
+    picker.addEventListener('mouseleave', () => paint(+input.value));
+
+    const photoInput = document.getElementById('photo-input');
+    const preview = document.getElementById('photo-preview');
+    const nameLabel = document.getElementById('photo-name');
+    const chooseText = document.getElementById('photo-choose-text');
+    const clearBtn = document.getElementById('photo-clear');
+
+    document.getElementById('photo-choose').addEventListener('click', () => photoInput.click());
+
+    function showPhoto(file) {
+      if (file) {
+        preview.src = URL.createObjectURL(file);
+        preview.style.display = 'block';
+        nameLabel.textContent = file.name;
+        chooseText.textContent = 'Replace Photo';
+        clearBtn.hidden = false;
+      } else {
+        preview.removeAttribute('src');
+        preview.style.display = 'none';
+        nameLabel.textContent = 'No file chosen';
+        chooseText.textContent = 'Choose Photo';
+        clearBtn.hidden = true;
+      }
+    }
+
+    photoInput.addEventListener('change', () => showPhoto(photoInput.files[0]));
+
+    // Clearing the input's value is enough here - this form uploads the
+    // photo when it's submitted, so nothing has reached Cloudinary yet.
+    clearBtn.addEventListener('click', () => {
+      photoInput.value = '';
+      showPhoto(null);
+    });
+  })();
+</script>
+{% endblock %}

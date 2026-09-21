@@ -157,8 +157,9 @@
 
 {% block admin_content %}
 <div class="admin-header">
-  <h1>Testimonials & Reviews</h1>
-  <p>Manage customer reviews and remove photos as needed</p>
+  <h1>Testimonials</h1>
+  <p>Client testimonials shown on the homepage and Reviews page. Add them after getting the client's permission.</p>
+  <a href="{{ url_for('admin.add_testimonial') }}" class="btn btn-amber"><i class="fas fa-plus"></i> Add Testimonial</a>
 </div>
 
 <div id="testimonialsApp">
@@ -184,14 +185,14 @@
   {% if testimonials %}
   <div style="max-width: 900px; margin: 0 auto;">
     {% for testimonial in testimonials %}
-    {% set name_parts = testimonial.user.name.split() %}
+    {% set name_parts = testimonial.display_name.split() %}
     <div class="testimonial-card" id="testimonial-{{ testimonial.id }}">
       <div class="testimonial-header">
         <div class="testimonial-user">
           <div class="testimonial-avatar">{{ name_parts[0][0] }}{{ name_parts[-1][0] if name_parts|length > 1 else '' }}</div>
           <div class="user-info">
-            <h4>{{ testimonial.user.name }}</h4>
-            <p>{{ testimonial.created_at.strftime('%B %d, %Y') }} · {{ testimonial.user.email }}</p>
+            <h4>{{ testimonial.display_name }}</h4>
+            <p>{{ testimonial.created_at.strftime('%B %d, %Y') }}{% if testimonial.user %} · {{ testimonial.user.email }}{% endif %}</p>
           </div>
         </div>
         <div class="testimonial-rating">

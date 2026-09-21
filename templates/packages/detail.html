@@ -1812,6 +1812,13 @@
           review{{ 's' if reviews|length != 1 }}</span>{% endif %}
       </div>
 
+      {% if not reviews %}
+      <div style="background:var(--sand);border-radius:var(--radius);padding:1.25rem;font-size:.88rem;color:var(--mist)">
+        <i class="fas fa-comment-dots" style="color:var(--teal);margin-right:.35rem"></i>
+        No reviews for this package yet. Travelled with us? Let your agent know and we'll add yours here.
+      </div>
+      {% endif %}
+
       {% if reviews %}
       <div
         style="display:grid;grid-template-columns:140px 1fr;gap:1.5rem;background:var(--sand);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:1.5rem;border:1px solid var(--linen)">
@@ -1850,12 +1857,17 @@
         {% set av_color = av_colors[loop.index0 % av_colors|length] %}
         <div class="review-card" style="display:flex;flex-direction:column">
           <div style="display:flex;align-items:flex-start;gap:.65rem;margin-bottom:.6rem">
+            {% if review.image %}
+            <img src="{{ review.image }}" alt="{{ review.display_name }}"
+              style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0" />
+            {% else %}
             <div
               style="width:36px;height:36px;border-radius:50%;background:{{ av_color }};color:white;font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-              {{ review.user.name[:2].upper() if review.user else '??' }}</div>
+              {{ review.display_name[:2].upper() }}</div>
+            {% endif %}
             <div style="flex:1;min-width:0">
               <div style="font-weight:600;font-size:.85rem;color:var(--bark)">
-                {{ review.user.name if review.user else 'Anonymous' }}</div>
+                {{ review.display_name }}</div>
               <div style="font-size:.72rem;color:var(--mist)">{{ review.created_at.strftime('%B %Y') }}</div>
               <div style="color:var(--amber);font-size:.78rem;margin-top:.15rem">
                 {{ '★' * review.rating }}{{ '☆' * (5 - review.rating) }}</div>
@@ -1870,107 +1882,6 @@
       </div>
       {% endif %}
 
-      <div style="border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--linen)">
-        <div
-          style="background:linear-gradient(135deg,var(--teal) 0%,#0d3d4a 100%);padding:1rem 1.25rem;display:flex;align-items:center;gap:.75rem">
-          <div
-            style="width:38px;height:38px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">
-            ✍️</div>
-          <div>
-            <div style="font-family:'Pogonia',serif;font-size:.95rem;color:white;margin-bottom:.1rem">Share your
-              experience</div>
-            <div style="font-size:.75rem;color:rgba(255,255,255,.7)">Your honest review helps other travelers decide
-            </div>
-          </div>
-        </div>
-        <div style="padding:1.25rem;background:var(--white)">
-          {% if not current_user.is_authenticated %}
-          <div
-            style="background:var(--sand);border-radius:var(--radius);padding:1rem;font-size:.88rem;color:var(--mist)">
-            Travelled with us? Let your agent know and we'll add your review here.
-          </div>
-          {% elif user_reviewed %}
-          <div
-            style="background:#EAF3DE;border-radius:var(--radius);padding:.85rem 1rem;font-size:.85rem;color:#3B6D11;display:flex;align-items:center;gap:.5rem;margin-bottom:1rem">
-            <i class="fas fa-check-circle"></i> You've already reviewed this package — update it below anytime.
-          </div>
-          <form method="POST" action="{{ url_for('packages.edit_review', package_id=package.id) }}" autocomplete="off">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-            <input type="hidden" name="rating" id="rating-input" value="{{ user_review.rating }}" />
-            <label
-              style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--mist);display:block;margin-bottom:.4rem">Your
-              rating</label>
-            <div id="star-selector" style="display:flex;gap:5px;margin-bottom:.2rem">
-              <span class="star-opt" data-val="1" style="font-size:1.7rem;cursor:pointer;color:var(--amber)">★</span>
-              <span class="star-opt" data-val="2" style="font-size:1.7rem;cursor:pointer;color:var(--amber)">★</span>
-              <span class="star-opt" data-val="3" style="font-size:1.7rem;cursor:pointer;color:var(--amber)">★</span>
-              <span class="star-opt" data-val="4" style="font-size:1.7rem;cursor:pointer;color:var(--amber)">★</span>
-              <span class="star-opt" data-val="5" style="font-size:1.7rem;cursor:pointer;color:var(--amber)">★</span>
-            </div>
-            <div id="rating-label" style="font-size:.75rem;color:var(--mist);margin-bottom:.85rem"></div>
-            <label
-              style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--mist);display:block;margin-bottom:.4rem">Your
-              review</label>
-            <textarea name="message" class="form-control" rows="3" required id="review-msg"
-              placeholder="What did you love? Any tips for future travelers?"
-              style="resize:vertical;width:100%;margin-bottom:.25rem"
-              oninput="updateReviewChar()">{{ user_review.message }}</textarea>
-            <div
-              style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--mist);margin-bottom:.85rem">
-              <span id="review-char-hint">Be specific — longer reviews are more helpful</span>
-              <span id="review-char-count">0 / 500</span>
-            </div>
-            <button type="submit" class="btn btn-amber" style="width:100%;justify-content:center;padding:.75rem">
-              <i class="fas fa-save"></i> Update Review
-            </button>
-            <div style="text-align:center;margin-top:.5rem;font-size:.72rem;color:var(--mist)">
-              <i class="fas fa-lock" style="color:var(--teal)"></i> Reviews are tied to your account
-            </div>
-          </form>
-          {% elif not can_review %}
-          <div
-            style="background:var(--sand);border-radius:var(--radius);padding:1rem;font-size:.88rem;color:var(--mist)">
-            <i class="fas fa-info-circle" style="color:var(--teal)"></i> You can review this package once you have a
-            confirmed booking for it.
-          </div>
-          {% else %}
-          <form method="POST" action="{{ url_for('packages.submit_review', package_id=package.id) }}"
-            autocomplete="off">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-            <input type="hidden" name="rating" id="rating-input" value="5" />
-            <label
-              style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--mist);display:block;margin-bottom:.4rem">Your
-              rating</label>
-            <div id="star-selector" style="display:flex;gap:5px;margin-bottom:.2rem">
-              <span class="star-opt" data-val="1" style="font-size:1.7rem;cursor:pointer;color:var(--amber)">★</span>
-              <span class="star-opt" data-val="2" style="font-size:1.7rem;cursor:pointer;color:var(--amber)">★</span>
-              <span class="star-opt" data-val="3" style="font-size:1.7rem;cursor:pointer;color:var(--amber)">★</span>
-              <span class="star-opt" data-val="4" style="font-size:1.7rem;cursor:pointer;color:var(--amber)">★</span>
-              <span class="star-opt" data-val="5" style="font-size:1.7rem;cursor:pointer;color:var(--amber)">★</span>
-            </div>
-            <div id="rating-label" style="font-size:.75rem;color:var(--mist);margin-bottom:.85rem">5 stars — Excellent
-            </div>
-            <label
-              style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--mist);display:block;margin-bottom:.4rem">Your
-              review</label>
-            <textarea name="message" class="form-control" rows="3" required id="review-msg"
-              placeholder="What did you love? Any tips for future travelers?"
-              style="resize:vertical;width:100%;margin-bottom:.25rem" oninput="updateReviewChar()"></textarea>
-            <div
-              style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--mist);margin-bottom:.85rem">
-              <span id="review-char-hint">Be specific — longer reviews are more helpful</span>
-              <span id="review-char-count">0 / 500</span>
-            </div>
-            <button type="submit" class="btn btn-amber" style="width:100%;justify-content:center;padding:.75rem">
-              <i class="fas fa-paper-plane"></i> Submit Review
-            </button>
-            <div style="text-align:center;margin-top:.5rem;font-size:.72rem;color:var(--mist)">
-              <i class="fas fa-lock" style="color:var(--teal)"></i> Reviews are tied to your account
-            </div>
-          </form>
-          {% endif %}
-        </div>
-      </div>
 
     </div>
 
