@@ -752,7 +752,15 @@
     font-size: .9rem;
     line-height: 1.85;
     color: var(--bark);
-    text-align: justify;
+    /* HTML collapses all whitespace by default, including the line
+       breaks admin typed in the textarea - that's what was flattening
+       a formatted description (paragraphs, one bullet per line) into
+       one run-on block. pre-line keeps those line breaks and still
+       collapses repeated spaces and wraps long lines normally.
+       Justify stretches short lines to fill the full width, which
+       looks broken once each bullet is its own line, so left-align
+       instead (the default - no property needed for it). */
+    white-space: pre-line;
   }
 
   .desc-collapsed {

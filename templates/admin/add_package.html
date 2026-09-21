@@ -20,6 +20,22 @@
     background: rgba(192, 57, 43, .1);
   }
 
+  .clear-file-btn[hidden] {
+    display: none;
+  }
+
+  .file-upload-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .clear-file-btn,
+  .file-upload-btn {
+    flex-shrink: 0;
+  }
+
   .form-card {
     background: var(--white);
     border-radius: var(--radius-lg);
@@ -364,7 +380,6 @@
 
       const uploadData = await uploadResponse.json();
       hiddenInput.value = uploadData.secure_url;
-      fileInput.disabled = true;
       statusLabel.textContent = 'Uploaded: ' + file.name;
 
     } catch (err) {
@@ -390,6 +405,20 @@
     uploadImageToCloudinary(file, 'travelworthyph/flier', document.getElementById('flier_image_url'), this, label);
   });
 
+  // ── Don't send an already-uploaded file twice ──
+  // The photo went straight to Cloudinary when it was picked, so its URL
+  // is in the hidden *_url field. Disabling the file input at submit
+  // time stops the browser also sending the raw file through Flask.
+  // This used to happen right after upload instead, which left "Choose
+  // Photo" dead - you couldn't pick a replacement without deleting first.
+  document.querySelector('form[action*="add"]').addEventListener('submit', () => {
+    [['image-input', 'image_url'], ['flier-input', 'flier_image_url']].forEach(([inputId, urlId]) => {
+      const input = document.getElementById(inputId);
+      const url = document.getElementById(urlId);
+      if (input && url && url.value) input.disabled = true;
+    });
+  });
+
   // ── Remove buttons for the single-file pickers ──
   // These clear the chosen file before the form is submitted. The
   // hidden *_url field has to be cleared too - it holds the already
@@ -405,7 +434,14 @@
       const input = document.getElementById(this.dataset.input);
       const status = document.getElementById(this.dataset.status);
       const urlField = document.getElementById(this.dataset.url);
-      if (input) input.value = '';
+      if (input) {
+        input.value = '';
+        // A successful direct upload disables this input (see
+        // uploadImageToCloudinary) so the raw file can't also be sent
+        // on submit. Clearing the selection has to undo that too, or
+        // "Choose Photo" has nothing left to click afterward.
+        input.disabled = false;
+      }
       if (status) status.textContent = 'No file chosen';
       if (urlField) urlField.value = '';
       this.hidden = true;
