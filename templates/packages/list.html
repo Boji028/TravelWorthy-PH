@@ -162,6 +162,36 @@
     text-align: center;
   }
 
+  /* Pagination links. Their own class rather than reusing
+     .country-tab, which is now the continent badge (a tall flex
+     column) and made these render as oversized broken-looking links. */
+  .page-link {
+    padding: .4rem .9rem;
+    border-radius: 999px;
+    font-size: .85rem;
+    text-decoration: none;
+    border: 1px solid var(--linen);
+    background: var(--white);
+    color: var(--bark);
+    cursor: pointer;
+    transition: background .2s, color .2s, border-color .2s;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    min-width: 36px;
+    justify-content: center;
+  }
+
+  .page-link:hover {
+    background: var(--linen);
+  }
+
+  .page-link.active {
+    background: var(--teal);
+    color: var(--white);
+    border-color: var(--teal);
+  }
+
   /* Country pills — shown only for the selected continent.
      Scoped to :not([hidden]) deliberately: a bare `display: flex`
      outranks the browser's `[hidden] { display: none }` rule, which
@@ -249,74 +279,14 @@
     flex-wrap: wrap;
   }
 
-  .filter-label {
-    font-size: .8rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .07em;
-    color: var(--mist);
-  }
 
-  .filter-search {
-    display: flex;
-    align-items: center;
-    gap: .5rem;
-    background: var(--sand);
-    border: 1px solid var(--linen);
-    border-radius: 999px;
-    padding: .5rem 1rem;
-    flex: 1;
-    min-width: 200px;
-    max-width: 320px;
-    transition: border-color .18s;
-  }
 
-  .filter-search:focus-within {
-    border-color: var(--teal);
-  }
 
-  .filter-search i {
-    color: var(--mist);
-    font-size: .85rem;
-  }
 
-  .filter-input {
-    border: 0;
-    background: none;
-    font-family: 'Pogonia', sans-serif;
-    font-size: .88rem;
-    color: var(--ink);
-    outline: none;
-    width: 100%;
-  }
 
-  .active-filter-pill {
-    display: none;
-    align-items: center;
-    gap: .4rem;
-    background: var(--teal);
-    color: #fff;
-    font-size: .78rem;
-    font-weight: 600;
-    padding: .4rem .8rem;
-    border-radius: 999px;
-    margin-left: auto;
-    white-space: nowrap;
-  }
 
-  .active-filter-pill.visible {
-    display: inline-flex;
-  }
 
-  .active-filter-pill i {
-    cursor: pointer;
-    font-size: .75rem;
-    opacity: .85;
-  }
 
-  .active-filter-pill i:hover {
-    opacity: 1;
-  }
 
   /* ── MOBILE COLLAPSED FILTERS ── */
   .mobile-filter-toggle { display: none; }
@@ -332,11 +302,7 @@
     /* the desktop tabs/pills/apply/clear/breadcrumb live inside the sheet on mobile instead.
        !important: btn-clear gets an inline display from the filter JS and the
        pill's .visible rule is more specific - both would otherwise win here. */
-    .country-tabs-inner,
-    .filter-label,
-    #btn-apply,
-    #btn-clear,
-    .active-filter-pill { display: none !important; }
+    .country-tabs-inner { display: none !important; }
 
     .filter-search { max-width: none; min-width: 0; flex: 1; }
 
@@ -894,29 +860,6 @@
         <i class="fas fa-sliders"></i> Filters
         {% if active_continent or active_country or package_type %}<span class="mft-dot"></span>{% endif %}
       </button>
-      <span class="filter-label">Filter:</span>
-      <div class="filter-search">
-        <i class="fas fa-search"></i>
-        <input class="filter-input" id="filter-destination" type="text" placeholder="Destination…"
-          value="{{ request.args.get('destination','') }}" />
-      </div>
-      <button type="button" class="btn btn-primary btn-sm" id="btn-apply">
-        <i class="fas fa-filter"></i> Apply
-      </button>
-      <button type="button" class="btn btn-ghost btn-sm" id="btn-clear"
-        style="display:{% if request.args.get('destination') %}inline-flex{% else %}none{% endif %}">
-        Clear
-      </button>
-      {% set crumb_label = '' %}
-      {% if active_country %}
-      {% set crumb_label = (active_continent.name + ' → ' + active_country.name) if active_continent else active_country.name %}
-      {% elif active_continent %}
-      {% set crumb_label = active_continent.name %}
-      {% endif %}
-      <span class="active-filter-pill {% if crumb_label %}visible{% endif %}" id="active-filter-pill">
-        <span id="active-filter-text">{{ crumb_label }}</span>
-        <i class="fas fa-times" id="active-filter-clear"></i>
-      </span>
     </div>
 
     <div class="mobile-sheet-overlay" id="mobileSheetOverlay">
@@ -1034,7 +977,11 @@
   }
 
   // ── Breadcrumb ──
+  // The desktop filter row was removed, so these elements no longer
+  // exist on the page. The mobile sheet still calls through here, so
+  // every reference below is guarded rather than deleted.
   function updateBreadcrumb(label) {
+    if (!activeFilterText || !activeFilterPill) return;
     if (label) {
       activeFilterText.textContent = label;
       activeFilterPill.classList.add('visible');
@@ -1043,7 +990,7 @@
     }
   }
 
-  document.getElementById('active-filter-clear').addEventListener('click', () => {
+  document.getElementById('active-filter-clear')?.addEventListener('click', () => {
     document.querySelector('.country-tab[data-label=""]').click();
   });
 
@@ -1142,7 +1089,6 @@
 
   // ── Tab Clicks (continent tabs) ──
   document.querySelectorAll('.country-tab').forEach(tab => {
-    if (tab.closest('#packages-pagination')) return; // pagination links are handled separately below
     tab.addEventListener('click', function (e) {
       e.preventDefault();
       document.querySelectorAll('.country-tab').forEach(t => t.classList.remove('active'));
@@ -1298,28 +1244,10 @@
 
 
   // ── Filter Apply ──
-  document.getElementById('btn-apply').addEventListener('click', () => {
-    activeDestination = filterInput.value.trim();
-    btnClear.style.display = activeDestination ? 'inline-flex' : 'none';
-    fetchPackages({
-      destination: activeDestination
-    });
-  });
 
   // ── Filter on Enter ──
-  filterInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter') document.getElementById('btn-apply').click();
-  });
 
   // ── Clear Filter ──
-  btnClear.addEventListener('click', () => {
-    filterInput.value = '';
-    activeDestination = '';
-    btnClear.style.display = 'none';
-    fetchPackages({
-      destination: ''
-    });
-  });
 
   // ── Mobile filter sheet ──
   document.addEventListener('DOMContentLoaded', function () {
@@ -1425,8 +1353,8 @@
           activeCountryId = countryId;
           activeDestination = destination;
           activePackageType = mobilePackageType;
-          filterInput.value = destination;
-          btnClear.style.display = destination ? 'inline-flex' : 'none';
+          if (filterInput) filterInput.value = destination;
+          if (btnClear) btnClear.style.display = destination ? 'inline-flex' : 'none';
           updateBreadcrumb(label);
         })
         .catch(() => {
