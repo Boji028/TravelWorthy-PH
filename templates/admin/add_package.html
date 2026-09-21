@@ -3,6 +3,23 @@
 
 {% block admin_styles %}
 <style>
+  .clear-file-btn {
+    background: none;
+    border: none;
+    color: var(--danger);
+    font-size: .88rem;
+    cursor: pointer;
+    padding: .3rem;
+    margin-left: .5rem;
+    line-height: 1;
+    border-radius: 6px;
+    transition: background .15s;
+  }
+
+  .clear-file-btn:hover {
+    background: rgba(192, 57, 43, .1);
+  }
+
   .form-card {
     background: var(--white);
     border-radius: var(--radius-lg);
@@ -193,6 +210,10 @@
         </button>
         <input type="file" name="image" accept="image/*" id="image-input" />
         <span class="file-upload-label" id="image-status">No file chosen</span>
+        <button type="button" class="clear-file-btn" data-input="image-input" data-status="image-status"
+          data-url="image_url" title="Remove photo" aria-label="Remove photo" hidden>
+          <i class="fas fa-trash"></i>
+        </button>
       </div>
       <div style="font-size:.78rem;color:var(--mist);margin-top:.3rem">PNG, JPG, JPEG, GIF or WEBP. Max 16MB.</div>
     </div>
@@ -208,6 +229,10 @@
         </button>
         <input type="file" name="flier_image" accept="image/*" id="flier-input" />
         <span class="file-upload-label" id="flier-status">No file chosen</span>
+        <button type="button" class="clear-file-btn" data-input="flier-input" data-status="flier-status"
+          data-url="flier_image_url" title="Remove flier" aria-label="Remove flier" hidden>
+          <i class="fas fa-trash"></i>
+        </button>
       </div>
       <div style="font-size:.78rem;color:var(--mist);margin-top:.3rem">PNG, JPG, JPEG, GIF or WEBP. Max 16MB. Used for
         promotional materials.</div>
@@ -352,15 +377,39 @@
   document.getElementById('image-input').addEventListener('change', function () {
     const file = this.files[0];
     const label = document.getElementById('image-status');
-    if (!file) { label.textContent = 'No file chosen'; return; }
+    if (!file) { label.textContent = 'No file chosen'; toggleClearBtn('image-input', false); return; }
+    toggleClearBtn('image-input', true);
     uploadImageToCloudinary(file, 'travelworthyph/package', document.getElementById('image_url'), this, label);
   });
 
   document.getElementById('flier-input').addEventListener('change', function () {
     const file = this.files[0];
     const label = document.getElementById('flier-status');
-    if (!file) { label.textContent = 'No file chosen'; return; }
+    if (!file) { label.textContent = 'No file chosen'; toggleClearBtn('flier-input', false); return; }
+    toggleClearBtn('flier-input', true);
     uploadImageToCloudinary(file, 'travelworthyph/flier', document.getElementById('flier_image_url'), this, label);
+  });
+
+  // ── Remove buttons for the single-file pickers ──
+  // These clear the chosen file before the form is submitted. The
+  // hidden *_url field has to be cleared too - it holds the already
+  // uploaded Cloudinary URL, and leaving it set would save the image
+  // anyway even with the file input emptied.
+  function toggleClearBtn(inputId, show) {
+    const btn = document.querySelector(`.clear-file-btn[data-input="${inputId}"]`);
+    if (btn) btn.hidden = !show;
+  }
+
+  document.querySelectorAll('.clear-file-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const input = document.getElementById(this.dataset.input);
+      const status = document.getElementById(this.dataset.status);
+      const urlField = document.getElementById(this.dataset.url);
+      if (input) input.value = '';
+      if (status) status.textContent = 'No file chosen';
+      if (urlField) urlField.value = '';
+      this.hidden = true;
+    });
   });
 
   // ── Gallery Photos — Direct Cloudinary Upload ──────────────────────────
@@ -382,7 +431,7 @@
 
       // Get signature from Flask
       statusArea.innerHTML =
-        '<div style="color:var(--teal);font-size:.85rem;"><i class="fas fa-spinner fa-spin"></i> Preparing upload...</div>';
+        '<div id="upload-prep" style="color:var(--teal);font-size:.85rem;"><i class="fas fa-spinner fa-spin"></i> Preparing upload...</div>';
 
       let sigData;
       try {
@@ -397,7 +446,12 @@
           }),
         });
         sigData = await sigRes.json();
+        // Signature obtained - "Preparing" is over, so drop the spinner.
+        // Without this it lingered next to the per-file progress bars
+        // and the final "All uploads done!" message.
+        document.getElementById('upload-prep')?.remove();
       } catch (err) {
+        document.getElementById('upload-prep')?.remove();
         statusArea.innerHTML =
           '<div style="color:var(--danger);font-size:.85rem;">Failed to get upload signature. Try again.</div>';
         return;
@@ -448,8 +502,12 @@
 
           // Show preview
           previewArea.innerHTML += `
-            <div style="position:relative;width:100px;height:100px;">
+            <div style="position:relative;width:100px;height:100px;" data-gallery-url="${url}">
               <img src="${url}" alt="Gallery photo to upload" style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:2px solid var(--teal);" />
+              <button type="button" class="remove-gallery-btn" title="Remove this photo"
+                style="position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;border:none;background:var(--danger);color:#fff;font-size:.68rem;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">
+                <i class="fas fa-trash"></i>
+              </button>
               <div style="position:absolute;bottom:4px;right:4px;background:var(--teal);border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;">
                 <i class="fas fa-check" style="color:white;font-size:.6rem;"></i>
               </div>
@@ -472,6 +530,21 @@
       statusArea.innerHTML +=
         '<div style="color:var(--teal);font-size:.85rem;margin-top:.5rem;"><i class="fas fa-check-circle"></i> All uploads done! They\'ll be added when you click Add Package.</div>';
     });
+  });
+
+  // Gallery thumbnails are re-rendered as uploads land, so this is
+  // delegated from the container rather than bound per button.
+  previewArea.addEventListener('click', function (e) {
+    const btn = e.target.closest('.remove-gallery-btn');
+    if (!btn) return;
+    const thumb = btn.closest('[data-gallery-url]');
+    if (!thumb) return;
+    const url = thumb.dataset.galleryUrl;
+    // Drop the hidden input too - without this the photo still gets
+    // saved on submit even though its thumbnail is gone.
+    const input = document.querySelector(`#new-image-inputs input[value="${url}"]`);
+    if (input) input.remove();
+    thumb.remove();
   });
 
 // ── Itinerary day builder ──────────────────────────
