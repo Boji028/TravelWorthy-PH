@@ -165,40 +165,6 @@
         <div class="size-warning"></div>
       </div>
 
-      <!-- TESTIMONIALS -->
-      <div class="site-img-block" data-field="testimonial_image">
-        <h3>Testimonials section background</h3>
-        <div class="hint">The blurred, darkened background behind the rotating traveler quotes.</div>
-
-        <div class="img-preview-wrap" style="{{ '' if settings.testimonial_image else 'display:none;' }}margin-bottom:.75rem;">
-          <img class="img-preview-img" alt="Current testimonial image" src="{{ settings.testimonial_image if settings.testimonial_image and settings.testimonial_image.startswith('http') else ('/uploads/' + settings.testimonial_image if settings.testimonial_image else '') }}"
-            style="height:120px;border-radius:var(--radius);object-fit:cover;" />
-          <div class="img-meta" style="font-size:.78rem;color:var(--mist);margin-top:.3rem">
-            {% if settings.testimonial_image %}
-            Current image
-            {% if settings.testimonial_image_size_kb %}· {{ "%.1f"|format(settings.testimonial_image_size_kb) }} KB{% endif %}
-            {% if settings.testimonial_image_uploaded_at %}· {{ settings.testimonial_image_uploaded_at.strftime('%b %d, %Y') }}{% endif %}
-            {% endif %}
-          </div>
-        </div>
-
-        <div style="display:flex;align-items:center;gap:0.75rem;">
-          <div class="file-upload-wrapper">
-            <button type="button" class="file-upload-btn" onclick="this.nextElementSibling.click()">
-              <i class="fas fa-image"></i> <span class="upload-btn-text">{{ 'Replace Photo' if settings.testimonial_image else 'Choose Photo' }}</span>
-            </button>
-            <input type="file" name="testimonial_image" accept="image/*"
-              onchange="this.nextElementSibling.textContent = this.files[0]?.name || 'No file chosen'; checkImageSize(this, this.closest('.site-img-block').querySelector('.size-warning'), 1600);" />
-            <span class="file-upload-label">{% if settings.testimonial_image %}Keeping current{% else %}No file chosen{% endif %}</span>
-          </div>
-          <button type="button" class="btn btn-danger btn-sm remove-img-btn" style="padding:0.5rem 0.75rem;{{ '' if settings.testimonial_image else 'display:none;' }}"
-            data-remove-url="{{ url_for('admin.remove_site_image', field='testimonial_image') }}" title="Remove Photo">
-            <i class="fas fa-trash"></i>
-          </button>
-        </div>
-        <div class="size-warning"></div>
-      </div>
-
       <!-- CTA -->
       <div class="site-img-block" data-field="cta_image">
         <h3>Closing CTA background</h3>

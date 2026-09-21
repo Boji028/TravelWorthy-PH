@@ -56,7 +56,9 @@ class TestSiteSettingsSave:
         assert data["success"] is True
         assert data["message"] == "Site settings updated!"
         assert data["images"]["hero_image"] is None
-        assert data["images"]["testimonial_image"] is None
+        # The testimonials section was removed from the homepage, so its
+        # background image is no longer an editable setting.
+        assert "testimonial_image" not in data["images"]
         assert data["images"]["cta_image"] is None
 
     def test_save_with_image_upload_updates_field(self, app, admin_client):

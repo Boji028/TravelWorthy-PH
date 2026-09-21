@@ -224,33 +224,6 @@
   .tw-why-item h3 { font-family: 'Pogonia', 'Cormorant Garamond', serif; font-size: 1.2rem; color: #f3ede3; margin-bottom: 8px; font-weight: 600; }
   .tw-why-item p { font-size: 13px; color: #8fa8a3; line-height: 1.7; }
 
-  /* ── TESTIMONIAL ── */
-  .tw-tmo { position: relative; padding: 100px 32px; text-align: center; color: #fff; overflow: hidden; }
-  .tw-tmo-bg { position: absolute; inset: 0; background: url("{{ (site_settings.testimonial_image | cloudinary_enhance) if site_settings.testimonial_image and site_settings.testimonial_image.startswith('http') else ('/uploads/' ~ site_settings.testimonial_image) if site_settings.testimonial_image else url_for('static', filename='images/beach.jpg') }}") center / cover;
-    filter: blur(3px) brightness(.5) saturate(1.1); transform: scale(1.08); }
-  .tw-tmo-veil { position: absolute; inset: 0; background: rgba(10,40,46,.55); }
-  .tw-tmo-inner { position: relative; z-index: 3; max-width: 760px; margin: 0 auto; }
-  .tw-tmo-stars { color: var(--amber); font-size: 16px; letter-spacing: 4px; margin-bottom: 22px; }
-  .tw-tmo-q { font-family: 'Pogonia', 'Cormorant Garamond', serif; font-style: italic;
-    font-size: clamp(1.4rem, 3.2vw, 2.2rem); line-height: 1.4; min-height: 2.6em; transition: opacity .5s;
-    overflow-wrap: break-word; word-break: break-word;
-    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
-  .tw-tmo-by { margin-top: 22px; font-size: 13px; letter-spacing: .06em; color: #cfe2e3; }
-  .tw-tmo-dots { display: flex; gap: 8px; justify-content: center; margin-top: 28px; }
-  .tw-tmo-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.35);
-    cursor: pointer; transition: background .25s, transform .25s; }
-  .tw-tmo-dot.on { background: var(--amber); transform: scale(1.25); }
-
-  /* ── STORIES ── */
-  .tw-stories { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-  .tw-story-img { height: 210px; border-radius: 13px; overflow: hidden; position: relative; margin-bottom: 16px; background: var(--linen); }
-  .tw-story-img img, .tw-story-img .ph { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .8s ease; }
-  .tw-story { display: block; text-decoration: none; color: inherit; }
-  .tw-story:hover .tw-story-img img, .tw-story:hover .tw-story-img .ph { transform: scale(1.06); }
-  .tw-story-cat { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--teal); margin-bottom: 7px; }
-  .tw-story-title { font-family: 'Pogonia', 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 600; color: var(--bark); line-height: 1.2; margin-bottom: 8px; }
-  .tw-story-meta { font-size: 12px; color: var(--mist); }
-
   /* ── CLOSING CTA ── */
   .tw-cta { position: relative; padding: 110px 32px; text-align: center; color: #fff; overflow: hidden; }
   .tw-cta-bg { position: absolute; inset: -1%; background: url("{{ (site_settings.cta_image | cloudinary_enhance) if site_settings.cta_image and site_settings.cta_image.startswith('http') else ('/uploads/' ~ site_settings.cta_image) if site_settings.cta_image else url_for('static', filename='images/beach.jpg') }}") center / cover; will-change: transform; }
@@ -271,7 +244,6 @@
   .tw-g-region2 { background: linear-gradient(155deg, #1d6a7e, #0c3d47); }
   .tw-g-region3 { background: linear-gradient(155deg, #2a5a4a, #0e3a34); }
   .tw-g-region4 { background: linear-gradient(155deg, #c4763a, #7a3a1f); }
-  .tw-g-s1 { background: linear-gradient(155deg, #3a6e63, #143a32); }
 
   /* ── KEYFRAMES ── */
   @keyframes twKen { from { transform: scale(1) translate(0,0); } to { transform: scale(1.025) translate(-1%,-.5%); } }
@@ -285,7 +257,6 @@
   @media (max-width: 900px) {
     .tw-tiles { grid-template-columns: 1fr 1fr; grid-auto-rows: 165px; }
     .tw-why-grid { grid-template-columns: 1fr 1fr; gap: 30px 24px; }
-    .tw-stories { grid-template-columns: 1fr; }
   }
   @media (max-width: 560px) {
     .tw-search { flex-direction: column; border-radius: 22px; padding: 10px; }
@@ -527,50 +498,6 @@
   </div>
 </section>
 
-<!-- TESTIMONIALS (only shows if testimonials are passed from the route) -->
-{% if testimonials %}
-<section class="tw-tmo" id="testimonials">
-  <div class="tw-tmo-bg"></div>
-  <div class="tw-tmo-veil"></div>
-  <div class="tw-tmo-inner">
-    <div class="tw-tmo-stars" id="twTmoStars">★★★★★</div>
-    <p class="tw-tmo-q tw-serif" id="twTmoQ"></p>
-    <div class="tw-tmo-by" id="twTmoBy"></div>
-    <div class="tw-tmo-dots" id="twTmoDots"></div>
-  </div>
-</section>
-{% endif %}
-
-<!-- STORIES (only shows if posts are passed from the route) -->
-{% if posts %}
-<section class="tw-section" id="stories">
-  <div class="tw-head tw-reveal">
-    <div>
-      <div class="tw-eyebrow2">From the journal</div>
-      <h2 class="tw-title tw-serif">Stories &amp; travel notes</h2>
-      <div class="tw-subtle">Guides, tips, and tales from the road</div>
-    </div>
-    <a class="tw-viewall" href="{{ url_for('blog.blog_list') }}">Read all stories <i class="fas fa-arrow-right"></i></a>
-  </div>
-  <div class="tw-stories">
-    {% for post in posts[:3] %}
-    <a class="tw-story tw-reveal tw-d{{ loop.index }}" href="{{ url_for('blog.blog_detail', post_id=post.id) }}">
-      <div class="tw-story-img">
-        {% if post.featured_image %}
-        <img src="{{ (post.featured_image | cloudinary_card) if post.featured_image.startswith('http') else '/uploads/' ~ post.featured_image }}" alt="{{ post.title }}" loading="lazy">
-        {% else %}
-        <div class="ph tw-g-s1"></div>
-        {% endif %}
-      </div>
-      {% if post.category %}<div class="tw-story-cat">{{ post.category }}</div>{% endif %}
-      <div class="tw-story-title">{{ post.title }}</div>
-      <div class="tw-story-meta">{{ post.author }} · {{ post.created_at.strftime('%b %Y') }}</div>
-    </a>
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
-
 <!-- CLOSING CTA -->
 <section class="tw-cta" id="cta">
   <div class="tw-cta-bg" id="twCtaBg"></div>
@@ -749,36 +676,6 @@
           }
         }, { passive: true });
       }
-    }
-
-    // Testimonial rotator (data injected from the route)
-    var quotes = [
-      {% if testimonials %}{% for t in testimonials %}
-      { message: {{ t.message | tojson }}, by: {{ ('— ' ~ t.user.name) | tojson }}, rating: {{ t.rating }} }{{ "," if not loop.last }}
-      {% endfor %}{% endif %}
-    ];
-    var tmoQ = document.getElementById('twTmoQ'), tmoBy = document.getElementById('twTmoBy'),
-        tmoStars = document.getElementById('twTmoStars'), tmoDots = document.getElementById('twTmoDots');
-    if (tmoQ && quotes.length) {
-      var qi = 0;
-      quotes.forEach(function (_, i) {
-        var d = document.createElement('span');
-        d.className = 'tw-tmo-dot' + (i === 0 ? ' on' : '');
-        d.addEventListener('click', function () { setQuote(i); });
-        tmoDots.appendChild(d);
-      });
-      function setQuote(i) {
-        qi = i; tmoQ.style.opacity = 0; tmoBy.style.opacity = 0;
-        setTimeout(function () {
-          tmoQ.textContent = '“' + quotes[i].message + '”';
-          tmoBy.textContent = quotes[i].by;
-          tmoStars.textContent = '★★★★★'.slice(0, quotes[i].rating);
-          tmoQ.style.opacity = 1; tmoBy.style.opacity = 1;
-          tmoDots.querySelectorAll('.tw-tmo-dot').forEach(function (d, j) { d.classList.toggle('on', j === i); });
-        }, 240);
-      }
-      setQuote(0);
-      if (quotes.length > 1) setInterval(function () { setQuote((qi + 1) % quotes.length); }, 5500);
     }
 
     // Destination autocomplete (kept from your original homepage)

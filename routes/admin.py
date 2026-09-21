@@ -24,6 +24,7 @@ from models.continent import Continent
 from models.country import Country
 from models.visa import VisaCountry
 from models.testimonial import Testimonial
+from models.package_review import PackageReview
 from models.subscriber import Subscriber
 from models.inquiry_notification import InquiryNotification
 from models.site_settings import SiteSettings
@@ -1966,6 +1967,145 @@ def delete_testimonial_photo(testimonial_id):
     return redirect(url_for("admin.testimonials"))
 
 
+# ── Admin-entered reviews ────────────────────────────────
+# Customers no longer have accounts, so reviews and testimonials are
+# entered here by admin after getting the client's permission. Both
+# share one form (admin/review_form.html) and one parsing helper.
+
+
+def _parse_review_form():
+    """Validate the shared review fields. Returns (data, error)."""
+    name = bleach.clean(request.form.get("reviewer_name", "").strip(), tags=[], strip=True)
+    message = bleach.clean(request.form.get("message", "").strip(), tags=[], strip=True)
+    try:
+        rating = max(1, min(5, int(request.form.get("rating", 5))))
+    except (ValueError, TypeError):
+        rating = 5
+
+    if not name:
+        return None, "Client name is required."
+    if len(name) > 100:
+        return None, "Client name must be 100 characters or fewer."
+    if not message:
+        return None, "Review text is required."
+
+    created_at = None
+    raw_date = request.form.get("review_date", "").strip()
+    if raw_date:
+        try:
+            created_at = datetime.strptime(raw_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        except ValueError:
+            return None, "Please enter a valid date."
+
+    return {"reviewer_name": name, "message": message, "rating": rating, "created_at": created_at}, None
+
+
+def _upload_review_photo(folder):
+    """Upload the optional client photo. Returns (path_or_None, error)."""
+    photo = request.files.get("photo")
+    if not photo or not photo.filename:
+        return None, None
+    try:
+        return ImageUploadService.upload_and_compress(photo, folder)["path"], None
+    except ImageUploadException as e:
+        return None, str(e)
+
+
+@admin_bp.route("/testimonials/add", methods=["GET", "POST"])
+@admin_required
+def add_testimonial():
+    if request.method == "POST":
+        data, error = _parse_review_form()
+        if error:
+            flash(error, "danger")
+            return render_template("admin/review_form.html", mode="testimonial", form=request.form)
+
+        photo_path, error = _upload_review_photo("review")
+        if error:
+            flash(error, "danger")
+            return render_template("admin/review_form.html", mode="testimonial", form=request.form)
+
+        testimonial = Testimonial(
+            reviewer_name=data["reviewer_name"], message=data["message"], rating=data["rating"], image=photo_path
+        )
+        if data["created_at"]:
+            testimonial.created_at = data["created_at"]
+        db.session.add(testimonial)
+        db.session.commit()
+        flash(f"Testimonial from {data['reviewer_name']} added.", "success")
+        return redirect(url_for("admin.testimonials"))
+
+    return render_template("admin/review_form.html", mode="testimonial", form={})
+
+
+@admin_bp.route("/package-reviews")
+@admin_required
+def package_reviews():
+    package_id = request.args.get("package_id", type=int)
+    query = PackageReview.query.options(selectinload(PackageReview.package), selectinload(PackageReview.user))
+    if package_id:
+        query = query.filter_by(package_id=package_id)
+    reviews = query.order_by(PackageReview.created_at.desc()).all()
+    packages_list = TourPackage.query.order_by(TourPackage.title).all()
+    return render_template(
+        "admin/package_reviews.html", reviews=reviews, packages=packages_list, selected_package_id=package_id
+    )
+
+
+@admin_bp.route("/package-reviews/add", methods=["GET", "POST"])
+@admin_required
+def add_package_review():
+    packages_list = TourPackage.query.order_by(TourPackage.title).all()
+
+    if request.method == "POST":
+        package_id = request.form.get("package_id", type=int)
+        package = db.session.get(TourPackage, package_id) if package_id else None
+        data, error = _parse_review_form()
+        if not package:
+            error = "Please choose a package."
+        if error:
+            flash(error, "danger")
+            return render_template("admin/review_form.html", mode="package", packages=packages_list, form=request.form)
+
+        photo_path, error = _upload_review_photo("review")
+        if error:
+            flash(error, "danger")
+            return render_template("admin/review_form.html", mode="package", packages=packages_list, form=request.form)
+
+        review = PackageReview(
+            package_id=package.id,
+            reviewer_name=data["reviewer_name"],
+            message=data["message"],
+            rating=data["rating"],
+            image=photo_path,
+        )
+        if data["created_at"]:
+            review.created_at = data["created_at"]
+        db.session.add(review)
+        db.session.commit()
+        flash(f"Review from {data['reviewer_name']} added to {package.title}.", "success")
+        return redirect(url_for("admin.package_reviews", package_id=package.id))
+
+    return render_template(
+        "admin/review_form.html",
+        mode="package",
+        packages=packages_list,
+        form={"package_id": request.args.get("package_id", "")},
+    )
+
+
+@admin_bp.route("/package-reviews/delete/<int:review_id>", methods=["POST"])
+@admin_required
+def delete_package_review(review_id):
+    review = db.get_or_404(PackageReview, review_id)
+    package_id = review.package_id
+    delete_old_image(review.image, current_app.config["UPLOAD_FOLDER"])
+    db.session.delete(review)
+    db.session.commit()
+    flash("Review deleted.", "info")
+    return redirect(url_for("admin.package_reviews", package_id=package_id))
+
+
 # ── Subscribers ──────────────────────────────────────────
 def _derive_package_type(country_id):
     """Work out domestic vs international from the selected country.
@@ -2301,13 +2441,12 @@ def _site_image_payload(path, size_kb, uploaded_at):
 @admin_required
 def site_settings():
     """Manage the admin-configurable homepage background images
-    (hero, testimonials, closing CTA)."""
+    (hero and closing CTA)."""
     settings = SiteSettings.get_settings()
 
     if request.method == "POST":
         fields = [
             ("hero_image", "site_hero"),
-            ("testimonial_image", "site_testimonial"),
             ("cta_image", "site_cta"),
         ]
         for field_name, cloudinary_folder in fields:
@@ -2534,7 +2673,7 @@ def delete_agent(agent_id):
 @admin_required
 def remove_site_image(field):
     """Remove one of the admin-configurable homepage background images."""
-    valid_fields = {"hero_image", "testimonial_image", "cta_image"}
+    valid_fields = {"hero_image", "cta_image"}
     if field not in valid_fields:
         return jsonify(success=False, message="Invalid image field."), 400
 

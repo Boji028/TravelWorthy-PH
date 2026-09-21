@@ -122,17 +122,11 @@ def home():
         if len(gallery_packages) == 6:
             break
 
-    testimonials = (
-        Testimonial.query.options(selectinload(Testimonial.user)).order_by(Testimonial.created_at.desc()).limit(5).all()
-    )
-    posts = BlogPost.query.filter_by(is_published=True).order_by(BlogPost.created_at.desc()).limit(3).all()
     continents = Continent.query.filter_by(is_active=True).order_by(Continent.name).all()
     site_settings = SiteSettings.get_settings()
     return render_template(
         "main/home.html",
         packages=packages,
-        testimonials=testimonials,
-        posts=posts,
         continents=continents,
         site_settings=site_settings,
         hero_slides=hero_slides,
