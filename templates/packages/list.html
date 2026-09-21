@@ -156,11 +156,6 @@
     font-weight: 600;
   }
 
-  .ct-count {
-    font-size: .72rem;
-    color: var(--mist);
-    text-align: center;
-  }
 
   /* Pagination links. Their own class rather than reusing
      .country-tab, which is now the continent badge (a tall flex
@@ -197,17 +192,47 @@
      outranks the browser's `[hidden] { display: none }` rule, which
      would leave every continent's row visible at once. Same trap as
      the mobile menu backdrop in main.css. */
+  /* One scrolling row rather than wrapping: a continent with many
+     countries would otherwise grow the toolbar to several rows, and
+     the toolbar is sticky, so that height follows you down the page
+     and squeezes out the packages themselves. */
   .country-pill-row:not([hidden]) {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: flex-start;
     gap: .45rem;
     padding-top: .85rem;
     margin-bottom: .85rem;
     border-top: 1px solid var(--linen);
+    overflow-x: auto;
+    overflow-y: hidden;
+    /* Hidden, not disabled - the row still scrolls by touch, trackpad
+       and wheel. A visible bar adds height to a sticky toolbar and
+       reads as clutter under a single row of pills. */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+    /* Fades the right edge so it reads as "more over here" rather than
+       looking like the list simply ends. */
+    mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent 100%);
+  }
+
+  /* Scrolled to the end - drop the fade so the last pill isn't dimmed. */
+  .country-pill-row.at-end:not([hidden]) {
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+
+  .country-pill-row::-webkit-scrollbar {
+    display: none;
   }
 
   .country-pill {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    user-select: none;
+    -webkit-user-select: none;
     padding: .4rem 1rem;
     border-radius: 999px;
     font-size: .8rem;
@@ -267,9 +292,6 @@
       font-size: .74rem;
     }
 
-    .ct-count {
-      display: none;
-    }
   }
 
   .filter-inner {
@@ -1106,6 +1128,10 @@
           // a previous visit to this row doesn't look active against
           // results that aren't filtered to it.
           row.querySelectorAll('.country-pill').forEach((p, i) => p.classList.toggle('active', i === 0));
+          // The row was hidden until now, so its scroll width was zero
+          // and the fade couldn't be measured. Sync it once visible.
+          row.scrollLeft = 0;
+          revealActivePill(row);
         }
       });
 
@@ -1199,6 +1225,99 @@
       { rootMargin: '-68px 0px 0px 0px', threshold: 0 }
     ).observe(sentinel);
   })();
+
+  // ── Country pill row scrolling ──
+  // The row scrolls sideways, so the right-edge fade needs switching
+  // off once you reach the end, and a selected pill sitting off-screen
+  // needs bringing into view when its row is revealed.
+  function syncPillRowFade(row) {
+    if (!row) return;
+    const atEnd = row.scrollLeft + row.clientWidth >= row.scrollWidth - 2;
+    // A row that doesn't overflow at all has nothing to fade either.
+    const fits = row.scrollWidth <= row.clientWidth + 2;
+    row.classList.toggle('at-end', atEnd || fits);
+  }
+
+  // ── Drag-to-scroll on the country pill row ──
+  // Touch and trackpads scroll this row natively, but with a plain
+  // mouse there's no way to move it now the scrollbar is hidden.
+  // Click-and-drag gives it the "grab the strip and swipe" feel.
+  // The pills are links, so a drag has to be stopped from also firing
+  // a navigation - hence the movement threshold and the capture-phase
+  // click suppressor below.
+  function initDragScroll(row) {
+    let down = false;
+    let dragged = false;
+    let startX = 0;
+    let startScroll = 0;
+
+    row.style.cursor = 'grab';
+
+    row.addEventListener('pointerdown', e => {
+      // Left button only; right-click should still open the context menu.
+      if (e.button !== 0) return;
+      down = true;
+      dragged = false;
+      startX = e.clientX;
+      startScroll = row.scrollLeft;
+      row.style.cursor = 'grabbing';
+    });
+
+    row.addEventListener('pointermove', e => {
+      if (!down) return;
+      const dx = e.clientX - startX;
+      // 4px of slack so a slightly shaky click still counts as a click.
+      if (!dragged && Math.abs(dx) < 4) return;
+      dragged = true;
+      // Capture the pointer only once it's a real drag, so a plain
+      // click still reaches the pill underneath.
+      if (row.setPointerCapture && e.pointerId !== undefined) {
+        try { row.setPointerCapture(e.pointerId); } catch (err) { /* already captured */ }
+      }
+      row.scrollLeft = startScroll - dx;
+      syncPillRowFade(row);
+    });
+
+    function endDrag() {
+      down = false;
+      row.style.cursor = 'grab';
+      // Cleared after the click event has had its chance to fire.
+      setTimeout(() => { dragged = false; }, 0);
+    }
+
+    row.addEventListener('pointerup', endDrag);
+    row.addEventListener('pointercancel', endDrag);
+    row.addEventListener('pointerleave', () => { if (down) endDrag(); });
+
+    // Capture phase: runs before the pill's own click handler, so a
+    // drag that ends on top of a pill doesn't also select that country.
+    row.addEventListener('click', e => {
+      if (dragged) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, true);
+
+    // Dragging over text would otherwise start a text selection.
+    row.addEventListener('dragstart', e => e.preventDefault());
+  }
+
+  document.querySelectorAll('.country-pill-row').forEach(row => {
+    row.addEventListener('scroll', () => syncPillRowFade(row), { passive: true });
+    syncPillRowFade(row);
+    initDragScroll(row);
+  });
+
+  window.addEventListener('resize', () => {
+    document.querySelectorAll('.country-pill-row').forEach(syncPillRowFade);
+  });
+
+  function revealActivePill(row) {
+    if (!row) return;
+    const active = row.querySelector('.country-pill.active');
+    if (active) active.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    syncPillRowFade(row);
+  }
 
   // ── Country Pills ──
   // Replaces the old hover-dropdown links. Marks the clicked pill
