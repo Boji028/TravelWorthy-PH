@@ -281,7 +281,12 @@
           <td>
             <strong>{{ pkg.title }}</strong>
             <div style="font-size:.72rem;color:var(--mist);margin-top:.15rem">
-              #{{ pkg.id }} · {{ pkg.duration_days }}d
+              {# A position in the list, not the database ID. IDs are never
+                 reused after a delete, so they drift far above the real
+                 count (e.g. #89 with only 54 packages). The newest package
+                 gets the highest number, so the top row always matches the
+                 total, and this stays correct across pages and filters. #}
+              #{{ pagination.total - ((pagination.page - 1) * pagination.per_page + loop.index0) }} · {{ pkg.duration_days }}d
             </div>
           </td>
           <td><i class="fas fa-location-dot" style="color:var(--teal);margin-right:.3rem"></i>{{ pkg.destination }}</td>

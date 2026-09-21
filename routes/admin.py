@@ -723,6 +723,11 @@ def delete_package(package_id):
     delete_old_image(package.flier_image, current_app.config["UPLOAD_FOLDER"])
     for img in package.images:
         delete_old_image(img.path, current_app.config["UPLOAD_FOLDER"])
+    # Per-day itinerary photos. The rows themselves cascade away with the
+    # package, but that only removes the database record - without this
+    # the actual files would stay on Cloudinary with nothing pointing at them.
+    for day in package.itinerary_days:
+        delete_old_image(day.image, current_app.config["UPLOAD_FOLDER"])
     db.session.delete(package)
     db.session.commit()
     flash("Package deleted.", "info")

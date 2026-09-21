@@ -237,3 +237,59 @@ class TestEditPackage:
     def test_nonexistent_package_redirects(self, app, admin_client):
         response = admin_client.get("/admin/packages/edit/99999", follow_redirects=False)
         assert response.status_code in (302, 404)
+
+
+class TestPackageDisplayNumber:
+    """The admin list shows a position number, not the database ID - IDs
+    are never reused after deletes, so they drift above the real count."""
+
+    def test_numbers_match_the_count_not_the_id_after_deletes(self, app, admin_client):
+        from app import db
+
+        pkgs = [_make_package(db, title=f"Package {i}") for i in range(5)]
+        # Delete three, leaving gaps in the ID sequence
+        for pkg in pkgs[:3]:
+            db.session.delete(pkg)
+        db.session.commit()
+        surviving = pkgs[3:]
+        assert max(p.id for p in surviving) == 5  # ID still 5 despite only 2 left
+
+        page = admin_client.get("/admin/packages").get_data(as_text=True)
+        assert "#2 · " in page
+        assert "#1 · " in page
+        assert "#5 · " not in page
+
+    def test_numbers_continue_correctly_onto_the_second_page(self, app, admin_client):
+        from app import db
+
+        for i in range(25):  # 20 per page, so 5 spill onto page 2
+            _make_package(db, title=f"Package {i}")
+
+        page1 = admin_client.get("/admin/packages").get_data(as_text=True)
+        page2 = admin_client.get("/admin/packages?page=2").get_data(as_text=True)
+        assert "#25 · " in page1 and "#6 · " in page1
+        assert "#5 · " in page2 and "#1 · " in page2
+        assert "#6 · " not in page2
+
+
+class TestDeletePackageCleansUpItineraryPhotos:
+    def test_itinerary_day_photos_are_deleted_from_storage(self, app, admin_client, monkeypatch):
+        from app import db
+        from models.itinerary_day import ItineraryDay
+        import routes.admin as admin_routes
+
+        pkg = _make_package(db)
+        db.session.add(ItineraryDay(package_id=pkg.id, day_number=1, title="Day 1", order=1,
+                                    image="https://res.cloudinary.com/demo/image/upload/day1.jpg"))
+        db.session.add(ItineraryDay(package_id=pkg.id, day_number=2, title="Day 2", order=2,
+                                    image="https://res.cloudinary.com/demo/image/upload/day2.jpg"))
+        db.session.commit()
+
+        deleted = []
+        monkeypatch.setattr(admin_routes, "delete_old_image", lambda path, *a, **k: deleted.append(path))
+
+        admin_client.post(f"/admin/packages/delete/{pkg.id}")
+
+        assert "https://res.cloudinary.com/demo/image/upload/day1.jpg" in deleted
+        assert "https://res.cloudinary.com/demo/image/upload/day2.jpg" in deleted
+        assert db.session.get(TourPackage, pkg.id) is None
