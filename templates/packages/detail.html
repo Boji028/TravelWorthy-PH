@@ -750,23 +750,142 @@
   /* DESCRIPTION */
   .desc-text {
     font-size: .9rem;
-    line-height: 1.85;
+    line-height: 1.8;
     color: var(--bark);
-    /* HTML collapses all whitespace by default, including the line
-       breaks admin typed in the textarea - that's what was flattening
-       a formatted description (paragraphs, one bullet per line) into
-       one run-on block. pre-line keeps those line breaks and still
-       collapses repeated spaces and wraps long lines normally.
-       Justify stretches short lines to fill the full width, which
-       looks broken once each bullet is its own line, so left-align
-       instead (the default - no property needed for it). */
-    white-space: pre-line;
   }
 
+  /* Collapsed preview: tall enough to show the headline and intro, with
+     a fade so it's clear there's more below. */
   .desc-collapsed {
-    max-height: 100px;
+    max-height: 300px;
     overflow: hidden;
+    position: relative;
   }
+
+  .desc-collapsed::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 90px;
+    background: linear-gradient(rgba(245, 239, 230, 0), var(--sand));
+    pointer-events: none;
+  }
+
+  /* ── RICH DESCRIPTION (see description_format.py) ── */
+  .rich-desc > * + * { margin-top: 1rem; }
+  .rd-headline {
+    font-family: 'Pogonia', serif;
+    font-size: 1.35rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--bark);
+  }
+  .rd-intro {
+    font-size: .95rem;
+    line-height: 1.8;
+    color: #5f5a52;
+    padding-left: 14px;
+    border-left: 3px solid var(--teal-d);
+  }
+  .rd-para { line-height: 1.8; }
+  .rd-label {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    margin-top: 1.6rem !important;
+  }
+  .rd-label span {
+    font-size: .72rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--amber-d);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .rd-label::after { content: ''; flex: 1; height: 1px; background: var(--linen); }
+  .rd-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
+    gap: .6rem;
+  }
+  .rd-card {
+    display: flex;
+    gap: .7rem;
+    align-items: flex-start;
+    background: var(--white);
+    border: 1px solid var(--linen);
+    border-radius: 12px;
+    padding: .75rem .85rem;
+  }
+  .rd-icon {
+    flex: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #e4efe9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    line-height: 1;
+  }
+  .rd-card-text { font-size: .86rem; line-height: 1.55; }
+  .rd-detail {
+    display: inline-block;
+    background: #e4efe9;
+    color: #0f6e56;
+    font-size: .8rem;
+    font-weight: 600;
+    padding: .3rem .8rem;
+    border-radius: 999px;
+  }
+  .rd-hotels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
+    gap: .6rem;
+  }
+  .rd-hotel {
+    background: var(--white);
+    border: 1px solid var(--linen);
+    border-radius: 12px;
+    padding: .9rem;
+    text-align: center;
+  }
+  .rd-hotel-name { font-size: .8rem; color: var(--mist); margin-bottom: .2rem; }
+  .rd-hotel-price { font-size: 1.25rem; font-weight: 700; color: var(--teal); }
+  .rd-unit { display: block; font-size: .72rem; font-weight: 400; color: var(--mist); }
+  .rd-price-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    background: var(--white);
+    border: 1px solid var(--linen);
+    border-radius: 12px;
+    padding: .85rem 1rem;
+  }
+  .rd-price-label { font-size: .88rem; }
+  .rd-price-amount { font-size: 1.15rem; font-weight: 700; color: var(--teal); text-align: right; }
+  .rd-price-amount .rd-unit { display: inline; margin-left: .2rem; }
+  .rd-chips { display: flex; flex-wrap: wrap; gap: .45rem; }
+  .rd-chip {
+    background: #e4efe9;
+    color: #0f6e56;
+    font-size: .8rem;
+    padding: .35rem .8rem;
+    border-radius: 999px;
+  }
+  .rd-closing {
+    background: #fdf3e3;
+    border-radius: 12px;
+    padding: 1rem 1.15rem;
+    margin-top: 1.6rem !important;
+  }
+  .rd-closing-title { font-weight: 600; color: #7a4a14; margin-bottom: .3rem; }
+  .rd-closing-text { font-size: .86rem; line-height: 1.7; color: #8a5a22; }
+  .rd-closing-text + .rd-closing-text { margin-top: .4rem; }
 
   .read-more-btn {
     background: none;
@@ -1599,7 +1718,7 @@
           <span class="sec-label-text">About</span>
           <span class="sec-label-rule"></span>
         </div>
-        <div class="desc-text desc-collapsed" id="desc-text">{{ package.description }}</div>
+        <div class="desc-text desc-collapsed" id="desc-text">{{ package.description | rich_description }}</div>
         <button class="read-more-btn" id="read-more-btn" onclick="toggleDesc()">Show more <i class="fas fa-chevron-down"
             style="font-size:.7rem"></i></button>
       </div>
@@ -2133,6 +2252,16 @@
       'Show less <i class="fas fa-chevron-up" style="font-size:.7rem"></i>' :
       'Show more <i class="fas fa-chevron-down" style="font-size:.7rem"></i>';
   }
+
+  // No point offering "Show more" for a description that already fits.
+  document.addEventListener('DOMContentLoaded', function () {
+    const d = document.getElementById('desc-text');
+    const b = document.getElementById('read-more-btn');
+    if (d && b && d.scrollHeight <= d.clientHeight + 4) {
+      d.classList.remove('desc-collapsed');
+      b.style.display = 'none';
+    }
+  });
 
   let amenitiesOpen = false;
 

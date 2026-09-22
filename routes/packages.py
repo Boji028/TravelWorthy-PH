@@ -6,6 +6,7 @@ from itertools import groupby
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, session
 from flask_login import login_required, current_user
 from sqlalchemy import func
+from description_format import format_description
 from sqlalchemy.orm import selectinload
 from flask_sqlalchemy.pagination import Pagination
 import re
