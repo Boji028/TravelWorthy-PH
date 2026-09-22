@@ -166,3 +166,19 @@ class TestPasswordChange:
         )
 
         assert response.status_code == 200
+
+
+class TestSearchEngineVisibility:
+    def test_staff_pages_tell_search_engines_not_to_index(self, client):
+        for path in ["/staff-portal", "/forgot-password"]:
+            response = client.get(path)
+            assert response.headers.get("X-Robots-Tag") == "noindex, nofollow", path
+
+    def test_public_pages_stay_indexable(self, client):
+        assert "X-Robots-Tag" not in client.get("/").headers
+
+    def test_robots_txt_points_to_sitemap_without_revealing_the_login(self, client):
+        body = client.get("/robots.txt").get_data(as_text=True)
+        assert "Sitemap: https://travelworthyph.com/sitemap.xml" in body
+        assert "staff-portal" not in body
+        assert "/auth/" not in body

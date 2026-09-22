@@ -2,5 +2,6 @@ User-agent: *
 Allow: /
 
 Disallow: /admin/
-Disallow: /auth/
 Disallow: /uploads/
+
+Sitemap: https://travelworthyph.com/sitemap.xml

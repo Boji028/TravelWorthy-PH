@@ -20,6 +20,12 @@ from password_reset_service import PasswordResetService
 
 auth_bp = Blueprint("auth", __name__)
 
+@auth_bp.after_request
+def keep_out_of_search_results(response):
+    """Tell search engines not to index or follow any staff auth page."""
+    response.headers["X-Robots-Tag"] = "noindex, nofollow"
+    return response
+
 
 @auth_bp.route("/staff-portal", methods=["GET", "POST"])
 @limiter.limit(
