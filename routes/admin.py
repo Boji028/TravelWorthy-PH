@@ -2210,19 +2210,27 @@ def export_subscribers():
     )
 
 
+def _wants_json():
+    """True for background (fetch) requests from the edit page, which want a
+    JSON reply instead of a redirect - and no flash message, since there's
+    no page load to show it on (it would otherwise pop up later elsewhere)."""
+    return request.headers.get("X-Requested-With") == "fetch"
+
+
 # ── Photo Removal Routes (for quick deletion) ──────────────
 @admin_bp.route("/packages/remove-photo/<int:package_id>", methods=["POST"])
 @admin_required
 def remove_package_photo(package_id):
     """Remove photo from a package."""
     package = db.get_or_404(TourPackage, package_id)
-    if package.image and package.image != "default_tour.jpg":
+    removed = bool(package.image and package.image != "default_tour.jpg")
+    if removed:
         delete_old_image(package.image, current_app.config["UPLOAD_FOLDER"])
         package.image = None
         db.session.commit()
-        flash("Package photo removed.", "success")
-    else:
-        flash("No photo to remove.", "warning")
+    if _wants_json():
+        return jsonify(success=removed)
+    flash("Package photo removed." if removed else "No photo to remove.", "success" if removed else "warning")
     return redirect(url_for("admin.edit_package", package_id=package_id))
 
 
@@ -2264,6 +2272,8 @@ def delete_gallery_image(image_id):
     delete_old_image(img.path, current_app.config["UPLOAD_FOLDER"])
     db.session.delete(img)
     db.session.commit()
+    if _wants_json():
+        return jsonify(success=True)
     flash("Gallery image deleted.", "info")
     return redirect(url_for("admin.edit_package", package_id=package_id))
 
@@ -2408,10 +2418,13 @@ def export_inquiries():
 def remove_flier(package_id):
     """Remove the flier image from a package."""
     package = db.get_or_404(TourPackage, package_id)
+    back = url_for("admin.edit_package", package_id=package_id)
 
     if not package.flier_image:
+        if _wants_json():
+            return jsonify(success=False, message="This package has no flier to remove.")
         flash("This package has no flier to remove.", "warning")
-        return redirect(url_for("admin.packages"))
+        return redirect(back)
 
     try:
         ImageUploadService.delete_image(package.flier_image)
@@ -2424,13 +2437,19 @@ def remove_flier(package_id):
 
     try:
         db.session.commit()
-        flash(f'Flier for "{package.title}" removed.', "success")
     except SQLAlchemyError as e:
         db.session.rollback()
         current_app.logger.error(f"DB error removing flier for package {package_id}: {e}", exc_info=True)
+        if _wants_json():
+            return jsonify(success=False, message="Database error removing flier. Please try again."), 500
         flash("Database error removing flier. Please try again.", "danger")
+        return redirect(back)
 
-    return redirect(url_for("admin.packages"))
+    if _wants_json():
+        return jsonify(success=True)
+    flash(f'Flier for "{package.title}" removed.', "success")
+    # Back to the edit page you came from, not the package list.
+    return redirect(back)
 
 
 def _site_image_payload(path, size_kb, uploaded_at):

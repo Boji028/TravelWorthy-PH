@@ -3,6 +3,28 @@
 
 {% block admin_styles %}
 <style>
+  .clear-file-btn {
+    background: none;
+    border: none;
+    color: var(--danger);
+    font-size: .88rem;
+    cursor: pointer;
+    padding: .3rem;
+    margin-left: .25rem;
+    line-height: 1;
+    border-radius: 6px;
+    flex-shrink: 0;
+    transition: background .15s;
+  }
+
+  .clear-file-btn:hover {
+    background: rgba(192, 57, 43, .1);
+  }
+
+  .clear-file-btn[hidden] {
+    display: none;
+  }
+
   .price-request-toggle {
     display: flex;
     align-items: flex-start;
@@ -307,7 +329,7 @@
     <div class="form-group">
       <label>Package Image</label>
       {% if package.image and package.image != 'default_tour.jpg' %}
-      <div style="margin-bottom:.75rem;">
+      <div style="margin-bottom:.75rem;" id="image-current">
         <img alt="Current package image" src="{{ package.image if package.image.startswith('http') else '/uploads/' + package.image }}"
           style="height:120px;border-radius:var(--radius);object-fit:cover;" />
         <div style="font-size:.78rem;color:var(--mist);margin-top:.3rem">Current image</div>
@@ -318,13 +340,17 @@
           <button type="button" class="file-upload-btn" onclick="this.nextElementSibling.click()">
             <i class="fas fa-image"></i> Choose Photo
           </button>
-          <input type="file" name="image" accept="image/*"
-            onchange="this.nextElementSibling.textContent = this.files[0]?.name || 'No file chosen'" />
-          <span class="file-upload-label">{% if package.image and package.image != 'default_tour.jpg' %}Keeping current{% else %}No file chosen{% endif %}</span>
+          <input type="file" name="image" accept="image/*" id="image-input" data-picker="image" />
+          <span class="file-upload-label" id="image-status" data-default="{% if package.image and package.image != 'default_tour.jpg' %}Keeping current{% else %}No file chosen{% endif %}">{% if package.image and package.image != 'default_tour.jpg' %}Keeping current{% else %}No file chosen{% endif %}</span>
+          <button type="button" class="clear-file-btn" data-clear="image" title="Cancel this photo" aria-label="Cancel this photo" hidden>
+            <i class="fas fa-trash"></i>
+          </button>
         </div>
         {% if package.image and package.image != 'default_tour.jpg' %}
-        <button type="button" class="btn btn-danger btn-sm" style="padding:0.5rem 0.75rem;"
-          onclick="document.getElementById('remove-photo-form').requestSubmit();" title="Remove Photo">
+        <button type="button" class="btn btn-danger btn-sm stored-remove-btn" style="padding:0.5rem 0.75rem;"
+          data-url="{{ url_for('admin.remove_package_photo', package_id=package.id) }}"
+          data-current="image-current" data-status="image-status"
+          data-confirm-text="Remove the current package photo? This can't be undone." title="Remove current photo">
           <i class="fas fa-trash"></i>
         </button>
         {% endif %}
@@ -340,7 +366,7 @@
       </label>
 
       {% if package.flier_image %}
-      <div style="margin-bottom:.75rem;display:flex;align-items:flex-start;gap:1rem;">
+      <div style="margin-bottom:.75rem;display:flex;align-items:flex-start;gap:1rem;" id="flier-current">
         <div>
           <img alt="Current flier image"
             src="{{ package.flier_image if package.flier_image.startswith('http') else '/uploads/' + package.flier_image }}"
@@ -360,14 +386,18 @@
           <button type="button" class="file-upload-btn" onclick="this.nextElementSibling.click()">
             <i class="fas fa-file-image"></i> {{ 'Replace Flier' if package.flier_image else 'Upload Flier' }}
           </button>
-          <input type="file" name="flier_image" accept="image/*"
-            onchange="this.nextElementSibling.textContent = this.files[0]?.name || 'No file chosen'" />
-          <span class="file-upload-label">{% if package.flier_image %}Keeping current{% else %}No file chosen{% endif %}</span>
+          <input type="file" name="flier_image" accept="image/*" id="flier-input" data-picker="flier" />
+          <span class="file-upload-label" id="flier-status" data-default="{% if package.flier_image %}Keeping current{% else %}No file chosen{% endif %}">{% if package.flier_image %}Keeping current{% else %}No file chosen{% endif %}</span>
+          <button type="button" class="clear-file-btn" data-clear="flier" title="Cancel this flier" aria-label="Cancel this flier" hidden>
+            <i class="fas fa-trash"></i>
+          </button>
         </div>
 
         {% if package.flier_image %}
-        <button type="button" class="btn btn-danger btn-sm" style="padding:0.5rem 0.75rem;"
-          onclick="document.getElementById('remove-flier-form').requestSubmit();" title="Remove Flier">
+        <button type="button" class="btn btn-danger btn-sm stored-remove-btn" style="padding:0.5rem 0.75rem;"
+          data-url="{{ url_for('admin.remove_flier', package_id=package.id) }}"
+          data-current="flier-current" data-status="flier-status"
+          data-confirm-text="Remove the current flier? This can't be undone." title="Remove current flier">
           <i class="fas fa-trash"></i>
         </button>
         {% endif %}
@@ -434,26 +464,9 @@
 </div>
 
 <!-- Remove Photo Form (hidden, triggered by button click) -->
-{% if package.image and package.image != 'default_tour.jpg' %}
-<form method="POST" action="{{ url_for('admin.remove_package_photo', package_id=package.id) }}" id="remove-photo-form"
-  style="display:none;" data-confirm="Remove this photo? You can upload a new one after.">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-</form>
-{% endif %}
 
-<!-- Remove Flier Form (hidden, triggered by button click) — kept OUTSIDE the
-     main edit form above, since nested <form> elements are invalid HTML.
-     The nested version of this form was silently truncating the outer form
-     right where it appeared, which orphaned every field after it — Gallery
-     Photos, the Feature on Homepage toggle, and the Save Changes button
-     itself — from any form at all. That's why Save stopped working on any
-     package that has a flier image. -->
-{% if package.flier_image %}
-<form method="POST" action="{{ url_for('admin.remove_flier', package_id=package.id) }}" id="remove-flier-form"
-  style="display:none;" data-confirm="Remove this flier? You can upload a new one after.">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-</form>
-{% endif %}
+
+
 
 <script nonce="{{ csp_nonce() }}">
   const currentCountryId = "{{ package.country_id or '' }}";
@@ -508,7 +521,7 @@
 
       // Get signature from Flask
       statusArea.innerHTML =
-        '<div style="color:var(--teal);font-size:.85rem;"><i class="fas fa-spinner fa-spin"></i> Preparing upload...</div>';
+        '<div id="upload-prep" style="color:var(--teal);font-size:.85rem;"><i class="fas fa-spinner fa-spin"></i> Preparing upload...</div>';
 
       let sigData;
       try {
@@ -523,7 +536,11 @@
           }),
         });
         sigData = await sigRes.json();
+        // Signature obtained - "Preparing" is over. Without this the
+        // spinner stayed beside the progress bars and the done message.
+        document.getElementById('upload-prep')?.remove();
       } catch (err) {
+        document.getElementById('upload-prep')?.remove();
         statusArea.innerHTML =
           '<div style="color:var(--danger);font-size:.85rem;">Failed to get upload signature. Try again.</div>';
         return;
@@ -574,8 +591,12 @@
 
           // Show preview
           previewArea.innerHTML += `
-            <div style="position:relative;width:100px;height:100px;">
+            <div style="position:relative;width:100px;height:100px;" data-gallery-url="${url}">
               <img src="${url}" alt="Gallery photo to upload" style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:2px solid var(--teal);" />
+              <button type="button" class="remove-gallery-btn" title="Remove this photo"
+                style="position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;border:none;background:var(--danger);color:#fff;font-size:.68rem;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">
+                <i class="fas fa-trash"></i>
+              </button>
               <div style="position:absolute;bottom:4px;right:4px;background:var(--teal);border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;">
                 <i class="fas fa-check" style="color:white;font-size:.6rem;"></i>
               </div>
@@ -606,11 +627,12 @@
       const res = await fetch(`/admin/packages/delete-gallery-image/${imageId}`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-Requested-With': 'fetch'
         },
         body: `csrf_token=${csrfToken}`
       });
-      if (res.ok || res.redirected) {
+      if (res.ok) {
         btn.closest('div').remove();
       } else {
         alert('Failed to delete. Try again.');
@@ -619,6 +641,69 @@
       alert('Error deleting image.');
     }
   }
+
+
+  // ── Picking, cancelling, and removing photos in place ──────────────
+  // A newly picked photo or flier can be cancelled before saving (small
+  // trash icon). The red button removes the photo already saved on the
+  // package - in the background, so the page doesn't reload or jump to
+  // the package list and nothing typed on the form is lost.
+  document.querySelectorAll('input[data-picker]').forEach(input => {
+    const kind = input.dataset.picker;
+    const label = document.getElementById(kind + '-status');
+    const clearBtn = document.querySelector(`.clear-file-btn[data-clear="${kind}"]`);
+    input.addEventListener('change', () => {
+      const file = input.files[0];
+      label.textContent = file ? file.name : label.dataset.default;
+      clearBtn.hidden = !file;
+    });
+    clearBtn.addEventListener('click', () => {
+      input.value = '';
+      label.textContent = label.dataset.default;
+      clearBtn.hidden = true;
+    });
+  });
+
+  document.querySelectorAll('.stored-remove-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!(await adminConfirm(btn.dataset.confirmText))) return;
+      btn.disabled = true;
+      try {
+        const res = await fetch(btn.dataset.url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'fetch'
+          },
+          body: `csrf_token=${csrfToken}`
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || 'Remove failed');
+        document.getElementById(btn.dataset.current)?.remove();
+        const label = document.getElementById(btn.dataset.status);
+        label.dataset.default = 'No file chosen';
+        if (!label.nextElementSibling || label.nextElementSibling.hidden !== false) {
+          label.textContent = 'No file chosen';
+        }
+        btn.remove();
+      } catch (err) {
+        btn.disabled = false;
+        alert('Could not remove it. Please try again.');
+      }
+    });
+  });
+
+  // Newly uploaded gallery photos (not saved yet): drop the thumbnail and
+  // its hidden input so it isn't saved. Delegated because thumbnails are
+  // added as uploads finish.
+  previewArea.addEventListener('click', e => {
+    const btn = e.target.closest('.remove-gallery-btn');
+    if (!btn) return;
+    const thumb = btn.closest('[data-gallery-url]');
+    const input = inputsArea.querySelector(`input[value="${thumb.dataset.galleryUrl}"]`);
+    if (input) input.remove();
+    thumb.remove();
+  });
 
   // ── Itinerary day builder ──────────────────────────
   let dayCount = 0;

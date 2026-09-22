@@ -265,3 +265,56 @@ class TestCloudinarySignature:
         response = admin_client.post("/admin/cloudinary-signature", json={})
         data = response.get_json()
         assert "signature" in data or "timestamp" in data
+
+
+class TestInPlaceRemovalFromEditPage:
+    """The edit page removes photos in the background, so these routes must
+    answer background requests with JSON - no redirect and no flash message
+    that would otherwise pop up later on an unrelated page."""
+
+    FETCH = {"X-Requested-With": "fetch"}
+
+    def _package(self, db, **kw):
+        from models.package import TourPackage
+        pkg = TourPackage(title="P", description="d", destination="x", duration_days=3,
+                          price=1000, currency="PHP", is_active=True, **kw)
+        db.session.add(pkg)
+        db.session.commit()
+        return pkg
+
+    def test_remove_flier_in_background_returns_json(self, app, admin_client):
+        from app import db
+        pkg = self._package(db, flier_image="f.jpg")
+        res = admin_client.post(f"/admin/fliers/{pkg.id}/remove", headers=self.FETCH)
+        assert res.status_code == 200 and res.get_json()["success"] is True
+        db.session.refresh(pkg)
+        assert pkg.flier_image is None
+        with admin_client.session_transaction() as sess:
+            assert not sess.get("_flashes")
+
+    def test_remove_flier_without_js_returns_to_edit_page_not_list(self, app, admin_client):
+        from app import db
+        pkg = self._package(db, flier_image="f.jpg")
+        res = admin_client.post(f"/admin/fliers/{pkg.id}/remove")
+        assert res.status_code == 302
+        assert f"/admin/packages/edit/{pkg.id}" in res.headers["Location"]
+
+    def test_remove_photo_in_background_returns_json(self, app, admin_client):
+        from app import db
+        pkg = self._package(db, image="p.jpg")
+        res = admin_client.post(f"/admin/packages/remove-photo/{pkg.id}", headers=self.FETCH)
+        assert res.get_json()["success"] is True
+        db.session.refresh(pkg)
+        assert pkg.image is None
+
+    def test_delete_gallery_image_in_background_leaves_no_flash(self, app, admin_client):
+        from app import db
+        from models.package_image import PackageImage
+        pkg = self._package(db)
+        img = PackageImage(package_id=pkg.id, path="g.jpg", order=0)
+        db.session.add(img)
+        db.session.commit()
+        res = admin_client.post(f"/admin/packages/delete-gallery-image/{img.id}", headers=self.FETCH)
+        assert res.get_json()["success"] is True
+        with admin_client.session_transaction() as sess:
+            assert not sess.get("_flashes")
