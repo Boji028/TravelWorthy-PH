@@ -176,7 +176,8 @@ def list_packages() -> Union[str, object]:
 
 _BOLD_PATTERN = re.compile(r"\*\*(.+?)\*\*")
 
-
+# Structured package descriptions - see description_format.py
+packages_bp.add_app_template_filter(format_description, "rich_description")
 @packages_bp.app_template_filter("bold_markdown")
 def bold_markdown(text):
     """Convert **word** into <strong>word</strong> for itinerary
