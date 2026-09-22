@@ -125,7 +125,7 @@ def list_packages() -> Union[str, object]:
     packages = _ShuffledPagination(page=page, per_page=9, error_out=False, all_ids=all_ids)
 
     # Load related continent/country data to prevent N+1 queries
-    continents = Continent.query.filter_by(is_active=True).order_by(Continent.name).all()
+    continents = Continent.ordered_active()
     active_continent = db.session.get(Continent, continent_id) if continent_id else None
     active_country = db.session.get(Country, country_id) if country_id else None
 

@@ -122,7 +122,7 @@ def home():
         if len(gallery_packages) == 6:
             break
 
-    continents = Continent.query.filter_by(is_active=True).order_by(Continent.name).all()
+    continents = Continent.ordered_active()
     site_settings = SiteSettings.get_settings()
     return render_template(
         "main/home.html",
