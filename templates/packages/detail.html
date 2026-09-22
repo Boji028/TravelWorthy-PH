@@ -1417,10 +1417,18 @@
 
   .package-subscribe-form input {
     flex: 1 1 200px;
+    min-width: 0;
+    /* A fixed height keeps these single-line on every phone. Without it
+       the decorative Pogonia font's oversized metrics, plus the flex
+       basis turning into a HEIGHT once the form stacks into a column on
+       mobile, rendered each field as a huge box. */
+    height: 44px;
     padding: .7rem 1rem;
     border-radius: var(--radius);
     border: 1px solid var(--linen);
     font-size: .9rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: normal;
   }
 
   .package-subscribe-form button {
@@ -1463,6 +1471,13 @@
   @media (max-width: 600px) {
     .package-subscribe-form {
       flex-direction: column;
+    }
+
+    /* In a column, flex-basis sizes HEIGHT - reset it so the 200px meant
+       as a width doesn't become 200px tall. */
+    .package-subscribe-form input {
+      flex: 1 1 auto;
+      width: 100%;
     }
   }
 
