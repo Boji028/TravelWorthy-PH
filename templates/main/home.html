@@ -194,10 +194,8 @@
   .tw-card-cta { display: inline-flex; align-items: center; gap: 6px; color: var(--teal); font-size: 12px; font-weight: 600; transition: gap .25s, color .2s; }
   .tw-card:hover .tw-card-cta { gap: 10px; color: var(--amber); }
 
-
   /* ── GALLERY (auto-scrolling snapshots) ── */
   .tw-gallery { padding-top: 24px; }
-  .tw-gallery-wrap { overflow: hidden; margin-top: 8px; }
   .tw-gallery-wrap { overflow: hidden; margin-top: 8px; }
   .tw-gallery-track { display: flex; width: max-content; animation: twGalleryScroll 38s linear infinite; }
   .tw-gallery-wrap:hover .tw-gallery-track { animation-play-state: paused; }
@@ -223,6 +221,7 @@
   .tw-why-item:hover .tw-why-icon { transform: scale(1.1); background: rgba(239,130,51,.14); border-color: var(--amber); }
   .tw-why-item h3 { font-family: 'Pogonia', 'Cormorant Garamond', serif; font-size: 1.2rem; color: #f3ede3; margin-bottom: 8px; font-weight: 600; }
   .tw-why-item p { font-size: 13px; color: #8fa8a3; line-height: 1.7; }
+
 
   /* ── CLOSING CTA ── */
   .tw-cta { position: relative; padding: 110px 32px; text-align: center; color: #fff; overflow: hidden; }
@@ -708,13 +707,24 @@
     }
 
     // Featured package mini-gallery
-    document.querySelectorAll('.tw-card-img').forEach(function (imgWrap) {
+    // Featured package mini-gallery
+    // Card photos advance on their own. Staggered so a row of cards
+    // doesn't flip in unison, paused while hovered so a visitor can look,
+    // and only running for cards actually on screen.
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var AUTOPLAY_MS = 4000;
+
+    document.querySelectorAll('.tw-card-img').forEach(function (imgWrap, cardIndex) {
       var slides = imgWrap.querySelectorAll('.tw-card-slide');
       if (slides.length < 2) return;
       var dots = imgWrap.querySelectorAll('.tw-card-dot');
       var prevBtn = imgWrap.querySelector('.tw-card-arrow-prev');
       var nextBtn = imgWrap.querySelector('.tw-card-arrow-next');
       var idx = 0;
+      var timer = null;
+      var startDelay = null;
+      var hovering = false;
+      var visible = false;
 
       function goTo(i) {
         idx = (i + slides.length) % slides.length;
@@ -722,11 +732,43 @@
         dots.forEach(function (d, j) { d.classList.toggle('active', j === idx); });
       }
 
-      if (prevBtn) prevBtn.addEventListener('click', function (e) { e.stopPropagation(); goTo(idx - 1); });
-      if (nextBtn) nextBtn.addEventListener('click', function (e) { e.stopPropagation(); goTo(idx + 1); });
+      function stop() {
+        clearTimeout(startDelay);
+        clearInterval(timer);
+        startDelay = null;
+        timer = null;
+      }
+
+      function start() {
+        if (reduceMotion || hovering || !visible || timer || startDelay) return;
+        startDelay = setTimeout(function () {
+          startDelay = null;
+          timer = setInterval(function () { goTo(idx + 1); }, AUTOPLAY_MS);
+        }, (cardIndex % 3) * 900);
+      }
+
+      // A manual choice restarts the countdown, so the photo someone just
+      // picked isn't swapped out a moment later.
+      function restart() { stop(); start(); }
+
+      if (prevBtn) prevBtn.addEventListener('click', function (e) { e.stopPropagation(); goTo(idx - 1); restart(); });
+      if (nextBtn) nextBtn.addEventListener('click', function (e) { e.stopPropagation(); goTo(idx + 1); restart(); });
       dots.forEach(function (d, i) {
-        d.addEventListener('click', function (e) { e.stopPropagation(); goTo(i); });
+        d.addEventListener('click', function (e) { e.stopPropagation(); goTo(i); restart(); });
       });
+
+      imgWrap.addEventListener('mouseenter', function () { hovering = true; stop(); });
+      imgWrap.addEventListener('mouseleave', function () { hovering = false; start(); });
+
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (entries) {
+          visible = entries[0].isIntersecting;
+          if (visible) { start(); } else { stop(); }
+        }, { threshold: 0.4 }).observe(imgWrap);
+      } else {
+        visible = true;
+        start();
+      }
     });
   })();
 </script>
