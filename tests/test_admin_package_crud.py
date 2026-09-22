@@ -369,3 +369,16 @@ class TestPriceOnRequestPublicPages:
         page = client.get(f"/packages/{pkg.id}").get_data(as_text=True)
         assert "₱5,499" in page
         assert "price-breakdown" in page
+
+
+class TestDraftClearing:
+    def test_successful_add_redirects_with_added_marker(self, app, admin_client):
+        """The packages list clears the browser's autosaved draft when it
+        sees ?added=1 - so it must only appear after a real save."""
+        response = admin_client.post("/admin/packages/add", data=_valid_package_form())
+        assert response.status_code == 302
+        assert "added=1" in response.headers["Location"]
+
+    def test_failed_add_does_not_redirect(self, app, admin_client):
+        response = admin_client.post("/admin/packages/add", data=_valid_package_form(price=""))
+        assert response.status_code == 200  # form re-shown, draft kept

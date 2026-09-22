@@ -460,7 +460,9 @@ def add_package():
                     current_app.logger.warning(f"Could not save flier metadata for package {package.id}: {e}")
             current_app.logger.info(f"Package added by admin: id={package.id}, title={title}")
             flash("Tour package added successfully!", "success")
-            return redirect(url_for("admin.packages"))
+            # ?added=1 tells the packages page to clear the browser-side
+            # autosaved draft - only once the save genuinely succeeded.
+            return redirect(url_for("admin.packages", added=1))
 
         except IntegrityError as e:
             db.session.rollback()

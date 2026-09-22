@@ -3,6 +3,33 @@
 
 {% block admin_styles %}
 <style>
+  .draft-banner:not([hidden]) {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    flex-wrap: wrap;
+    background: #fdf3e3;
+    border: 1px solid #e8c97a;
+    color: #7a4a14;
+    border-radius: var(--radius);
+    padding: .75rem 1rem;
+    margin-bottom: 1.25rem;
+    font-size: .88rem;
+  }
+
+  .draft-banner span {
+    flex: 1;
+    min-width: 180px;
+  }
+
+  .draft-status:not([hidden]) {
+    display: block;
+    text-align: right;
+    font-size: .75rem;
+    color: var(--mist);
+    margin: -.5rem 0 .75rem;
+  }
+
   .price-request-toggle {
     display: flex;
     align-items: flex-start;
@@ -137,7 +164,14 @@
 </div>
 
 <div class="form-card">
-  <form method="POST" action="{{ url_for('admin.add_package') }}" enctype="multipart/form-data">
+  <div class="draft-banner" id="draft-banner" hidden>
+    <i class="fas fa-clock-rotate-left" aria-hidden="true"></i>
+    <span id="draft-banner-text">You have an unsaved draft.</span>
+    <button type="button" class="btn btn-amber btn-sm" id="draft-restore">Restore</button>
+    <button type="button" class="btn btn-ghost btn-sm" id="draft-discard">Discard</button>
+  </div>
+  <div class="draft-status" id="draft-status" hidden><i class="fas fa-check" aria-hidden="true"></i> Draft saved</div>
+  <form method="POST" action="{{ url_for('admin.add_package') }}" enctype="multipart/form-data" id="add-package-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
     <input type="hidden" name="image_url" id="image_url" value="" />
     <input type="hidden" name="flier_image_url" id="flier_image_url" value="" />
@@ -368,18 +402,16 @@
   </form>
 </div>
 <script nonce="{{ csp_nonce() }}">
-  document.getElementById('continent-select').addEventListener('change', function () {
-    const continentId = this.value;
+  // Returns a promise so a restored draft can wait for the country list
+  // to arrive before re-selecting the saved country.
+  function loadCountries(continentId) {
     const countrySelect = document.getElementById('country-select');
-
     countrySelect.innerHTML = '<option value="">— Loading... —</option>';
-
     if (!continentId) {
       countrySelect.innerHTML = '<option value="">— Select Continent First —</option>';
-      return;
+      return Promise.resolve();
     }
-
-    fetch(`/admin/countries-by-continent/${continentId}`)
+    return fetch(`/admin/countries-by-continent/${continentId}`)
       .then(r => r.json())
       .then(data => {
         countrySelect.innerHTML = '<option value="">— Select Country —</option>';
@@ -388,6 +420,10 @@
             `<option value="${country.id}">${country.flag_emoji || ''} ${country.name}</option>`;
         });
       });
+  }
+
+  document.getElementById('continent-select').addEventListener('change', function () {
+    loadCountries(this.value);
   });
 
   function getCsrfToken() {
@@ -770,5 +806,188 @@
   });
 
   document.getElementById('add-date-btn').addEventListener('click', () => addDateBlock());
+
+  // ── Autosaved draft ──────────────────────────
+  // Everything typed is saved to this browser every few seconds, so an
+  // accidental Back or reload doesn't wipe the form. Reopening the page
+  // offers to restore it. The draft is cleared only after a successful
+  // save (the packages list clears it on ?added=1), so a failed attempt
+  // can still be restored.
+  (function initDraft() {
+    const KEY = 'twph:add-package-draft';
+    const form = document.getElementById('add-package-form');
+    const banner = document.getElementById('draft-banner');
+    const status = document.getElementById('draft-status');
+    if (!form) return;
+
+    let storageOk = true;
+    try { localStorage.setItem(KEY + ':test', '1'); localStorage.removeItem(KEY + ':test'); }
+    catch (e) { storageOk = false; }
+
+    const SIMPLE_FIELDS = ['title', 'continent_id', 'country_id', 'assigned_agent_id', 'destination',
+      'description', 'duration_days', 'currency', 'price', 'inclusions', 'exclusions', 'amenities',
+      'location_description', 'latitude', 'longitude', 'image_url', 'flier_image_url'];
+    const CHECKBOXES = ['is_active', 'is_featured', 'price_on_request'];
+
+    function field(name) { return form.querySelector(`[name="${name}"]`); }
+
+    function collect() {
+      const data = { fields: {}, checks: {}, days: [], dates: [], gallery: [], labels: {} };
+      SIMPLE_FIELDS.forEach(n => { const el = field(n); if (el) data.fields[n] = el.value; });
+      CHECKBOXES.forEach(n => { const el = field(n); if (el) data.checks[n] = el.checked; });
+      document.querySelectorAll('#itinerary-days > div').forEach(w => {
+        data.days.push({
+          title: w.querySelector('[name="itinerary_day_title"]').value,
+          meals: w.querySelector('[name="itinerary_day_meals"]').value,
+          description: w.querySelector('[name="itinerary_day_description"]').value,
+        });
+      });
+      document.querySelectorAll('#travel-dates > div').forEach(w => {
+        data.dates.push({
+          date: w.querySelector('[name="travel_date_date"]').value,
+          end_date: w.querySelector('[name="travel_date_end_date"]').value,
+          note: w.querySelector('[name="travel_date_note"]').value,
+        });
+      });
+      document.querySelectorAll('#new-image-inputs input[name="new_gallery_urls"]').forEach(i => data.gallery.push(i.value));
+      ['image-status', 'flier-status'].forEach(id => { data.labels[id] = document.getElementById(id).textContent; });
+      return data;
+    }
+
+    // Worth keeping only once something real has been entered.
+    function hasContent(d) {
+      const f = d.fields;
+      return !!(f.title || f.description || f.destination || f.inclusions || f.image_url ||
+        d.days.some(x => x.title || x.description) || d.dates.some(x => x.date) || d.gallery.length);
+    }
+
+    let lastSaved = null;
+    let restoring = false;
+    let submitting = false;
+
+    function save() {
+      if (!storageOk || restoring || submitting) return;
+      const data = collect();
+      if (!hasContent(data)) return;
+      const snapshot = JSON.stringify(data);
+      if (snapshot === lastSaved) return;
+      lastSaved = snapshot;
+      try {
+        localStorage.setItem(KEY, JSON.stringify({ savedAt: Date.now(), data: data }));
+        status.hidden = false;
+      } catch (e) { /* storage full or blocked - just skip */ }
+    }
+
+    function galleryThumb(url) {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'position:relative;width:100px;height:100px;';
+      wrap.dataset.galleryUrl = url;
+      const img = document.createElement('img');
+      img.src = url; img.alt = 'Gallery photo to upload';
+      img.style.cssText = 'width:100px;height:100px;object-fit:cover;border-radius:8px;border:2px solid var(--teal);';
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'remove-gallery-btn'; btn.title = 'Remove this photo';
+      btn.style.cssText = 'position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;border:none;background:var(--danger);color:#fff;font-size:.68rem;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;';
+      btn.innerHTML = '<i class="fas fa-trash"></i>';
+      wrap.appendChild(img); wrap.appendChild(btn);
+      document.getElementById('upload-preview').appendChild(wrap);
+      const hidden = document.createElement('input');
+      hidden.type = 'hidden'; hidden.name = 'new_gallery_urls'; hidden.value = url;
+      document.getElementById('new-image-inputs').appendChild(hidden);
+    }
+
+    async function restore(data) {
+      restoring = true;
+      const f = data.fields;
+      // Continent first, then wait for its countries before picking one.
+      const cont = field('continent_id');
+      cont.value = f.continent_id || '';
+      await loadCountries(cont.value);
+      SIMPLE_FIELDS.filter(n => n !== 'continent_id').forEach(n => {
+        const el = field(n); if (el && f[n] !== undefined) el.value = f[n];
+      });
+      CHECKBOXES.forEach(n => {
+        const el = field(n);
+        if (el && data.checks[n] !== undefined) {
+          el.checked = data.checks[n];
+          el.dispatchEvent(new Event('change'));
+        }
+      });
+      if (f.price !== undefined && !data.checks.price_on_request) field('price').value = f.price;
+
+      // Values are set with .value rather than passed into the block
+      // template, so quotes or symbols in a title can't break the markup.
+      data.days.forEach(d => {
+        addDayBlock();
+        const w = document.querySelector('#itinerary-days > div:last-child');
+        w.querySelector('[name="itinerary_day_title"]').value = d.title;
+        w.querySelector('[name="itinerary_day_meals"]').value = d.meals;
+        w.querySelector('[name="itinerary_day_description"]').value = d.description;
+      });
+      data.dates.forEach(d => {
+        addDateBlock();
+        const w = document.querySelector('#travel-dates > div:last-child');
+        w.querySelector('[name="travel_date_date"]').value = d.date;
+        w.querySelector('[name="travel_date_end_date"]').value = d.end_date;
+        w.querySelector('[name="travel_date_note"]').value = d.note;
+      });
+      data.gallery.forEach(galleryThumb);
+
+      // Main photo and flier were already uploaded to Cloudinary, so the
+      // saved URL is enough - show them as uploaded with a working trash icon.
+      [['image_url', 'image-status', 'image-input'], ['flier_image_url', 'flier-status', 'flier-input']]
+        .forEach(([urlName, labelId, inputId]) => {
+          if (f[urlName]) {
+            document.getElementById(labelId).textContent = data.labels[labelId] || 'Uploaded';
+            toggleClearBtn(inputId, true);
+          }
+        });
+
+      restoring = false;
+      lastSaved = JSON.stringify(collect());
+    }
+
+    function discard() {
+      try { localStorage.removeItem(KEY); } catch (e) {}
+      banner.hidden = true;
+    }
+
+    // Offer an existing draft
+    let existing = null;
+    if (storageOk) {
+      try { existing = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { existing = null; }
+    }
+    if (existing && existing.data && hasContent(existing.data)) {
+      const when = new Date(existing.savedAt);
+      const sameDay = when.toDateString() === new Date().toDateString();
+      const time = when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      const title = existing.data.fields.title || 'a package';
+      document.getElementById('draft-banner-text').textContent =
+        `You have an unsaved draft of ${title} from ${sameDay ? 'today at ' + time : when.toLocaleDateString() + ' ' + time}.`;
+      banner.hidden = false;
+      document.getElementById('draft-restore').addEventListener('click', async () => {
+        banner.hidden = true;
+        await restore(existing.data);
+      });
+      document.getElementById('draft-discard').addEventListener('click', discard);
+    }
+
+    // Save shortly after typing, plus a periodic check that also catches
+    // values set by code (uploads finishing, rows added or removed).
+    let debounce;
+    form.addEventListener('input', () => { clearTimeout(debounce); debounce = setTimeout(save, 800); });
+    form.addEventListener('change', () => { clearTimeout(debounce); debounce = setTimeout(save, 300); });
+    setInterval(save, 4000);
+
+    // Warn before leaving with unsaved work. Not while submitting, and not
+    // while the old draft is still waiting to be restored or discarded.
+    form.addEventListener('submit', () => { submitting = true; });
+    window.addEventListener('beforeunload', e => {
+      if (submitting) return;
+      if (!hasContent(collect())) return;
+      e.preventDefault();
+      e.returnValue = '';
+    });
+  })();
 </script>
 {% endblock %}

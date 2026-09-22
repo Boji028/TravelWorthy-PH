@@ -434,4 +434,16 @@
     .catch(() => alert('Failed to update featured status. Please try again.'));
   }
 </script>
+<script nonce="{{ csp_nonce() }}">
+  // Arrived here straight after a package saved successfully - the Add
+  // Package autosave draft has done its job, so remove it.
+  (function () {
+    var params = new URLSearchParams(window.location.search);
+    if (!params.has('added')) return;
+    try { localStorage.removeItem('twph:add-package-draft'); } catch (e) {}
+    params.delete('added');
+    var clean = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    history.replaceState(null, '', clean);
+  })();
+</script>
 {% endblock %}
