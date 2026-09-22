@@ -291,8 +291,7 @@
           </td>
           <td><i class="fas fa-location-dot" style="color:var(--teal);margin-right:.3rem"></i>{{ pkg.destination }}</td>
           <td>
-            {% if pkg.currency == 'USD' %}${% elif pkg.currency == 'EUR' %}€{% else %}₱{% endif %}{{
-            "{:,.0f}".format(pkg.price) }}
+            {% if pkg.has_price %}{{ pkg.formatted_price }}{% else %}<span style="color:var(--mist);font-style:italic;">On request</span>{% endif %}
           </td>
           <td class="inquiries-cell">{{ inquiry_count }}</td>
           <td>

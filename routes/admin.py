@@ -293,11 +293,13 @@ def add_package():
             try:
                 country_id = int(request.form.get("country_id")) if request.form.get("country_id") else None
                 duration_days = int(request.form.get("duration_days", 1))
-                price = float(request.form.get("price", 0))
+                # Packages without a fixed price skip the price entirely.
+                price_on_request = request.form.get("price_on_request") == "on"
+                price = None if price_on_request else float(request.form.get("price", ""))
                 latitude = float(request.form.get("latitude")) if request.form.get("latitude") else None
                 longitude = float(request.form.get("longitude")) if request.form.get("longitude") else None
 
-                if duration_days <= 0 or price < 0:
+                if duration_days <= 0 or (price is not None and price < 0):
                     flash("Duration and price must be positive values.", "danger")
                     continents = Continent.query.filter_by(is_active=True).order_by(Continent.name).all()
                     return render_template(
@@ -306,7 +308,7 @@ def add_package():
                         agents=Agent.query.filter_by(is_active=True).order_by(Agent.name).all(),
                     )
             except (ValueError, TypeError):
-                flash("Invalid numeric values. Please check duration and price.", "danger")
+                flash("Please enter a valid duration and price, or tick \"Price on request\".", "danger")
                 continents = Continent.query.filter_by(is_active=True).order_by(Continent.name).all()
                 return render_template(
                     "admin/add_package.html",
@@ -364,6 +366,7 @@ def add_package():
                 country_id=country_id,
                 duration_days=duration_days,
                 price=price,
+                price_on_request=price_on_request,
                 currency=currency,
                 image=filename,
                 flier_image=flier_filename,
@@ -518,10 +521,11 @@ def edit_package(package_id):
             # Validate numerics before touching the model
             try:
                 duration_days = int(request.form.get("duration_days", 1))
-                price = float(request.form.get("price", 0))
+                price_on_request = request.form.get("price_on_request") == "on"
+                price = None if price_on_request else float(request.form.get("price", ""))
                 country_id = int(request.form.get("country_id")) if request.form.get("country_id") else None
 
-                if duration_days <= 0 or price < 0:
+                if duration_days <= 0 or (price is not None and price < 0):
                     flash("Duration and price must be positive values.", "danger")
                     continents = Continent.query.filter_by(is_active=True).order_by(Continent.name).all()
                     return render_template(
@@ -531,7 +535,7 @@ def edit_package(package_id):
                         agents=Agent.query.filter_by(is_active=True).order_by(Agent.name).all(),
                     )
             except (ValueError, TypeError):
-                flash("Invalid numeric values. Please check duration and price.", "danger")
+                flash("Please enter a valid duration and price, or tick \"Price on request\".", "danger")
                 continents = Continent.query.filter_by(is_active=True).order_by(Continent.name).all()
                 return render_template(
                     "admin/edit_package.html",
@@ -546,6 +550,7 @@ def edit_package(package_id):
             package.destination = destination
             package.duration_days = duration_days
             package.price = price
+            package.price_on_request = price_on_request
             package.country_id = country_id
             package.is_active = request.form.get("is_active") == "on"
             package.is_featured = request.form.get("is_featured") == "on"

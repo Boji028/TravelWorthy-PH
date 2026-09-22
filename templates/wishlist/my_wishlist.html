@@ -180,7 +180,7 @@
           <div class="mywish-name">{{ item.package.title }}</div>
           <div class="mywish-meta">
             {{ item.package.destination }} ·
-            {% if item.package.currency == 'USD' %}${% elif item.package.currency == 'EUR' %}€{% else %}₱{% endif %}{{ "{:,.0f}".format(item.package.price) }} / person
+            {% if item.package.has_price %}{{ item.package.formatted_price }} / person{% else %}Price on request{% endif %}
           </div>
         </div>
         <button type="button" class="wishlist-btn active" data-type="package" data-id="{{ item.package.id }}"

@@ -22,7 +22,11 @@
       <span class="pkg-mi"><i class="fas fa-clock"></i> {{ pkg.duration_days }} days</span>
     </div>
     <div class="pkg-price-line">
-      <strong>{% if pkg.currency == 'USD' %}${% elif pkg.currency == 'EUR' %}€{% else %}₱{% endif %}{{ "{:,.0f}".format(pkg.price) }}</strong><span class="per"> / person</span>
+      {% if pkg.has_price %}
+      <strong>{{ pkg.formatted_price }}</strong><span class="per"> / person</span>
+      {% else %}
+      <span style="display:inline-flex;align-items:center;gap:.35rem;font-size:.82rem;font-weight:600;color:#7a4a14;background:#fdf3e3;padding:.3rem .75rem;border-radius:999px;"><i class="fas fa-comment-dots"></i> Price on request</span>
+      {% endif %}
     </div>
   </div>
 </div>

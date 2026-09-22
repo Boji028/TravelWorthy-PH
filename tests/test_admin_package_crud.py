@@ -293,3 +293,79 @@ class TestDeletePackageCleansUpItineraryPhotos:
         assert "https://res.cloudinary.com/demo/image/upload/day1.jpg" in deleted
         assert "https://res.cloudinary.com/demo/image/upload/day2.jpg" in deleted
         assert db.session.get(TourPackage, pkg.id) is None
+
+
+class TestPriceOnRequest:
+    """Packages without a fixed price can be marked "Price on request"."""
+
+    def test_add_package_on_request_needs_no_price(self, app, admin_client):
+        admin_client.post("/admin/packages/add",
+                          data={**_valid_package_form(price=""), "price_on_request": "on"})
+        pkg = TourPackage.query.one()
+        assert pkg.price_on_request is True
+        assert pkg.price is None
+        assert pkg.has_price is False and pkg.formatted_price is None
+
+    def test_fixed_price_package_still_requires_a_price(self, app, admin_client):
+        response = admin_client.post("/admin/packages/add", data=_valid_package_form(price=""),
+                                     follow_redirects=True)
+        assert TourPackage.query.count() == 0
+        assert b"Price on request" in response.data
+
+    def test_edit_can_switch_to_on_request_and_back(self, app, admin_client):
+        from app import db
+        pkg = _make_package(db)
+        admin_client.post(f"/admin/packages/edit/{pkg.id}",
+                          data={**_valid_package_form(price=""), "price_on_request": "on"})
+        db.session.refresh(pkg)
+        assert pkg.price_on_request is True and pkg.price is None
+
+        admin_client.post(f"/admin/packages/edit/{pkg.id}", data=_valid_package_form(price="7999"))
+        db.session.refresh(pkg)
+        assert pkg.price_on_request is False and float(pkg.price) == 7999
+
+    def test_formatted_price_uses_the_right_symbol(self, app):
+        assert TourPackage(price=5499, currency="PHP").formatted_price == "₱5,499"
+        assert TourPackage(price=1200, currency="USD").formatted_price == "$1,200"
+        assert TourPackage(price=900, currency="EUR").formatted_price == "€900"
+
+
+class TestPriceOnRequestPublicPages:
+    def _on_request_package(self, db):
+        pkg = _make_package(db, title="Europe Custom Tour", price=None, price_on_request=True)
+        return pkg
+
+    def test_package_page_shows_price_on_request_and_no_breakdown(self, app, client):
+        from app import db
+        pkg = self._on_request_package(db)
+        page = client.get(f"/packages/{pkg.id}").get_data(as_text=True)
+        assert "Price on request" in page
+        assert "price-breakdown" not in page.split("<script")[0].split("booking-sidebar")[-1]
+        assert "₱None" not in page and "None /" not in page
+
+    def test_search_data_leaves_price_out(self, app, client):
+        import json, re
+        from app import db
+        pkg = self._on_request_package(db)
+        page = client.get(f"/packages/{pkg.id}").get_data(as_text=True)
+        block = re.search(r'<script type="application/ld\+json">(.*?)</script>', page, re.S).group(1)
+        data = json.loads(block)  # must still be valid JSON
+        assert "price" not in data["offers"]
+
+    def test_listing_card_shows_price_on_request(self, app, client):
+        from app import db
+        self._on_request_package(db)
+        page = client.get("/packages/").get_data(as_text=True)
+        assert "Price on request" in page
+
+    def test_admin_list_shows_on_request(self, app, admin_client):
+        from app import db
+        self._on_request_package(db)
+        assert "On request" in admin_client.get("/admin/packages").get_data(as_text=True)
+
+    def test_fixed_price_package_unchanged(self, app, client):
+        from app import db
+        pkg = _make_package(db, price=5499)
+        page = client.get(f"/packages/{pkg.id}").get_data(as_text=True)
+        assert "₱5,499" in page
+        assert "price-breakdown" in page

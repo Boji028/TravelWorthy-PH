@@ -3,6 +3,35 @@
 
 {% block admin_styles %}
 <style>
+  .price-request-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: .5rem;
+    margin-top: .6rem;
+    font-size: .85rem;
+    color: var(--bark);
+    cursor: pointer;
+  }
+
+  .price-request-toggle input {
+    width: 16px;
+    height: 16px;
+    margin-top: .15rem;
+    accent-color: var(--teal);
+    flex-shrink: 0;
+  }
+
+  .hint-inline {
+    color: var(--mist);
+    font-size: .78rem;
+  }
+
+  input[name="price"]:disabled {
+    background: var(--linen);
+    color: var(--mist);
+    cursor: not-allowed;
+  }
+
   .form-card {
     background: var(--white);
     border-radius: var(--radius-lg);
@@ -162,9 +191,27 @@
             <option value="USD" {% if package.currency=='USD' %}selected{% endif %}>$ USD</option>
             <option value="EUR" {% if package.currency=='EUR' %}selected{% endif %}>€ EUR</option>
           </select>
-          <input type="number" name="price" class="form-control" value="{{ package.price }}" min="0" step="0.01"
+          <input type="number" name="price" class="form-control" value="{{ package.price if package.price is not none else '' }}" min="0" step="0.01"
             required />
         </div>
+        <label class="price-request-toggle">
+          <input type="checkbox" name="price_on_request" id="price-on-request"{% if package.price_on_request %} checked{% endif %} />
+          <span>Price on request <span class="hint-inline">(no fixed price &mdash; visitors see "Price on request" and inquire for a quote)</span></span>
+        </label>
+        <script nonce="{{ csp_nonce() }}">
+          (function () {
+            var box = document.getElementById('price-on-request');
+            var price = document.querySelector('input[name="price"]');
+            function sync() {
+              price.disabled = box.checked;
+              price.required = !box.checked;
+              price.placeholder = box.checked ? 'Not needed' : '0.00';
+              if (box.checked) price.value = '';
+            }
+            box.addEventListener('change', sync);
+            sync();
+          })();
+        </script>
       </div>
     </div>
 

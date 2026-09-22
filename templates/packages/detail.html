@@ -1192,6 +1192,18 @@
     font-weight: 400;
   }
 
+  .sidebar-price-request {
+    font-size: 1.45rem;
+    color: var(--amber-d);
+  }
+
+  .sidebar-request-note {
+    font-size: .8rem;
+    line-height: 1.6;
+    color: var(--mist);
+    margin: .35rem 0 .9rem;
+  }
+
   .sidebar-rating {
     font-size: .8rem;
     color: var(--mist);
@@ -1698,7 +1710,11 @@
         </div>
         <div class="glance-cell">
           <i class="fas fa-tag" aria-hidden="true"></i>
-          <span><span class="glance-k">From</span><span class="glance-v">{% if package.currency == 'USD' %}${% elif package.currency == 'EUR' %}€{% else %}₱{% endif %}{{ "{:,.0f}".format(package.price) }}</span></span>
+          {% if package.has_price %}
+          <span><span class="glance-k">From</span><span class="glance-v">{{ package.formatted_price }}</span></span>
+          {% else %}
+          <span><span class="glance-k">Price</span><span class="glance-v">On request</span></span>
+          {% endif %}
         </div>
         {% if upcoming_dates %}
         <div class="glance-cell">
@@ -2008,10 +2024,15 @@
 
   <!-- RIGHT COLUMN — SIDEBAR -->
   <div class="booking-sidebar">
+    {% if package.has_price %}
     <div class="sidebar-price">
-      {% if package.currency == 'USD' %}${% elif package.currency == 'EUR' %}€{% else %}₱{% endif %}{{ "{:,.0f}".format(package.price) }}
+      {{ package.formatted_price }}
       <span>/ person</span>
     </div>
+    {% else %}
+    <div class="sidebar-price sidebar-price-request">Price on request</div>
+    <p class="sidebar-request-note">Rates depend on your dates, group size, and hotel choice. Send an inquiry and we'll send you a quote.</p>
+    {% endif %}
     <div class="sidebar-rating">
       <span class="star">★</span> {{ avg_rating if avg_rating else '—' }} ·
       <span style="text-decoration:underline;cursor:pointer">Travel Worthy PH</span>
@@ -2029,15 +2050,17 @@
     <div class="sidebar-note">
       <i class="fas fa-lock"></i> No payment required · We'll contact you within 24 hours
     </div>
+    {% if package.has_price %}
     <div class="price-breakdown">
       <div class="pb-row"><span>Price per
-          person</span><span>{% if package.currency == 'USD' %}${% elif package.currency == 'EUR' %}€{% else %}₱{% endif %}{{ "{:,.0f}".format(package.price) }}</span>
+          person</span><span>{{ package.formatted_price }}</span>
       </div>
       <div class="pb-row" style="color:var(--success)"><span>🎁 No booking fees</span><span>₱0</span></div>
       <div class="pb-row total"><span>Starting
-          from</span><span>{% if package.currency == 'USD' %}${% elif package.currency == 'EUR' %}€{% else %}₱{% endif %}{{ "{:,.0f}".format(package.price) }}</span>
+          from</span><span>{{ package.formatted_price }}</span>
       </div>
     </div>
+    {% endif %}
   </div>
 
 </div>
@@ -2500,9 +2523,9 @@
     "touristType": "Any"{% if package.image %},
     "image": "{% if package.image.startswith('http') %}{{ package.image }}{% else %}{{ config['SITE_URL'] }}/uploads/{{ package.image }}{% endif %}"{% endif %},
     "offers": {
-      "@type": "Offer",
+      "@type": "Offer",{% if package.has_price %}
       "price": "{{ package.price }}",
-      "priceCurrency": "{{ package.currency if package.currency else 'PHP' }}",
+      "priceCurrency": "{{ package.currency if package.currency else 'PHP' }}",{% endif %}
       "availability": "https://schema.org/InStock",
       "url": "{{ request.url }}"
     }

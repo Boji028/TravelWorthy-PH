@@ -15,7 +15,10 @@ class TourPackage(db.Model):
     destination: str = db.Column(db.String(150), nullable=False)
     country_id: Optional[int] = db.Column(db.Integer, db.ForeignKey("countries.id"), nullable=True, index=True)
     duration_days: int = db.Column(db.Integer, nullable=False)
-    price = db.Column(db.Numeric(12, 2), nullable=False)
+    # Optional: packages without a fixed price set price_on_request and
+    # leave this empty. Use has_price / formatted_price in templates.
+    price = db.Column(db.Numeric(12, 2), nullable=True)
+    price_on_request: bool = db.Column(db.Boolean, default=False, nullable=False, server_default=db.false())
     currency: str = db.Column(db.String(10), default="PHP")
     image: Optional[str] = db.Column(db.String(300), nullable=True, default="default_tour.jpg")
     image_size_kb: Optional[float] = db.Column(db.Float, nullable=True)  # Track image size (KB)
@@ -54,3 +57,16 @@ class TourPackage(db.Model):
     def __repr__(self) -> str:
         return f"<TourPackage {self.title}>"
 
+    _CURRENCY_SYMBOLS = {"USD": "$", "EUR": "€"}
+
+    @property
+    def has_price(self) -> bool:
+        """True when there's a fixed price to show."""
+        return not self.price_on_request and self.price is not None
+
+    @property
+    def formatted_price(self) -> Optional[str]:
+        """The price with its currency symbol, e.g. "₱5,499", or None."""
+        if not self.has_price:
+            return None
+        return f"{self._CURRENCY_SYMBOLS.get(self.currency, '₱')}{self.price:,.0f}"
