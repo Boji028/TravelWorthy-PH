@@ -22,6 +22,55 @@
     min-width: 180px;
   }
 
+  /* ── Leave-page popup (replaces the browser's "Leave site?" box for in-site links) ── */
+  .leave-modal {
+    width: 380px;
+    padding: 1.75rem 1.5rem 1.4rem;
+  }
+
+  .leave-modal .admin-confirm-title {
+    font-size: 1.1rem;
+    margin-bottom: .45rem;
+  }
+
+  .leave-text {
+    font-size: .86rem;
+    color: var(--mist);
+    line-height: 1.55;
+    margin: 0 0 1.35rem;
+  }
+
+  .leave-text strong {
+    color: var(--bark);
+  }
+
+  .leave-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: .55rem;
+  }
+
+  .leave-buttons .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .leave-buttons .btn[hidden] {
+    display: none;
+  }
+
+  .leave-discard {
+    background: transparent;
+    border: none;
+    color: var(--danger);
+    font-size: .84rem;
+    padding: .45rem;
+  }
+
+  .leave-discard:hover {
+    text-decoration: underline;
+  }
+
   .draft-status:not([hidden]) {
     display: block;
     text-align: right;
@@ -401,6 +450,26 @@
     </div>
   </form>
 </div>
+<!-- Leave-page popup: shown when clicking a link away from this form -->
+<div id="leave-overlay" class="admin-confirm-overlay" hidden>
+  <div class="admin-confirm-modal leave-modal" role="alertdialog" aria-modal="true"
+       aria-labelledby="leave-title" aria-describedby="leave-text">
+    <div class="admin-confirm-icon neutral">
+      <i class="fas fa-floppy-disk" aria-hidden="true"></i>
+    </div>
+    <div class="admin-confirm-title" id="leave-title">Leave before publishing?</div>
+    <p class="leave-text" id="leave-text">
+      <strong id="leave-pkg">This package</strong> isn't published yet. Your progress is saved as a draft
+      on this browser, so you can restore it next time you open Add Package.
+    </p>
+    <div class="leave-buttons">
+      <button type="button" class="btn btn-amber" id="leave-stay">Keep editing</button>
+      <button type="button" class="btn btn-ghost" id="leave-keep">Leave &amp; keep draft</button>
+      <button type="button" class="btn leave-discard" id="leave-discard">Discard draft &amp; leave</button>
+    </div>
+  </div>
+</div>
+
 <script nonce="{{ csp_nonce() }}">
   // Returns a promise so a restored draft can wait for the country list
   // to arrive before re-selecting the saved country.
@@ -864,9 +933,10 @@
     let lastSaved = null;
     let restoring = false;
     let submitting = false;
+    let leaving = false;
 
     function save() {
-      if (!storageOk || restoring || submitting) return;
+      if (!storageOk || restoring || submitting || leaving) return;
       const data = collect();
       if (!hasContent(data)) return;
       const snapshot = JSON.stringify(data);
@@ -979,11 +1049,75 @@
     form.addEventListener('change', () => { clearTimeout(debounce); debounce = setTimeout(save, 300); });
     setInterval(save, 4000);
 
-    // Warn before leaving with unsaved work. Not while submitting, and not
-    // while the old draft is still waiting to be restored or discarded.
+    // ── Leave-page popup ──
+    // Clicking any link inside the site (Back button, sidebar, navbar) shows
+    // our own branded popup instead of the browser's plain "Leave site?" box.
+    // Closing the tab, refreshing, or the browser's own Back arrow still show
+    // the browser's box - browsers don't let websites restyle that one.
+    const leaveOverlay = document.getElementById('leave-overlay');
+    const leaveStayBtn = document.getElementById('leave-stay');
+    const leaveKeepBtn = document.getElementById('leave-keep');
+    const leaveDiscardBtn = document.getElementById('leave-discard');
+    let pendingUrl = null;
+
+    if (!storageOk) {
+      document.getElementById('leave-text').textContent =
+        "This browser can't store drafts, so anything you've entered here will be lost.";
+      leaveKeepBtn.hidden = true;
+      leaveDiscardBtn.textContent = 'Leave anyway';
+    }
+
+    function openLeave(url) {
+      save(); // make sure the latest typing is in the draft before asking
+      pendingUrl = url;
+      const title = (field('title').value || '').trim();
+      const pkgEl = document.getElementById('leave-pkg');
+      if (pkgEl) pkgEl.textContent = title ? `"${title}"` : 'This package';
+      leaveOverlay.hidden = false;
+      leaveStayBtn.focus();
+    }
+
+    function closeLeave() {
+      leaveOverlay.hidden = true;
+      pendingUrl = null;
+    }
+
+    function goNow() {
+      leaving = true;
+      window.location.href = pendingUrl;
+    }
+
+    leaveStayBtn.addEventListener('click', closeLeave);
+    leaveKeepBtn.addEventListener('click', goNow);
+    leaveDiscardBtn.addEventListener('click', () => {
+      leaving = true; // stop autosave from writing the draft back
+      discard();
+      goNow();
+    });
+    leaveOverlay.addEventListener('click', e => { if (e.target === leaveOverlay) closeLeave(); });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !leaveOverlay.hidden) closeLeave();
+    });
+
+    document.addEventListener('click', e => {
+      if (submitting || leaving || e.defaultPrevented) return;
+      // Let Ctrl/Cmd/Shift-click and middle-click open new tabs as normal
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const link = e.target.closest('a[href]');
+      if (!link || link.target === '_blank' || link.hasAttribute('download')) return;
+      const url = new URL(link.href, window.location.href);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') return; // mailto:, tel:, etc.
+      if (url.origin !== window.location.origin) return;
+      if (url.pathname === window.location.pathname && url.hash) return; // in-page jump links
+      if (!hasContent(collect())) return;
+      e.preventDefault();
+      openLeave(url.href);
+    });
+
+    // Browser's own warning for tab close / refresh / browser Back arrow.
     form.addEventListener('submit', () => { submitting = true; });
     window.addEventListener('beforeunload', e => {
-      if (submitting) return;
+      if (submitting || leaving) return;
       if (!hasContent(collect())) return;
       e.preventDefault();
       e.returnValue = '';

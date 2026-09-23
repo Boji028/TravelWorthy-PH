@@ -130,6 +130,51 @@
     }
   }
 
+
+  /* ── Leave-page popup (replaces the browser's "Leave site?" box for in-site links) ── */
+  .leave-modal {
+    width: 380px;
+    padding: 1.75rem 1.5rem 1.4rem;
+  }
+
+  .leave-modal .admin-confirm-title {
+    font-size: 1.1rem;
+    margin-bottom: .45rem;
+  }
+
+  .leave-text {
+    font-size: .86rem;
+    color: var(--mist);
+    line-height: 1.55;
+    margin: 0 0 1.35rem;
+  }
+
+  .leave-text strong {
+    color: var(--bark);
+  }
+
+  .leave-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: .55rem;
+  }
+
+  .leave-buttons .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .leave-discard {
+    background: transparent;
+    border: none;
+    color: var(--danger);
+    font-size: .84rem;
+    padding: .45rem;
+  }
+
+  .leave-discard:hover {
+    text-decoration: underline;
+  }
 </style>
 {% endblock %}
 
@@ -141,7 +186,7 @@
 </div>
 
 <div class="form-card">
-  <form method="POST" action="{{ url_for('admin.edit_package', package_id=package.id) }}" enctype="multipart/form-data">
+  <form method="POST" action="{{ url_for('admin.edit_package', package_id=package.id) }}" enctype="multipart/form-data" id="edit-package-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
     <div class="form-group">
       <label>Package Title</label>
@@ -467,6 +512,25 @@
 
 
 
+
+<!-- Leave-page popup: shown when clicking a link away from this form with unsaved changes -->
+<div id="leave-overlay" class="admin-confirm-overlay" hidden>
+  <div class="admin-confirm-modal leave-modal" role="alertdialog" aria-modal="true"
+       aria-labelledby="leave-title" aria-describedby="leave-text">
+    <div class="admin-confirm-icon">
+      <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+    </div>
+    <div class="admin-confirm-title" id="leave-title">Discard your changes?</div>
+    <p class="leave-text" id="leave-text">
+      You've edited <strong>"{{ package.title }}"</strong> but haven't clicked Save Changes.
+      If you leave now, your edits will be lost.
+    </p>
+    <div class="leave-buttons">
+      <button type="button" class="btn btn-amber" id="leave-stay">Keep editing</button>
+      <button type="button" class="btn leave-discard" id="leave-discard">Discard changes &amp; leave</button>
+    </div>
+  </div>
+</div>
 
 <script nonce="{{ csp_nonce() }}">
   const currentCountryId = "{{ package.country_id or '' }}";
@@ -869,6 +933,96 @@
       console.error('Could not load existing travel dates', err);
     }
   }
+
+  // ── Unsaved-changes warning ──────────────────────────
+  // Takes a snapshot of the form once the page has finished loading, then
+  // compares against it when leaving. Clicking a link inside the site
+  // (Back, Cancel, sidebar, navbar) shows our own branded popup. Closing the
+  // tab, refreshing, or the browser's own Back arrow still show the
+  // browser's box - browsers don't let websites restyle that one.
+  (function initLeaveWarning() {
+    const form = document.getElementById('edit-package-form');
+    const overlay = document.getElementById('leave-overlay');
+    const stayBtn = document.getElementById('leave-stay');
+    const discardBtn = document.getElementById('leave-discard');
+    if (!form || !overlay) return;
+
+    // The country list is filled in by code after the page loads, so it's
+    // left out of the snapshot and tracked separately: it only counts as a
+    // change when a person actually picks a continent or country.
+    const SKIP = ['csrf_token', 'country_id'];
+    let countryTouched = false;
+    ['continent-select', 'country-select'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', e => { if (e.isTrusted) countryTouched = true; });
+    });
+
+    function snapshot() {
+      return JSON.stringify(Array.from(form.elements)
+        .filter(el => el.name && !SKIP.includes(el.name))
+        .map(el => {
+          if (el.type === 'checkbox' || el.type === 'radio') return [el.name, el.checked];
+          if (el.type === 'file') return [el.name, el.files.length];
+          return [el.name, el.value];
+        }));
+    }
+
+    let baseline = null;
+    let submitting = false;
+    let leaving = false;
+    let pendingUrl = null;
+
+    window.addEventListener('load', () => { baseline = snapshot(); });
+
+    function isDirty() {
+      if (baseline === null) return false;
+      return countryTouched || snapshot() !== baseline;
+    }
+
+    function openLeave(url) {
+      pendingUrl = url;
+      overlay.hidden = false;
+      stayBtn.focus();
+    }
+
+    function closeLeave() {
+      overlay.hidden = true;
+      pendingUrl = null;
+    }
+
+    stayBtn.addEventListener('click', closeLeave);
+    discardBtn.addEventListener('click', () => {
+      leaving = true;
+      window.location.href = pendingUrl;
+    });
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeLeave(); });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !overlay.hidden) closeLeave();
+    });
+
+    document.addEventListener('click', e => {
+      if (submitting || leaving || e.defaultPrevented) return;
+      // Let Ctrl/Cmd/Shift-click and middle-click open new tabs as normal
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const link = e.target.closest('a[href]');
+      if (!link || link.target === '_blank' || link.hasAttribute('download')) return;
+      const url = new URL(link.href, window.location.href);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') return; // mailto:, tel:, etc.
+      if (url.origin !== window.location.origin) return;
+      if (url.pathname === window.location.pathname && url.hash) return; // in-page jump links
+      if (!isDirty()) return;
+      e.preventDefault();
+      openLeave(url.href);
+    });
+
+    // Browser's own warning for tab close / refresh / browser Back arrow.
+    form.addEventListener('submit', () => { submitting = true; });
+    window.addEventListener('beforeunload', e => {
+      if (submitting || leaving || !isDirty()) return;
+      e.preventDefault();
+      e.returnValue = '';
+    });
+  })();
 
 </script>
 {% endblock %}
