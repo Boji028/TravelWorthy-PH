@@ -119,8 +119,20 @@
     <div class="form-group">
       <label>Location</label>
       <input type="text" name="location" class="form-control" maxlength="200" placeholder="e.g. Laiya, San Juan, Batangas" value="{{ val('location') }}" />
-      <div class="offer-hint">Type the place the way you'd search it on Google Maps. A map shows on the offer page. Leave blank to hide the map.</div>
+      <div class="offer-hint">Shown on the offer page. The map uses this place name unless you add exact coordinates below.</div>
     </div>
+
+    <div class="offer-row-2">
+      <div class="form-group">
+        <label>Latitude <span class="offer-hint" style="margin:0;">(e.g. 13.6772)</span></label>
+        <input type="number" name="latitude" class="form-control" step="any" min="-90" max="90" placeholder="13.6772" value="{{ val('latitude') }}" />
+      </div>
+      <div class="form-group">
+        <label>Longitude <span class="offer-hint" style="margin:0;">(e.g. 121.3964)</span></label>
+        <input type="number" name="longitude" class="form-control" step="any" min="-180" max="180" placeholder="121.3964" value="{{ val('longitude') }}" />
+      </div>
+    </div>
+    <div class="offer-hint" style="margin:-.5rem 0 1rem;">Optional, for a pinpoint map. In Google Maps, right-click the spot and click the numbers to copy them.</div>
 
     <div class="form-group">
       <label>Short Summary</label>

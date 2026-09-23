@@ -20,6 +20,8 @@ class Offer(db.Model):
     min_pax = db.Column(db.Integer, nullable=True)
     duration = db.Column(db.String(50), nullable=True)
     location = db.Column(db.String(200), nullable=True)
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
     highlights = db.Column(db.Text, nullable=True)
     inclusions = db.Column(db.Text, nullable=True)
     exclusions = db.Column(db.Text, nullable=True)

@@ -72,7 +72,7 @@
   .od-date-pick { font-size: .8rem; color: var(--teal); font-weight: 600; white-space: nowrap; }
 
   .od-map { border-radius: var(--radius-lg); overflow: hidden; background: var(--linen); }
-  .od-map iframe { display: block; width: 100%; height: 340px; border: 0; }
+  .od-map iframe { display: block; width: 100%; height: clamp(360px, 60vh, 560px); border: 0; }
   .od-map-foot { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .75rem 1rem; background: var(--white); font-size: .88rem; flex-wrap: wrap; }
   .od-map-foot a { color: var(--teal); font-weight: 600; text-decoration: none; }
 
@@ -99,7 +99,7 @@
     .od-form { padding: 1.25rem; }
     .od-inc { grid-template-columns: 1fr; }
     .od-gallery { grid-template-columns: repeat(2, 1fr); }
-    .od-map iframe { height: 260px; }
+    .od-map iframe { height: 340px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .od-gallery img { transition: none; }
@@ -236,15 +236,17 @@
     </section>
     {% endif %}
 
-    {% if offer.location %}
+    {% set has_coords = offer.latitude is not none and offer.longitude is not none %}
+    {% set map_query = (offer.latitude ~ ',' ~ offer.longitude) if has_coords else offer.location %}
+    {% if map_query %}
     <section class="od-section">
       <h2 class="od-desc-title">Location</h2>
       <div class="od-map">
-        <iframe src="https://maps.google.com/maps?q={{ offer.location | urlencode }}&z=13&output=embed"
-          title="Map of {{ offer.location }}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        <iframe src="https://maps.google.com/maps?q={{ map_query | urlencode }}&z={{ 15 if has_coords else 13 }}&output=embed"
+          title="Map of {{ offer.location or offer.title }}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
         <div class="od-map-foot">
-          <span><i class="fas fa-location-dot" style="color:var(--amber)"></i> {{ offer.location }}</span>
-          <a href="https://www.google.com/maps/search/?api=1&query={{ offer.location | urlencode }}" target="_blank" rel="noopener">Open in Google Maps</a>
+          <span><i class="fas fa-location-dot" style="color:var(--amber)"></i> {{ offer.location or 'Pinned location' }}</span>
+          <a href="https://www.google.com/maps/search/?api=1&query={{ map_query | urlencode }}" target="_blank" rel="noopener">Open in Google Maps</a>
         </div>
       </div>
     </section>

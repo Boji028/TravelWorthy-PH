@@ -302,3 +302,37 @@ class TestOfferDetails:
         html = client.get(f"/offers/{offer.id}").get_data(as_text=True)
         for text in ("View Flier", "Sample activities", "Available dates", "maps.google.com", "id=\"od-viewer\""):
             assert text not in html
+
+
+class TestOfferCoordinates:
+    def test_saves_coordinates(self, app, admin_client):
+        admin_client.post(
+            "/admin/offers/add",
+            data={"title": "X", "category": "Other", "latitude": "13.6772", "longitude": "121.3964"},
+        )
+        offer = Offer.query.one()
+        assert (offer.latitude, offer.longitude) == (13.6772, 121.3964)
+
+    def test_only_one_coordinate_rejected(self, app, admin_client):
+        admin_client.post("/admin/offers/add", data={"title": "X", "category": "Other", "latitude": "13.6"})
+        assert Offer.query.count() == 0
+
+    def test_out_of_range_rejected(self, app, admin_client):
+        admin_client.post(
+            "/admin/offers/add", data={"title": "X", "category": "Other", "latitude": "95", "longitude": "121"}
+        )
+        assert Offer.query.count() == 0
+
+    def test_map_prefers_coordinates(self, app, client):
+        from app import db
+
+        offer = _make_offer(db, location="Laiya", latitude=13.6772, longitude=121.3964)
+        html = client.get(f"/offers/{offer.id}").get_data(as_text=True)
+        assert "maps?q=13.6772%2C121.3964" in html
+
+    def test_map_with_coordinates_only(self, app, client):
+        from app import db
+
+        offer = _make_offer(db, latitude=13.6772, longitude=121.3964)
+        html = client.get(f"/offers/{offer.id}").get_data(as_text=True)
+        assert "Pinned location" in html

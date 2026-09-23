@@ -1503,6 +1503,17 @@
     margin-bottom: 1rem;
   }
 
+  .map-frame iframe {
+    display: block;
+    width: 100%;
+    height: clamp(360px, 60vh, 560px);
+    border: 0;
+  }
+
+  @media (max-width: 768px) {
+    .map-frame iframe { height: 340px; }
+  }
+
   @media (max-width: 768px) {
     .detail-wrap {
       grid-template-columns: 1fr;
@@ -2102,7 +2113,7 @@
   <h3>Location</h3>
   {% if package.latitude and package.longitude %}
   <div class="map-frame">
-    <iframe width="100%" height="280" frameborder="0" style="border:0;display:block;"
+    <iframe title="Map of {{ package.title }}"
       src="https://maps.google.com/maps?q={{ package.latitude }},{{ package.longitude }}&z=14&output=embed"
       allowfullscreen loading="lazy">
     </iframe>

@@ -75,6 +75,19 @@ def _apply_offer_form(offer: Offer):
         if min_pax < 1:
             return "Minimum group size must be at least 1."
 
+    coords = []
+    for name, limit in (("latitude", 90), ("longitude", 180)):
+        raw = form.get(name, "").strip()
+        try:
+            value = float(raw) if raw else None
+        except ValueError:
+            return f"{name.title()} must be a number."
+        if value is not None and not -limit <= value <= limit:
+            return f"{name.title()} must be between -{limit} and {limit}."
+        coords.append(value)
+    if (coords[0] is None) != (coords[1] is None):
+        return "Enter both latitude and longitude, or leave both blank."
+
     dates, error = _parse_dates()
     if error:
         return error
@@ -109,6 +122,7 @@ def _apply_offer_form(offer: Offer):
     offer.min_pax = min_pax
     offer.duration = form.get("duration", "").strip()[:50] or None
     offer.location = form.get("location", "").strip()[:200] or None
+    offer.latitude, offer.longitude = coords
     offer.highlights = form.get("highlights", "").strip() or None
     offer.inclusions = form.get("inclusions", "").strip() or None
     offer.exclusions = form.get("exclusions", "").strip() or None
