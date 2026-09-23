@@ -202,7 +202,7 @@ def create_app():
         from models.testimonial import Testimonial
         from models.testimonial_image import TestimonialImage
         from models.visa import VisaCountry
-        from models.offer import Offer
+        from models.offer import Offer, OfferImage, OfferDate
         from models.package_image import PackageImage
         from models.package_review import PackageReview
         from models.inquiry_notification import InquiryNotification

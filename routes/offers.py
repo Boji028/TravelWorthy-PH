@@ -1,5 +1,5 @@
 """Public Offers pages - group deals like corporate incentives, team building and field trips."""
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from flask import Blueprint, render_template, redirect, url_for, flash, current_app, request
 from sqlalchemy.exc import SQLAlchemyError
 from app import db, limiter
@@ -28,6 +28,8 @@ def offer_list():
 def offer_detail(offer_id):
     offer = Offer.query.filter_by(id=offer_id, is_active=True).first_or_404()
     form = OfferInquiryForm()
+    # Hide dates that have already ended.
+    upcoming = [d for d in offer.dates if (d.end_date or d.date) >= date.today()]
 
     if form.validate_on_submit():
         notes = [OFFER_TAG]
@@ -56,7 +58,7 @@ def offer_detail(offer_id):
             db.session.rollback()
             current_app.logger.error(f"DB error creating offer inquiry: {e}", exc_info=True)
             flash("Database error occurred. Please try again.", "danger")
-            return render_template("offers/detail.html", offer=offer, form=form)
+            return render_template("offers/detail.html", offer=offer, form=form, upcoming=upcoming)
 
         try:
             from notification_service import notify_inquiry_created, notify_admins_new_inquiry
@@ -74,4 +76,4 @@ def offer_detail(offer_id):
         send_inquiry_emails_async(inquiry.id, base_url)
         return redirect(url_for("main.track_inquiry", reference_number=inquiry.reference_number))
 
-    return render_template("offers/detail.html", offer=offer, form=form)
+    return render_template("offers/detail.html", offer=offer, form=form, upcoming=upcoming)

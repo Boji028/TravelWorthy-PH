@@ -7,7 +7,7 @@ from .continent import Continent
 from .country import Country
 from .testimonial import Testimonial
 from .visa import VisaCountry
-from .offer import Offer
+from .offer import Offer, OfferImage, OfferDate
 from .password_reset import PasswordResetToken
 from .subscriber import Subscriber
 __all__ = [

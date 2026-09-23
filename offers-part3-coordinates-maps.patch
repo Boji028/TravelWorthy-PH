@@ -1,0 +1,242 @@
+From 7f65295dfde52a520913eb0c170c0d46714b2f66 Mon Sep 17 00:00:00 2001
+From: Boji <b@x>
+Date: Wed, 23 Sep 2026 03:00:49 +0000
+Subject: [PATCH] Add coordinates to offers and enlarge location maps
+
+---
+ .../a3c9e5f17b42_add_offer_coordinates.py     | 27 +++++++++++++++
+ models/offer.py                               |  2 ++
+ routes/admin_offers.py                        | 14 ++++++++
+ templates/admin/offer_form.html               | 14 +++++++-
+ templates/offers/detail.html                  | 16 +++++----
+ templates/packages/detail.html                | 13 ++++++-
+ tests/test_offers.py                          | 34 +++++++++++++++++++
+ 7 files changed, 111 insertions(+), 9 deletions(-)
+ create mode 100644 migrations/versions/a3c9e5f17b42_add_offer_coordinates.py
+
+diff --git a/migrations/versions/a3c9e5f17b42_add_offer_coordinates.py b/migrations/versions/a3c9e5f17b42_add_offer_coordinates.py
+new file mode 100644
+index 0000000..06f06c6
+--- /dev/null
++++ b/migrations/versions/a3c9e5f17b42_add_offer_coordinates.py
+@@ -0,0 +1,27 @@
++"""add latitude and longitude to offers
++
++Revision ID: a3c9e5f17b42
++Revises: f7b2d4e81a36
++Create Date: 2026-09-23
++
++"""
++from alembic import op
++import sqlalchemy as sa
++
++
++revision = 'a3c9e5f17b42'
++down_revision = 'f7b2d4e81a36'
++branch_labels = None
++depends_on = None
++
++
++def upgrade():
++    with op.batch_alter_table('offers', schema=None) as batch_op:
++        batch_op.add_column(sa.Column('latitude', sa.Float(), nullable=True))
++        batch_op.add_column(sa.Column('longitude', sa.Float(), nullable=True))
++
++
++def downgrade():
++    with op.batch_alter_table('offers', schema=None) as batch_op:
++        batch_op.drop_column('longitude')
++        batch_op.drop_column('latitude')
+diff --git a/models/offer.py b/models/offer.py
+index 3d566dd..48c8e44 100644
+--- a/models/offer.py
++++ b/models/offer.py
+@@ -20,6 +20,8 @@ class Offer(db.Model):
+     min_pax = db.Column(db.Integer, nullable=True)
+     duration = db.Column(db.String(50), nullable=True)
+     location = db.Column(db.String(200), nullable=True)
++    latitude = db.Column(db.Float, nullable=True)
++    longitude = db.Column(db.Float, nullable=True)
+     highlights = db.Column(db.Text, nullable=True)
+     inclusions = db.Column(db.Text, nullable=True)
+     exclusions = db.Column(db.Text, nullable=True)
+diff --git a/routes/admin_offers.py b/routes/admin_offers.py
+index 53dc786..ab684e8 100644
+--- a/routes/admin_offers.py
++++ b/routes/admin_offers.py
+@@ -75,6 +75,19 @@ def _apply_offer_form(offer: Offer):
+         if min_pax < 1:
+             return "Minimum group size must be at least 1."
+ 
++    coords = []
++    for name, limit in (("latitude", 90), ("longitude", 180)):
++        raw = form.get(name, "").strip()
++        try:
++            value = float(raw) if raw else None
++        except ValueError:
++            return f"{name.title()} must be a number."
++        if value is not None and not -limit <= value <= limit:
++            return f"{name.title()} must be between -{limit} and {limit}."
++        coords.append(value)
++    if (coords[0] is None) != (coords[1] is None):
++        return "Enter both latitude and longitude, or leave both blank."
++
+     dates, error = _parse_dates()
+     if error:
+         return error
+@@ -109,6 +122,7 @@ def _apply_offer_form(offer: Offer):
+     offer.min_pax = min_pax
+     offer.duration = form.get("duration", "").strip()[:50] or None
+     offer.location = form.get("location", "").strip()[:200] or None
++    offer.latitude, offer.longitude = coords
+     offer.highlights = form.get("highlights", "").strip() or None
+     offer.inclusions = form.get("inclusions", "").strip() or None
+     offer.exclusions = form.get("exclusions", "").strip() or None
+diff --git a/templates/admin/offer_form.html b/templates/admin/offer_form.html
+index e53373c..45d1593 100644
+--- a/templates/admin/offer_form.html
++++ b/templates/admin/offer_form.html
+@@ -119,9 +119,21 @@
+     <div class="form-group">
+       <label>Location</label>
+       <input type="text" name="location" class="form-control" maxlength="200" placeholder="e.g. Laiya, San Juan, Batangas" value="{{ val('location') }}" />
+-      <div class="offer-hint">Type the place the way you'd search it on Google Maps. A map shows on the offer page. Leave blank to hide the map.</div>
++      <div class="offer-hint">Shown on the offer page. The map uses this place name unless you add exact coordinates below.</div>
+     </div>
+ 
++    <div class="offer-row-2">
++      <div class="form-group">
++        <label>Latitude <span class="offer-hint" style="margin:0;">(e.g. 13.6772)</span></label>
++        <input type="number" name="latitude" class="form-control" step="any" min="-90" max="90" placeholder="13.6772" value="{{ val('latitude') }}" />
++      </div>
++      <div class="form-group">
++        <label>Longitude <span class="offer-hint" style="margin:0;">(e.g. 121.3964)</span></label>
++        <input type="number" name="longitude" class="form-control" step="any" min="-180" max="180" placeholder="121.3964" value="{{ val('longitude') }}" />
++      </div>
++    </div>
++    <div class="offer-hint" style="margin:-.5rem 0 1rem;">Optional, for a pinpoint map. In Google Maps, right-click the spot and click the numbers to copy them.</div>
++
+     <div class="form-group">
+       <label>Short Summary</label>
+       <input type="text" name="summary" class="form-control" maxlength="300"
+diff --git a/templates/offers/detail.html b/templates/offers/detail.html
+index e385028..5b80492 100644
+--- a/templates/offers/detail.html
++++ b/templates/offers/detail.html
+@@ -72,7 +72,7 @@
+   .od-date-pick { font-size: .8rem; color: var(--teal); font-weight: 600; white-space: nowrap; }
+ 
+   .od-map { border-radius: var(--radius-lg); overflow: hidden; background: var(--linen); }
+-  .od-map iframe { display: block; width: 100%; height: 340px; border: 0; }
++  .od-map iframe { display: block; width: 100%; height: clamp(360px, 60vh, 560px); border: 0; }
+   .od-map-foot { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .75rem 1rem; background: var(--white); font-size: .88rem; flex-wrap: wrap; }
+   .od-map-foot a { color: var(--teal); font-weight: 600; text-decoration: none; }
+ 
+@@ -99,7 +99,7 @@
+     .od-form { padding: 1.25rem; }
+     .od-inc { grid-template-columns: 1fr; }
+     .od-gallery { grid-template-columns: repeat(2, 1fr); }
+-    .od-map iframe { height: 260px; }
++    .od-map iframe { height: 340px; }
+   }
+   @media (prefers-reduced-motion: reduce) {
+     .od-gallery img { transition: none; }
+@@ -236,15 +236,17 @@
+     </section>
+     {% endif %}
+ 
+-    {% if offer.location %}
++    {% set has_coords = offer.latitude is not none and offer.longitude is not none %}
++    {% set map_query = (offer.latitude ~ ',' ~ offer.longitude) if has_coords else offer.location %}
++    {% if map_query %}
+     <section class="od-section">
+       <h2 class="od-desc-title">Location</h2>
+       <div class="od-map">
+-        <iframe src="https://maps.google.com/maps?q={{ offer.location | urlencode }}&z=13&output=embed"
+-          title="Map of {{ offer.location }}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
++        <iframe src="https://maps.google.com/maps?q={{ map_query | urlencode }}&z={{ 15 if has_coords else 13 }}&output=embed"
++          title="Map of {{ offer.location or offer.title }}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+         <div class="od-map-foot">
+-          <span><i class="fas fa-location-dot" style="color:var(--amber)"></i> {{ offer.location }}</span>
+-          <a href="https://www.google.com/maps/search/?api=1&query={{ offer.location | urlencode }}" target="_blank" rel="noopener">Open in Google Maps</a>
++          <span><i class="fas fa-location-dot" style="color:var(--amber)"></i> {{ offer.location or 'Pinned location' }}</span>
++          <a href="https://www.google.com/maps/search/?api=1&query={{ map_query | urlencode }}" target="_blank" rel="noopener">Open in Google Maps</a>
+         </div>
+       </div>
+     </section>
+diff --git a/templates/packages/detail.html b/templates/packages/detail.html
+index c561d41..b98c69c 100644
+--- a/templates/packages/detail.html
++++ b/templates/packages/detail.html
+@@ -1503,6 +1503,17 @@
+     margin-bottom: 1rem;
+   }
+ 
++  .map-frame iframe {
++    display: block;
++    width: 100%;
++    height: clamp(360px, 60vh, 560px);
++    border: 0;
++  }
++
++  @media (max-width: 768px) {
++    .map-frame iframe { height: 340px; }
++  }
++
+   @media (max-width: 768px) {
+     .detail-wrap {
+       grid-template-columns: 1fr;
+@@ -2102,7 +2113,7 @@
+   <h3>Location</h3>
+   {% if package.latitude and package.longitude %}
+   <div class="map-frame">
+-    <iframe width="100%" height="280" frameborder="0" style="border:0;display:block;"
++    <iframe title="Map of {{ package.title }}"
+       src="https://maps.google.com/maps?q={{ package.latitude }},{{ package.longitude }}&z=14&output=embed"
+       allowfullscreen loading="lazy">
+     </iframe>
+diff --git a/tests/test_offers.py b/tests/test_offers.py
+index 60c3d9d..9c10238 100644
+--- a/tests/test_offers.py
++++ b/tests/test_offers.py
+@@ -302,3 +302,37 @@ class TestOfferDetails:
+         html = client.get(f"/offers/{offer.id}").get_data(as_text=True)
+         for text in ("View Flier", "Sample activities", "Available dates", "maps.google.com", "id=\"od-viewer\""):
+             assert text not in html
++
++
++class TestOfferCoordinates:
++    def test_saves_coordinates(self, app, admin_client):
++        admin_client.post(
++            "/admin/offers/add",
++            data={"title": "X", "category": "Other", "latitude": "13.6772", "longitude": "121.3964"},
++        )
++        offer = Offer.query.one()
++        assert (offer.latitude, offer.longitude) == (13.6772, 121.3964)
++
++    def test_only_one_coordinate_rejected(self, app, admin_client):
++        admin_client.post("/admin/offers/add", data={"title": "X", "category": "Other", "latitude": "13.6"})
++        assert Offer.query.count() == 0
++
++    def test_out_of_range_rejected(self, app, admin_client):
++        admin_client.post(
++            "/admin/offers/add", data={"title": "X", "category": "Other", "latitude": "95", "longitude": "121"}
++        )
++        assert Offer.query.count() == 0
++
++    def test_map_prefers_coordinates(self, app, client):
++        from app import db
++
++        offer = _make_offer(db, location="Laiya", latitude=13.6772, longitude=121.3964)
++        html = client.get(f"/offers/{offer.id}").get_data(as_text=True)
++        assert "maps?q=13.6772%2C121.3964" in html
++
++    def test_map_with_coordinates_only(self, app, client):
++        from app import db
++
++        offer = _make_offer(db, latitude=13.6772, longitude=121.3964)
++        html = client.get(f"/offers/{offer.id}").get_data(as_text=True)
++        assert "Pinned location" in html
+-- 
+2.43.0
+

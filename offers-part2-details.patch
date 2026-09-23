@@ -1,0 +1,1263 @@
+From d435a2d555e86f5c4d853456c75db8c090bb7f0d Mon Sep 17 00:00:00 2001
+From: Boji <b@x>
+Date: Wed, 23 Sep 2026 02:18:15 +0000
+Subject: [PATCH] Add gallery, flier, map, highlights, inclusions and dates to
+ offers
+
+---
+ app.py                                        |   2 +-
+ .../f7b2d4e81a36_add_offer_details.py         |  59 ++++
+ models/__init__.py                            |   2 +-
+ models/offer.py                               |  44 +++
+ models/travel_date.py                         |  19 +-
+ routes/admin_offers.py                        | 107 ++++--
+ routes/offers.py                              |   8 +-
+ templates/admin/offer_form.html               | 330 ++++++++++++++----
+ templates/offers/detail.html                  | 255 +++++++++++++-
+ tests/test_offers.py                          | 128 +++++++
+ 10 files changed, 835 insertions(+), 119 deletions(-)
+ create mode 100644 migrations/versions/f7b2d4e81a36_add_offer_details.py
+
+diff --git a/app.py b/app.py
+index 0f79d43..2b285c3 100644
+--- a/app.py
++++ b/app.py
+@@ -202,7 +202,7 @@ def create_app():
+         from models.testimonial import Testimonial
+         from models.testimonial_image import TestimonialImage
+         from models.visa import VisaCountry
+-        from models.offer import Offer
++        from models.offer import Offer, OfferImage, OfferDate
+         from models.package_image import PackageImage
+         from models.package_review import PackageReview
+         from models.inquiry_notification import InquiryNotification
+diff --git a/migrations/versions/f7b2d4e81a36_add_offer_details.py b/migrations/versions/f7b2d4e81a36_add_offer_details.py
+new file mode 100644
+index 0000000..be2a7e6
+--- /dev/null
++++ b/migrations/versions/f7b2d4e81a36_add_offer_details.py
+@@ -0,0 +1,59 @@
++"""add offer details, gallery and dates
++
++Adds flier, duration, location, highlights, inclusions and exclusions to
++offers, plus offer_images (gallery) and offer_dates (available dates).
++
++Revision ID: f7b2d4e81a36
++Revises: e5a1c7d93f20
++Create Date: 2026-09-23
++
++"""
++from alembic import op
++import sqlalchemy as sa
++
++
++revision = 'f7b2d4e81a36'
++down_revision = 'e5a1c7d93f20'
++branch_labels = None
++depends_on = None
++
++
++def upgrade():
++    with op.batch_alter_table('offers', schema=None) as batch_op:
++        batch_op.add_column(sa.Column('flier_image', sa.String(length=300), nullable=True))
++        batch_op.add_column(sa.Column('duration', sa.String(length=50), nullable=True))
++        batch_op.add_column(sa.Column('location', sa.String(length=200), nullable=True))
++        batch_op.add_column(sa.Column('highlights', sa.Text(), nullable=True))
++        batch_op.add_column(sa.Column('inclusions', sa.Text(), nullable=True))
++        batch_op.add_column(sa.Column('exclusions', sa.Text(), nullable=True))
++
++    op.create_table(
++        'offer_images',
++        sa.Column('id', sa.Integer(), nullable=False),
++        sa.Column('offer_id', sa.Integer(), sa.ForeignKey('offers.id', ondelete='CASCADE'), nullable=False),
++        sa.Column('path', sa.String(length=300), nullable=False),
++        sa.Column('order', sa.Integer(), nullable=True),
++        sa.PrimaryKeyConstraint('id'),
++    )
++    op.create_index('ix_offer_images_offer_id', 'offer_images', ['offer_id'])
++
++    op.create_table(
++        'offer_dates',
++        sa.Column('id', sa.Integer(), nullable=False),
++        sa.Column('offer_id', sa.Integer(), sa.ForeignKey('offers.id', ondelete='CASCADE'), nullable=False),
++        sa.Column('date', sa.Date(), nullable=False),
++        sa.Column('end_date', sa.Date(), nullable=True),
++        sa.Column('note', sa.String(length=100), nullable=True),
++        sa.PrimaryKeyConstraint('id'),
++    )
++    op.create_index('ix_offer_dates_offer_id', 'offer_dates', ['offer_id'])
++
++
++def downgrade():
++    op.drop_index('ix_offer_dates_offer_id', table_name='offer_dates')
++    op.drop_table('offer_dates')
++    op.drop_index('ix_offer_images_offer_id', table_name='offer_images')
++    op.drop_table('offer_images')
++    with op.batch_alter_table('offers', schema=None) as batch_op:
++        for col in ('exclusions', 'inclusions', 'highlights', 'location', 'duration', 'flier_image'):
++            batch_op.drop_column(col)
+diff --git a/models/__init__.py b/models/__init__.py
+index 9811add..b50397e 100644
+--- a/models/__init__.py
++++ b/models/__init__.py
+@@ -7,7 +7,7 @@ from .continent import Continent
+ from .country import Country
+ from .testimonial import Testimonial
+ from .visa import VisaCountry
+-from .offer import Offer
++from .offer import Offer, OfferImage, OfferDate
+ from .password_reset import PasswordResetToken
+ from .subscriber import Subscriber
+ __all__ = [
+diff --git a/models/offer.py b/models/offer.py
+index 4ccbb25..3d566dd 100644
+--- a/models/offer.py
++++ b/models/offer.py
+@@ -1,5 +1,6 @@
+ from app import db
+ from datetime import datetime, timezone
++from models.travel_date import format_date_range
+ 
+ # Fixed list so the public filter pills stay tidy; edit here to add a category.
+ OFFER_CATEGORIES = ["Corporate Incentive", "Team Building", "Field Trip", "Events", "Other"]
+@@ -14,10 +15,53 @@ class Offer(db.Model):
+     summary = db.Column(db.String(300), nullable=True)
+     description = db.Column(db.Text, nullable=True)
+     image = db.Column(db.String(300), nullable=True)
++    flier_image = db.Column(db.String(300), nullable=True)
+     price = db.Column(db.Numeric(12, 2), nullable=True)
+     min_pax = db.Column(db.Integer, nullable=True)
++    duration = db.Column(db.String(50), nullable=True)
++    location = db.Column(db.String(200), nullable=True)
++    highlights = db.Column(db.Text, nullable=True)
++    inclusions = db.Column(db.Text, nullable=True)
++    exclusions = db.Column(db.Text, nullable=True)
+     is_active = db.Column(db.Boolean, default=True, nullable=False)
+     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+ 
++    images = db.relationship(
++        "OfferImage", backref="offer", lazy=True, order_by="OfferImage.order", cascade="all, delete-orphan"
++    )
++    dates = db.relationship("OfferDate", backref="offer", lazy=True, order_by="OfferDate.date", cascade="all, delete-orphan")
++
+     def __repr__(self):
+         return f"<Offer {self.title}>"
++
++
++class OfferImage(db.Model):
++    """One gallery photo for an offer."""
++
++    __tablename__ = "offer_images"
++
++    id = db.Column(db.Integer, primary_key=True)
++    offer_id = db.Column(db.Integer, db.ForeignKey("offers.id", ondelete="CASCADE"), nullable=False, index=True)
++    path = db.Column(db.String(300), nullable=False)
++    order = db.Column(db.Integer, default=0)
++
++
++class OfferDate(db.Model):
++    """One available date or date range for an offer, with an optional note."""
++
++    __tablename__ = "offer_dates"
++
++    id = db.Column(db.Integer, primary_key=True)
++    offer_id = db.Column(db.Integer, db.ForeignKey("offers.id", ondelete="CASCADE"), nullable=False, index=True)
++    date = db.Column(db.Date, nullable=False)
++    end_date = db.Column(db.Date, nullable=True)
++    note = db.Column(db.String(100), nullable=True)
++
++    @property
++    def display_range(self) -> str:
++        return format_date_range(self.date, self.end_date)
++
++    @property
++    def as_form(self) -> dict:
++        """Values for pre-filling the admin date rows."""
++        return {"date": self.date.isoformat(), "end_date": self.end_date.isoformat() if self.end_date else "", "note": self.note or ""}
+diff --git a/models/travel_date.py b/models/travel_date.py
+index 758000a..b341c5e 100644
+--- a/models/travel_date.py
++++ b/models/travel_date.py
+@@ -3,6 +3,17 @@ from datetime import date as _date
+ from app import db
+ 
+ 
++def format_date_range(start, end=None) -> str:
++    """Format a single date or a start-end range, shared by package and offer dates."""
++    if not end or end == start:
++        return start.strftime("%B %d, %Y")
++    if end.year != start.year:
++        return f"{start.strftime('%B %d, %Y')} - {end.strftime('%B %d, %Y')}"
++    if end.month != start.month:
++        return f"{start.strftime('%B %d')} - {end.strftime('%B %d, %Y')}"
++    return f"{start.strftime('%B %d')} - {end.strftime('%d, %Y')}"
++
++
+ class TravelDate(db.Model):
+     """A single scheduled departure date (optionally a range) for a tour package.
+ 
+@@ -32,13 +43,7 @@ class TravelDate(db.Model):
+         2026" (same month), "December 28 - January 2, 2027" (crosses a
+         month), "December 28, 2026 - January 2, 2027" (crosses a year).
+         """
+-        if not self.end_date or self.end_date == self.date:
+-            return self.date.strftime("%B %d, %Y")
+-        if self.end_date.year != self.date.year:
+-            return f"{self.date.strftime('%B %d, %Y')} - {self.end_date.strftime('%B %d, %Y')}"
+-        if self.end_date.month != self.date.month:
+-            return f"{self.date.strftime('%B %d')} - {self.end_date.strftime('%B %d, %Y')}"
+-        return f"{self.date.strftime('%B %d')} - {self.end_date.strftime('%d, %Y')}"
++        return format_date_range(self.date, self.end_date)
+ 
+     @property
+     def weeks_away(self) -> int:
+diff --git a/routes/admin_offers.py b/routes/admin_offers.py
+index 324b1d0..53dc786 100644
+--- a/routes/admin_offers.py
++++ b/routes/admin_offers.py
+@@ -1,14 +1,51 @@
+ """Admin CRUD for Offers, kept out of admin.py since that file is already very large."""
++from datetime import datetime
+ from decimal import Decimal, InvalidOperation
+ from flask import render_template, redirect, url_for, flash, request, current_app, jsonify
+ from app import db
+ from decorators import admin_required
+ from utils import delete_old_image
+ from image_service import ImageUploadService, ImageUploadException
+-from models.offer import Offer, OFFER_CATEGORIES
++from models.offer import Offer, OfferImage, OfferDate, OFFER_CATEGORIES
+ from routes.admin import admin_bp
+ 
+ 
++def _pick_image(url_field: str, file_field: str, folder: str):
++    """Return (new_path, error) for a single-image field; direct Cloudinary URL wins over a raw file."""
++    url = request.form.get(url_field, "").strip()
++    if url.startswith("https://"):
++        return url, None
++    upload = request.files.get(file_field)
++    if upload and upload.filename:
++        try:
++            return ImageUploadService.upload_and_compress(upload, folder)["path"], None
++        except ImageUploadException as e:
++            return None, f"Upload failed: {e}"
++    return None, None
++
++
++def _parse_dates():
++    """Return (list of OfferDate, error) from the repeatable date rows."""
++    starts = request.form.getlist("offer_date_start")
++    ends = request.form.getlist("offer_date_end")
++    notes = request.form.getlist("offer_date_note")
++    rows = []
++    for i, raw in enumerate(starts):
++        if not raw.strip():
++            continue
++        try:
++            start = datetime.strptime(raw.strip(), "%Y-%m-%d").date()
++            raw_end = ends[i].strip() if i < len(ends) else ""
++            end = datetime.strptime(raw_end, "%Y-%m-%d").date() if raw_end else None
++        except ValueError:
++            return None, "One of the dates is not valid."
++        if end and end < start:
++            return None, "An end date is before its start date."
++        note = notes[i].strip()[:100] if i < len(notes) else ""
++        rows.append(OfferDate(date=start, end_date=end, note=note or None))
++    return rows, None
++
++
+ def _apply_offer_form(offer: Offer):
+     """Validate the posted form and copy it onto offer; returns an error message or None."""
+     form = request.form
+@@ -38,21 +75,31 @@ def _apply_offer_form(offer: Offer):
+         if min_pax < 1:
+             return "Minimum group size must be at least 1."
+ 
+-    # Photo last, since a replaced upload deletes the old file from storage.
+-    new_image = None
+-    image_url = form.get("image_url", "").strip()
+-    upload = request.files.get("image")
+-    if image_url.startswith("https://"):
+-        new_image = image_url
+-    elif upload and upload.filename:
+-        try:
+-            new_image = ImageUploadService.upload_and_compress(upload, "offer")["path"]
+-        except ImageUploadException as e:
+-            return f"Photo upload failed: {e}"
++    dates, error = _parse_dates()
++    if error:
++        return error
+ 
+-    if new_image and new_image != offer.image:
+-        delete_old_image(offer.image, current_app.config["UPLOAD_FOLDER"])
+-        offer.image = new_image
++    # Photos last, since a replaced upload deletes the old file from storage.
++    new_image, error = _pick_image("image_url", "image", "offer")
++    if error:
++        return error
++    new_flier, error = _pick_image("flier_image_url", "flier_image", "offer_flier")
++    if error:
++        return error
++
++    for field, new_path in (("image", new_image), ("flier_image", new_flier)):
++        old_path = getattr(offer, field)
++        if new_path and new_path != old_path:
++            delete_old_image(old_path, current_app.config["UPLOAD_FOLDER"])
++            setattr(offer, field, new_path)
++
++    next_order = len(offer.images)
++    for url in form.getlist("new_gallery_urls"):
++        if url.startswith("https://"):
++            offer.images.append(OfferImage(path=url, order=next_order))
++            next_order += 1
++
++    offer.dates = dates
+ 
+     offer.title = title[:150]
+     offer.category = category
+@@ -60,6 +107,11 @@ def _apply_offer_form(offer: Offer):
+     offer.description = form.get("description", "").strip() or None
+     offer.price = price
+     offer.min_pax = min_pax
++    offer.duration = form.get("duration", "").strip()[:50] or None
++    offer.location = form.get("location", "").strip()[:200] or None
++    offer.highlights = form.get("highlights", "").strip() or None
++    offer.inclusions = form.get("inclusions", "").strip() or None
++    offer.exclusions = form.get("exclusions", "").strip() or None
+     offer.is_active = form.get("is_active") == "on"
+     return None
+ 
+@@ -112,22 +164,35 @@ def offer_edit(offer_id):
+     return render_template("admin/offer_form.html", offer=offer, form={}, categories=OFFER_CATEGORIES)
+ 
+ 
+-@admin_bp.route("/offers/remove-image/<int:offer_id>", methods=["POST"])
++@admin_bp.route("/offers/remove-image/<int:offer_id>/<field>", methods=["POST"])
+ @admin_required
+-def remove_offer_image(offer_id):
++def remove_offer_image(offer_id, field):
++    if field not in ("image", "flier_image"):
++        return jsonify(success=False), 400
+     offer = db.get_or_404(Offer, offer_id)
+-    delete_old_image(offer.image, current_app.config["UPLOAD_FOLDER"])
+-    offer.image = None
++    delete_old_image(getattr(offer, field), current_app.config["UPLOAD_FOLDER"])
++    setattr(offer, field, None)
+     db.session.commit()
+-    flash("Photo removed.", "info")
++    flash("Flier removed." if field == "flier_image" else "Photo removed.", "info")
+     return redirect(url_for("admin.offer_edit", offer_id=offer_id))
+ 
+ 
++@admin_bp.route("/offers/gallery/delete/<int:image_id>", methods=["POST"])
++@admin_required
++def delete_offer_gallery_image(image_id):
++    img = db.get_or_404(OfferImage, image_id)
++    delete_old_image(img.path, current_app.config["UPLOAD_FOLDER"])
++    db.session.delete(img)
++    db.session.commit()
++    return jsonify(success=True)
++
++
+ @admin_bp.route("/offers/delete/<int:offer_id>", methods=["POST"])
+ @admin_required
+ def offer_delete(offer_id):
+     offer = db.get_or_404(Offer, offer_id)
+-    delete_old_image(offer.image, current_app.config["UPLOAD_FOLDER"])
++    for path in [offer.image, offer.flier_image] + [img.path for img in offer.images]:
++        delete_old_image(path, current_app.config["UPLOAD_FOLDER"])
+     db.session.delete(offer)
+     db.session.commit()
+     flash("Offer deleted.", "info")
+diff --git a/routes/offers.py b/routes/offers.py
+index 53ac490..96ce38c 100644
+--- a/routes/offers.py
++++ b/routes/offers.py
+@@ -1,5 +1,5 @@
+ """Public Offers pages - group deals like corporate incentives, team building and field trips."""
+-from datetime import datetime, timezone
++from datetime import date, datetime, timezone
+ from flask import Blueprint, render_template, redirect, url_for, flash, current_app, request
+ from sqlalchemy.exc import SQLAlchemyError
+ from app import db, limiter
+@@ -28,6 +28,8 @@ def offer_list():
+ def offer_detail(offer_id):
+     offer = Offer.query.filter_by(id=offer_id, is_active=True).first_or_404()
+     form = OfferInquiryForm()
++    # Hide dates that have already ended.
++    upcoming = [d for d in offer.dates if (d.end_date or d.date) >= date.today()]
+ 
+     if form.validate_on_submit():
+         notes = [OFFER_TAG]
+@@ -56,7 +58,7 @@ def offer_detail(offer_id):
+             db.session.rollback()
+             current_app.logger.error(f"DB error creating offer inquiry: {e}", exc_info=True)
+             flash("Database error occurred. Please try again.", "danger")
+-            return render_template("offers/detail.html", offer=offer, form=form)
++            return render_template("offers/detail.html", offer=offer, form=form, upcoming=upcoming)
+ 
+         try:
+             from notification_service import notify_inquiry_created, notify_admins_new_inquiry
+@@ -74,4 +76,4 @@ def offer_detail(offer_id):
+         send_inquiry_emails_async(inquiry.id, base_url)
+         return redirect(url_for("main.track_inquiry", reference_number=inquiry.reference_number))
+ 
+-    return render_template("offers/detail.html", offer=offer, form=form)
++    return render_template("offers/detail.html", offer=offer, form=form, upcoming=upcoming)
+diff --git a/templates/admin/offer_form.html b/templates/admin/offer_form.html
+index f669dee..e53373c 100644
+--- a/templates/admin/offer_form.html
++++ b/templates/admin/offer_form.html
+@@ -4,21 +4,34 @@
+ 
+ {% block admin_styles %}
+ <style>
+-  .offer-form-card { background: var(--white); border-radius: var(--radius-lg); padding: 2rem; box-shadow: 0 2px 12px rgba(58,46,34,.07); max-width: 720px; }
++  .offer-form-card { background: var(--white); border-radius: var(--radius-lg); padding: 2rem; box-shadow: 0 2px 12px rgba(58,46,34,.07); max-width: 760px; }
++  .offer-section { margin-top: 1.75rem; padding-top: 1.5rem; border-top: 1px solid var(--linen); }
++  .offer-section h2 { font-size: 1rem; color: var(--teal); margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
+   .offer-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+   .offer-hint { font-size: .78rem; color: var(--mist); margin-top: .3rem; }
+   .photo-picker { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+   .photo-preview { width: 160px; aspect-ratio: 16 / 10; border-radius: var(--radius); background: var(--sand) center / cover no-repeat; border: 1px dashed var(--linen); display: flex; align-items: center; justify-content: center; color: var(--mist); font-size: 1.4rem; }
++  .photo-preview.flier { width: 110px; aspect-ratio: 3 / 4; }
+   .photo-preview.has-photo { border-style: solid; }
+   .photo-preview.has-photo i { display: none; }
+   .photo-actions { display: flex; flex-direction: column; gap: .4rem; align-items: flex-start; }
+   .photo-btn { background: var(--teal); color: #fff; border: none; border-radius: var(--radius); padding: .5rem 1rem; cursor: pointer; font-size: .88rem; display: inline-flex; align-items: center; gap: .5rem; }
+   .photo-btn:hover { background: var(--bark); }
+   .photo-remove { background: none; border: none; color: var(--danger); cursor: pointer; font-size: .9rem; padding: .25rem; }
+-  #offer-photo-status { font-size: .82rem; color: var(--mist); }
++  .photo-status { font-size: .82rem; color: var(--mist); }
++  .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: .6rem; margin-bottom: .75rem; }
++  .gallery-grid:empty { display: none; }
++  .gallery-item { position: relative; aspect-ratio: 4 / 3; border-radius: 10px; background: var(--sand) center / cover no-repeat; }
++  .gallery-item.pending { opacity: .5; }
++  .gallery-item button { position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border-radius: 50%; border: none; background: rgba(0,0,0,.6); color: #fff; cursor: pointer; font-size: .75rem; }
++  .date-row { border: 1px solid var(--linen); border-radius: var(--radius); padding: .9rem 2.5rem .9rem .9rem; margin-bottom: .6rem; position: relative; display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: .6rem; }
++  .date-row label { font-size: .78rem; }
++  .date-row .form-group { margin-bottom: 0; }
++  .date-row .remove-date { position: absolute; top: .5rem; right: .5rem; background: none; border: none; color: var(--danger); cursor: pointer; }
+   @media (max-width: 768px) {
+     .offer-form-card { padding: 1.25rem; }
+-    .offer-row-2 { grid-template-columns: 1fr; gap: 0; }
++    .offer-row-2, .date-row { grid-template-columns: 1fr; gap: 0; }
++    .date-row .form-group { margin-bottom: .5rem; }
+   }
+ </style>
+ {% endblock %}
+@@ -27,6 +40,32 @@
+   {%- if form and field in form -%}{{ form[field] }}{%- elif editing and offer[field] is not none -%}{{ offer[field] }}{%- else -%}{{ fallback }}{%- endif -%}
+ {%- endmacro %}
+ 
++{% macro image_picker(key, field, label, button, hint, shape='') -%}
++  {% set img = offer[field] if editing else None %}
++  <div class="form-group">
++    <label>{{ label }}</label>
++    <div class="photo-picker">
++      <div class="photo-preview {{ shape }} {{ 'has-photo' if img }}" id="{{ key }}-preview"
++        {% if img %}style="background-image:url('{{ (img | cloudinary_enhance) if img.startswith('http') else '/uploads/' + img }}')"{% endif %}>
++        <i class="fas fa-image"></i>
++      </div>
++      <div class="photo-actions">
++        <button type="button" class="photo-btn" data-pick="{{ key }}">
++          <i class="fas fa-image"></i> {{ 'Replace' if img else button }}
++        </button>
++        <input type="file" name="{{ field }}" id="{{ key }}-input" accept="image/*" hidden
++          data-url-field="{{ field }}_url" data-folder="travelworthyph/{{ 'offer_flier' if field == 'flier_image' else 'offer' }}">
++        <span class="photo-status" id="{{ key }}-status">{{ 'Current file' if img else 'No file chosen' }}</span>
++        {% if img %}
++        <button type="button" class="photo-remove" data-remove-url="{{ url_for('admin.remove_offer_image', offer_id=offer.id, field=field) }}"
++          title="Remove" aria-label="Remove {{ label | lower }}"><i class="fas fa-trash"></i></button>
++        {% endif %}
++      </div>
++    </div>
++    <div class="offer-hint">{{ hint }}</div>
++  </div>
++{%- endmacro %}
++
+ {% block admin_content %}
+ <div class="admin-header">
+   <h1>{{ 'Edit Offer' if editing else 'Add Offer' }}</h1>
+@@ -39,6 +78,8 @@
+   <form method="POST" enctype="multipart/form-data" id="offer-form">
+     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+     <input type="hidden" name="image_url" id="image_url" value="" />
++    <input type="hidden" name="flier_image_url" id="flier_image_url" value="" />
++    <div id="new-gallery-fields"></div>
+ 
+     <div class="form-group">
+       <label>Title <span style="color:var(--danger)">*</span></label>
+@@ -56,6 +97,18 @@
+           {% endfor %}
+         </select>
+       </div>
++      <div class="form-group">
++        <label>Duration</label>
++        <input type="text" name="duration" class="form-control" maxlength="50" placeholder="e.g. 2D1N, Half day" value="{{ val('duration') }}" />
++      </div>
++    </div>
++
++    <div class="offer-row-2">
++      <div class="form-group">
++        <label>Starting Price per Person (PHP)</label>
++        <input type="number" name="price" class="form-control" min="0" step="0.01" placeholder="e.g. 4500" value="{{ val('price') }}" />
++        <div class="offer-hint">Leave blank to show "Price upon request".</div>
++      </div>
+       <div class="form-group">
+         <label>Minimum Group Size</label>
+         <input type="number" name="min_pax" class="form-control" min="1" placeholder="e.g. 20" value="{{ val('min_pax') }}" />
+@@ -64,10 +117,9 @@
+     </div>
+ 
+     <div class="form-group">
+-      <label>Starting Price per Person (PHP)</label>
+-      <input type="number" name="price" class="form-control" min="0" step="0.01" placeholder="e.g. 4500"
+-        value="{{ val('price') }}" />
+-      <div class="offer-hint">Leave blank to show "Price upon request".</div>
++      <label>Location</label>
++      <input type="text" name="location" class="form-control" maxlength="200" placeholder="e.g. Laiya, San Juan, Batangas" value="{{ val('location') }}" />
++      <div class="offer-hint">Type the place the way you'd search it on Google Maps. A map shows on the offer page. Leave blank to hide the map.</div>
+     </div>
+ 
+     <div class="form-group">
+@@ -78,34 +130,54 @@
+ 
+     <div class="form-group">
+       <label>Full Description</label>
+-      <textarea name="description" class="form-control" rows="9"
+-        placeholder="What's included, sample activities, destinations, who it's for...">{{ val('description') }}</textarea>
++      <textarea name="description" class="form-control" rows="7"
++        placeholder="Who it's for, what the experience is like...">{{ val('description') }}</textarea>
+       <div class="offer-hint">Line breaks are kept. Start a line with "- " to make a bullet list.</div>
+     </div>
+ 
+-    <div class="form-group">
+-      <label>Cover Photo</label>
+-      <div class="photo-picker">
+-        {% set img = offer.image if editing else None %}
+-        <div class="photo-preview {{ 'has-photo' if img }}" id="offer-photo-preview"
+-          {% if img %}style="background-image:url('{{ (img | cloudinary_card) if img.startswith('http') else '/uploads/' + img }}')"{% endif %}>
+-          <i class="fas fa-image"></i>
++    <div class="offer-section">
++      <h2><i class="fas fa-star"></i> Activities and Inclusions</h2>
++      <div class="form-group">
++        <label>Sample Activities / Highlights</label>
++        <textarea name="highlights" class="form-control" rows="5" placeholder="One per line, e.g.&#10;Amazing race&#10;Beach games&#10;Bonfire night">{{ val('highlights') }}</textarea>
++      </div>
++      <div class="offer-row-2">
++        <div class="form-group">
++          <label>Inclusions</label>
++          <textarea name="inclusions" class="form-control" rows="6" placeholder="One per line, e.g.&#10;Round-trip bus transfers&#10;Lunch and dinner">{{ val('inclusions') }}</textarea>
+         </div>
+-        <div class="photo-actions">
+-          <button type="button" class="photo-btn" id="offer-photo-btn">
+-            <i class="fas fa-image"></i> {{ 'Replace Photo' if img else 'Choose Photo' }}
+-          </button>
+-          <input type="file" name="image" id="offer-photo-input" accept="image/*" hidden />
+-          <span id="offer-photo-status">{{ 'Current photo' if img else 'No file chosen' }}</span>
+-          {% if img %}
+-          <button type="button" class="photo-remove" id="offer-photo-remove"
+-            data-url="{{ url_for('admin.remove_offer_image', offer_id=offer.id) }}" title="Remove photo" aria-label="Remove photo">
+-            <i class="fas fa-trash"></i>
+-          </button>
+-          {% endif %}
++        <div class="form-group">
++          <label>Exclusions</label>
++          <textarea name="exclusions" class="form-control" rows="6" placeholder="One per line, e.g.&#10;Personal expenses&#10;Tips">{{ val('exclusions') }}</textarea>
++        </div>
++      </div>
++    </div>
++
++    <div class="offer-section">
++      <h2><i class="fas fa-calendar-days"></i> Available Dates <span class="offer-hint" style="margin:0;font-weight:400;">(optional)</span></h2>
++      <div id="offer-dates"></div>
++      <button type="button" class="photo-btn" id="add-date-btn"><i class="fas fa-plus"></i> Add Date</button>
++      <script id="existing-offer-dates" type="application/json">{{ (offer.dates | map(attribute='as_form') | list if editing else []) | tojson }}</script>
++    </div>
++
++    <div class="offer-section">
++      <h2><i class="fas fa-images"></i> Photos</h2>
++      {{ image_picker('cover', 'image', 'Cover Photo', 'Choose Photo', 'Landscape photos look best. Shown on the card and at the top of the offer page.') }}
++      {{ image_picker('flier', 'flier_image', 'Promotional Flier', 'Choose Flier', 'Optional. Visitors get a "View Flier" button when this is set.', 'flier') }}
++
++      <div class="form-group">
++        <label>Gallery Photos</label>
++        <div class="gallery-grid" id="gallery-grid">
++          {% if editing %}{% for img in offer.images %}
++          <div class="gallery-item" style="background-image:url('{{ (img.path | cloudinary_card) if img.path.startswith('http') else '/uploads/' + img.path }}')">
++            <button type="button" data-delete-url="{{ url_for('admin.delete_offer_gallery_image', image_id=img.id) }}" aria-label="Delete photo"><i class="fas fa-trash"></i></button>
++          </div>
++          {% endfor %}{% endif %}
+         </div>
++        <button type="button" class="photo-btn" id="gallery-btn"><i class="fas fa-plus"></i> Add Photos</button>
++        <input type="file" id="gallery-input" accept="image/*" multiple hidden>
++        <div class="photo-status" id="gallery-status" style="margin-top:.4rem;"></div>
+       </div>
+-      <div class="offer-hint">Landscape photos look best. PNG, JPG, WEBP.</div>
+     </div>
+ 
+     <div class="form-group" style="display:flex;align-items:center;gap:.5rem;margin:1.5rem 0;">
+@@ -125,65 +197,169 @@
+ 
+ <script nonce="{{ csp_nonce() }}">
+   (function () {
+-    var input = document.getElementById('offer-photo-input');
+-    var urlField = document.getElementById('image_url');
+-    var status = document.getElementById('offer-photo-status');
+-    var preview = document.getElementById('offer-photo-preview');
++    var form = document.getElementById('offer-form');
+     var saveBtn = document.getElementById('offer-save-btn');
+-    var csrf = document.querySelector('#offer-form input[name="csrf_token"]').value;
+-
+-    document.getElementById('offer-photo-btn').addEventListener('click', function () { input.click(); });
+-
+-    // Upload straight to Cloudinary so the save itself stays fast, same as package photos.
+-    input.addEventListener('change', async function () {
+-      var file = input.files[0];
+-      if (!file) return;
+-      preview.style.backgroundImage = 'url(' + URL.createObjectURL(file) + ')';
+-      preview.classList.add('has-photo');
+-      status.textContent = 'Uploading ' + file.name + '...';
+-      saveBtn.disabled = true;
+-      try {
+-        var sigRes = await fetch('/admin/cloudinary-signature', {
+-          method: 'POST',
+-          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+-          body: JSON.stringify({ folder: 'travelworthyph/offer' })
+-        });
+-        if (!sigRes.ok) throw new Error('signature');
+-        var sig = await sigRes.json();
+-        var fd = new FormData();
+-        fd.append('file', file);
+-        fd.append('api_key', sig.api_key);
+-        fd.append('timestamp', sig.timestamp);
+-        fd.append('signature', sig.signature);
+-        fd.append('folder', sig.folder);
+-        var up = await fetch('https://api.cloudinary.com/v1_1/' + sig.cloud_name + '/image/upload', { method: 'POST', body: fd });
+-        if (!up.ok) throw new Error('upload');
+-        urlField.value = (await up.json()).secure_url;
+-        status.textContent = 'Uploaded: ' + file.name;
+-      } catch (err) {
+-        urlField.value = '';
+-        status.textContent = file.name + ' (will upload on save)';
+-      } finally {
+-        saveBtn.disabled = false;
+-      }
++    var csrf = form.querySelector('input[name="csrf_token"]').value;
++    var busy = 0;
++
++    function setBusy(delta) {
++      busy += delta;
++      saveBtn.disabled = busy > 0;
++    }
++
++    // Upload one file straight to Cloudinary and resolve with its URL.
++    async function uploadToCloudinary(file, folder) {
++      var sigRes = await fetch('/admin/cloudinary-signature', {
++        method: 'POST',
++        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
++        body: JSON.stringify({ folder: folder })
++      });
++      if (!sigRes.ok) throw new Error('signature');
++      var sig = await sigRes.json();
++      var fd = new FormData();
++      fd.append('file', file);
++      fd.append('api_key', sig.api_key);
++      fd.append('timestamp', sig.timestamp);
++      fd.append('signature', sig.signature);
++      fd.append('folder', sig.folder);
++      var up = await fetch('https://api.cloudinary.com/v1_1/' + sig.cloud_name + '/image/upload', { method: 'POST', body: fd });
++      if (!up.ok) throw new Error('upload');
++      return (await up.json()).secure_url;
++    }
++
++    // Cover photo and flier pickers.
++    ['cover', 'flier'].forEach(function (key) {
++      var input = document.getElementById(key + '-input');
++      var urlField = document.getElementById(input.dataset.urlField);
++      var status = document.getElementById(key + '-status');
++      var preview = document.getElementById(key + '-preview');
++      form.querySelector('[data-pick="' + key + '"]').addEventListener('click', function () { input.click(); });
++      input.addEventListener('change', async function () {
++        var file = input.files[0];
++        if (!file) return;
++        preview.style.backgroundImage = 'url(' + URL.createObjectURL(file) + ')';
++        preview.classList.add('has-photo');
++        status.textContent = 'Uploading ' + file.name + '...';
++        setBusy(1);
++        try {
++          urlField.value = await uploadToCloudinary(file, input.dataset.folder);
++          status.textContent = 'Uploaded: ' + file.name;
++        } catch (err) {
++          urlField.value = '';
++          status.textContent = file.name + ' (will upload on save)';
++        } finally {
++          setBusy(-1);
++        }
++      });
+     });
+ 
+-    // A plain button, not a submit, so pressing Enter in a field never removes the photo.
+-    var removeBtn = document.getElementById('offer-photo-remove');
+-    if (removeBtn) {
+-      removeBtn.addEventListener('click', function () {
++    // Remove saved cover or flier; a plain button so Enter in a field never triggers it.
++    form.querySelectorAll('[data-remove-url]').forEach(function (btn) {
++      btn.addEventListener('click', function () {
+         var f = document.createElement('form');
+         f.method = 'POST';
+-        f.action = removeBtn.dataset.url;
++        f.action = btn.dataset.removeUrl;
+         f.innerHTML = '<input type="hidden" name="csrf_token" value="' + csrf + '">';
+         document.body.appendChild(f);
+         f.submit();
+       });
++    });
++
++    // Gallery: upload each picked photo now, then send the URLs with the form.
++    var grid = document.getElementById('gallery-grid');
++    var galleryInput = document.getElementById('gallery-input');
++    var galleryStatus = document.getElementById('gallery-status');
++    var hiddenBox = document.getElementById('new-gallery-fields');
++    document.getElementById('gallery-btn').addEventListener('click', function () { galleryInput.click(); });
++    galleryInput.addEventListener('change', async function () {
++      var files = Array.prototype.slice.call(galleryInput.files);
++      galleryInput.value = '';
++      var failed = 0;
++      setBusy(1);
++      for (var i = 0; i < files.length; i++) {
++        galleryStatus.textContent = 'Uploading ' + (i + 1) + ' of ' + files.length + '...';
++        var tile = document.createElement('div');
++        tile.className = 'gallery-item pending';
++        tile.style.backgroundImage = 'url(' + URL.createObjectURL(files[i]) + ')';
++        grid.appendChild(tile);
++        try {
++          var url = await uploadToCloudinary(files[i], 'travelworthyph/offer');
++          var hidden = document.createElement('input');
++          hidden.type = 'hidden';
++          hidden.name = 'new_gallery_urls';
++          hidden.value = url;
++          hiddenBox.appendChild(hidden);
++          tile.classList.remove('pending');
++          var del = document.createElement('button');
++          del.type = 'button';
++          del.setAttribute('aria-label', 'Remove photo');
++          del.innerHTML = '<i class="fas fa-times"></i>';
++          del.addEventListener('click', function (t, h) { return function () { t.remove(); h.remove(); }; }(tile, hidden));
++          tile.appendChild(del);
++        } catch (err) {
++          tile.remove();
++          failed++;
++        }
++      }
++      setBusy(-1);
++      galleryStatus.textContent = failed ? failed + ' photo(s) failed to upload. Try them again.' : 'Photos ready. Save to keep them.';
++    });
++
++    // Delete an already-saved gallery photo in place.
++    grid.addEventListener('click', function (e) {
++      var btn = e.target.closest('[data-delete-url]');
++      if (!btn) return;
++      fetch(btn.dataset.deleteUrl, { method: 'POST', headers: { 'X-CSRFToken': csrf, 'X-Requested-With': 'fetch' } })
++        .then(function (r) { return r.json(); })
++        .then(function (data) { if (data.success) btn.parentElement.remove(); })
++        .catch(function () {});
++    });
++
++    // Available dates builder, built with DOM properties so notes are never parsed as HTML.
++    var datesBox = document.getElementById('offer-dates');
++    function field(labelText, name, type, value, placeholder) {
++      var wrap = document.createElement('div');
++      wrap.className = 'form-group';
++      var label = document.createElement('label');
++      label.textContent = labelText;
++      var input = document.createElement('input');
++      input.type = type;
++      input.name = name;
++      input.className = 'form-control';
++      input.value = value || '';
++      if (placeholder) input.placeholder = placeholder;
++      if (type === 'text') input.maxLength = 100;
++      wrap.appendChild(label);
++      wrap.appendChild(input);
++      return wrap;
+     }
++    function addDateRow(d) {
++      d = d || {};
++      var row = document.createElement('div');
++      row.className = 'date-row';
++      row.appendChild(field('Start date', 'offer_date_start', 'date', d.date));
++      row.appendChild(field('End date (optional)', 'offer_date_end', 'date', d.end_date));
++      row.appendChild(field('Note (optional)', 'offer_date_note', 'text', d.note, 'e.g. Early Bird'));
++      var rm = document.createElement('button');
++      rm.type = 'button';
++      rm.className = 'remove-date';
++      rm.setAttribute('aria-label', 'Remove date');
++      rm.innerHTML = '<i class="fas fa-times"></i>';
++      rm.addEventListener('click', function () { row.remove(); });
++      row.appendChild(rm);
++      datesBox.appendChild(row);
++    }
++    document.getElementById('add-date-btn').addEventListener('click', function () { addDateRow(); });
++    try {
++      JSON.parse(document.getElementById('existing-offer-dates').textContent).forEach(addDateRow);
++    } catch (err) {}
+ 
+-    // Don't send the raw file through Flask when Cloudinary already has it.
+-    document.getElementById('offer-form').addEventListener('submit', function () {
+-      if (urlField.value) input.disabled = true;
++    // Don't send raw files through Flask when Cloudinary already has them.
++    form.addEventListener('submit', function () {
++      ['cover', 'flier'].forEach(function (key) {
++        var input = document.getElementById(key + '-input');
++        if (document.getElementById(input.dataset.urlField).value) input.disabled = true;
++      });
+     });
+   })();
+ </script>
+diff --git a/templates/offers/detail.html b/templates/offers/detail.html
+index 05f575b..0405152 100644
+--- a/templates/offers/detail.html
++++ b/templates/offers/detail.html
+@@ -40,12 +40,58 @@
+   .od-submit { width: 100%; justify-content: center; padding: .85rem; font-size: .95rem; margin-top: .5rem; }
+   .od-note { font-size: .8rem; color: var(--mist); text-align: center; margin-top: .75rem; }
+ 
++  .od-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 2rem; }
++  .od-actions:empty { display: none; }
+   .od-jump { display: none; }
++  .od-section { margin-bottom: 2.5rem; }
++
++  .od-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
++  .od-gallery button { position: relative; aspect-ratio: 4 / 3; border: none; padding: 0; border-radius: 12px; overflow: hidden; cursor: pointer; background: var(--linen); }
++  .od-gallery img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
++  .od-gallery button:hover img { transform: scale(1.05); }
++  .od-gallery button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
++  .od-gallery .more { position: absolute; inset: 0; background: rgba(18,52,60,.6); color: #fff; font-size: 1.4rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
++
++  .od-highlights { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .6rem; list-style: none; padding: 0; }
++  .od-highlights li { background: var(--white); border-radius: var(--radius); padding: .75rem 1rem; display: flex; gap: .65rem; align-items: flex-start; font-size: .92rem; color: var(--bark); border-left: 3px solid var(--amber); }
++  .od-highlights i { color: var(--amber); margin-top: .2rem; }
++
++  .od-inc { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
++  .od-inc-panel { border-radius: var(--radius); padding: 1.1rem 1.25rem; }
++  .od-inc-yes { background: #e6f4ef; }
++  .od-inc-no { background: #f1eee8; }
++  .od-inc-cap { font-weight: 700; font-size: .88rem; margin-bottom: .6rem; display: flex; align-items: center; gap: .4rem; }
++  .od-inc-line { display: flex; gap: .6rem; align-items: flex-start; font-size: .9rem; padding: .3rem 0; }
++  .od-inc-line i { width: 1rem; text-align: center; margin-top: .2rem; }
++
++  .od-dates { display: flex; flex-direction: column; gap: .5rem; }
++  .od-date { display: flex; align-items: center; gap: 1rem; width: 100%; text-align: left; background: var(--white); border: 1px solid var(--linen); border-radius: var(--radius); padding: .8rem 1rem; cursor: pointer; font-family: inherit; color: var(--bark); transition: border-color .15s; }
++  .od-date:hover, .od-date:focus-visible { border-color: var(--teal); outline: none; }
++  .od-date.picked { border-color: var(--teal); background: rgba(23,89,104,.06); }
++  .od-date i { color: var(--teal); }
++  .od-date strong { flex: 1; font-size: .95rem; }
++  .od-date-note { background: #fdf0e3; color: var(--amber); font-size: .75rem; font-weight: 700; padding: .2rem .6rem; border-radius: 999px; }
++  .od-date-pick { font-size: .8rem; color: var(--teal); font-weight: 600; white-space: nowrap; }
++
++  .od-map { border-radius: var(--radius-lg); overflow: hidden; background: var(--linen); }
++  .od-map iframe { display: block; width: 100%; height: 340px; border: 0; }
++  .od-map-foot { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .75rem 1rem; background: var(--white); font-size: .88rem; flex-wrap: wrap; }
++  .od-map-foot a { color: var(--teal); font-weight: 600; text-decoration: none; }
++
++  .od-viewer { display: none; position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,.95); flex-direction: column; align-items: center; justify-content: center; }
++  .od-viewer.open { display: flex; }
++  .od-viewer img { max-width: 90vw; max-height: 82vh; object-fit: contain; border-radius: 8px; }
++  .od-viewer-btn { position: absolute; background: rgba(255,255,255,.15); border: none; color: #fff; width: 44px; height: 44px; border-radius: 50%; font-size: 1.1rem; cursor: pointer; }
++  .od-viewer-close { top: 1rem; right: 1rem; }
++  .od-viewer-prev { left: 1rem; }
++  .od-viewer-next { right: 1rem; }
++  .od-viewer-foot { color: rgba(255,255,255,.8); font-size: .9rem; margin-top: 1rem; display: flex; gap: 1.25rem; align-items: center; }
++  .od-viewer-foot a { color: #fff; }
+ 
+   @media (max-width: 1024px) {
+     .od-body { grid-template-columns: 1fr; }
+     .od-form-card { position: static; }
+-    .od-jump { display: flex; width: 100%; justify-content: center; margin-bottom: 1.75rem; }
++    .od-jump { display: inline-flex; }
+   }
+   @media (max-width: 768px) {
+     .od-hero { min-height: 320px; }
+@@ -54,11 +100,19 @@
+     .od-body { padding: 1.75rem 1.25rem 3rem; }
+     .od-row { grid-template-columns: 1fr; gap: 0; }
+     .od-form { padding: 1.25rem; }
++    .od-inc { grid-template-columns: 1fr; }
++    .od-gallery { grid-template-columns: repeat(2, 1fr); }
++    .od-map iframe { height: 260px; }
++  }
++  @media (prefers-reduced-motion: reduce) {
++    .od-gallery img { transition: none; }
++    .od-gallery button:hover img { transform: none; }
+   }
+ </style>
+ {% endblock %}
+ 
+ {% block content %}
++{% set gallery = offer.images | map(attribute='path') | list %}
+ {% set cover = ((offer.image | cloudinary_enhance) if offer.image.startswith('http') else '/uploads/' + offer.image) if offer.image else None %}
+ <section class="od-hero" {% if cover %}style="background-image:url('{{ cover }}')"{% endif %}>
+   <div class="od-hero-inner">
+@@ -88,17 +142,116 @@
+         <div><small>Group size</small><strong>Min. {{ offer.min_pax }} people</strong></div>
+       </div>
+       {% endif %}
++      {% if offer.duration %}
++      <div class="od-fact">
++        <i class="fas fa-clock"></i>
++        <div><small>Duration</small><strong>{{ offer.duration }}</strong></div>
++      </div>
++      {% endif %}
++      {% if offer.location %}
+       <div class="od-fact">
+-        <i class="fas fa-sliders"></i>
+-        <div><small>Itinerary</small><strong>Customizable</strong></div>
++        <i class="fas fa-location-dot"></i>
++        <div><small>Location</small><strong>{{ offer.location }}</strong></div>
+       </div>
++      {% endif %}
+     </div>
+ 
+-    <a href="#od-inquire" class="btn btn-amber od-jump"><i class="fas fa-paper-plane"></i> Request a Quote</a>
++    <div class="od-actions">
++      <a href="#od-inquire" class="btn btn-amber od-jump"><i class="fas fa-paper-plane"></i> Request a Quote</a>
++      {% if offer.flier_image %}
++      <button type="button" class="btn btn-outline" data-viewer="flier" data-index="0"><i class="fas fa-file-image"></i> View Flier</button>
++      {% endif %}
++    </div>
++
++    {% if gallery %}
++    <section class="od-section">
++      <h2 class="od-desc-title">Photos</h2>
++      <div class="od-gallery">
++        {% for path in gallery[:6] %}
++        <button type="button" data-viewer="gallery" data-index="{{ loop.index0 }}" aria-label="View photo {{ loop.index }} of {{ gallery | length }}">
++          <img src="{{ (path | cloudinary_card) if path.startswith('http') else '/uploads/' + path }}" alt="" loading="lazy">
++          {% if loop.last and gallery | length > 6 %}<span class="more">+{{ gallery | length - 6 }}</span>{% endif %}
++        </button>
++        {% endfor %}
++      </div>
++    </section>
++    {% endif %}
+ 
+     {% if offer.description %}
+-    <h2 class="od-desc-title">About this offer</h2>
+-    <div class="od-desc">{{ offer.description | rich_description }}</div>
++    <section class="od-section">
++      <h2 class="od-desc-title">About this offer</h2>
++      <div class="od-desc">{{ offer.description | rich_description }}</div>
++    </section>
++    {% endif %}
++
++    {% set highlights = offer.highlights.split('\n') | map('trim') | select | list if offer.highlights else [] %}
++    {% if highlights %}
++    <section class="od-section">
++      <h2 class="od-desc-title">Sample activities</h2>
++      <ul class="od-highlights">
++        {% for item in highlights %}
++        <li><i class="fas fa-star" aria-hidden="true"></i><span>{{ item.lstrip('-* ') }}</span></li>
++        {% endfor %}
++      </ul>
++    </section>
++    {% endif %}
++
++    {% if offer.inclusions or offer.exclusions %}
++    <section class="od-section">
++      <h2 class="od-desc-title">What's included</h2>
++      <div class="od-inc">
++        {% if offer.inclusions %}
++        <div class="od-inc-panel od-inc-yes">
++          <div class="od-inc-cap" style="color:#0f6e56"><i class="fas fa-check" aria-hidden="true"></i> Included</div>
++          {% for item in offer.inclusions.split('\n') if item.strip() %}
++          <div class="od-inc-line" style="color:#04342C">
++            <i class="fas {{ item | inclusion_icon }}" style="color:#0f6e56" aria-hidden="true"></i><span>{{ item.strip().lstrip('-* ') }}</span>
++          </div>
++          {% endfor %}
++        </div>
++        {% endif %}
++        {% if offer.exclusions %}
++        <div class="od-inc-panel od-inc-no">
++          <div class="od-inc-cap" style="color:#8a8578"><i class="fas fa-minus" aria-hidden="true"></i> Not included</div>
++          {% for item in offer.exclusions.split('\n') if item.strip() %}
++          <div class="od-inc-line" style="color:#6d675d">
++            <i class="fas {{ item | inclusion_icon }}" style="color:#a09a8e" aria-hidden="true"></i><span>{{ item.strip().lstrip('-* ') }}</span>
++          </div>
++          {% endfor %}
++        </div>
++        {% endif %}
++      </div>
++    </section>
++    {% endif %}
++
++    {% if upcoming %}
++    <section class="od-section">
++      <h2 class="od-desc-title">Available dates</h2>
++      <div class="od-dates">
++        {% for d in upcoming %}
++        <button type="button" class="od-date" data-from="{{ d.date.isoformat() }}" data-to="{{ (d.end_date or d.date).isoformat() }}">
++          <i class="fas fa-calendar-day" aria-hidden="true"></i>
++          <strong>{{ d.display_range }}</strong>
++          {% if d.note %}<span class="od-date-note">{{ d.note }}</span>{% endif %}
++          <span class="od-date-pick">Pick date</span>
++        </button>
++        {% endfor %}
++      </div>
++    </section>
++    {% endif %}
++
++    {% if offer.location %}
++    <section class="od-section">
++      <h2 class="od-desc-title">Location</h2>
++      <div class="od-map">
++        <iframe src="https://maps.google.com/maps?q={{ offer.location | urlencode }}&z=13&output=embed"
++          title="Map of {{ offer.location }}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
++        <div class="od-map-foot">
++          <span><i class="fas fa-location-dot" style="color:var(--amber)"></i> {{ offer.location }}</span>
++          <a href="https://www.google.com/maps/search/?api=1&query={{ offer.location | urlencode }}" target="_blank" rel="noopener">Open in Google Maps</a>
++        </div>
++      </div>
++    </section>
+     {% endif %}
+   </div>
+ 
+@@ -182,13 +335,97 @@
+   </aside>
+ </div>
+ 
++{% if gallery or offer.flier_image %}
++<div class="od-viewer" id="od-viewer" role="dialog" aria-modal="true" aria-label="Photo viewer">
++  <button type="button" class="od-viewer-btn od-viewer-close" id="od-viewer-close" aria-label="Close"><i class="fas fa-times"></i></button>
++  <button type="button" class="od-viewer-btn od-viewer-prev" id="od-viewer-prev" aria-label="Previous photo"><i class="fas fa-chevron-left"></i></button>
++  <button type="button" class="od-viewer-btn od-viewer-next" id="od-viewer-next" aria-label="Next photo"><i class="fas fa-chevron-right"></i></button>
++  <img id="od-viewer-img" src="" alt="">
++  <div class="od-viewer-foot">
++    <span id="od-viewer-count"></span>
++    <a id="od-viewer-download" href="" target="_blank" rel="noopener"><i class="fas fa-download"></i> Download</a>
++  </div>
++</div>
++{% endif %}
++
+ <script nonce="{{ csp_nonce() }}">
+   document.addEventListener('DOMContentLoaded', function () {
++    var fromEl = document.getElementById('odDateFrom');
++    var toEl = document.getElementById('odDateTo');
+     var today = new Date().toISOString().split('T')[0];
+-    ['odDateFrom', 'odDateTo'].forEach(function (id) { document.getElementById(id).min = today; });
+-    initDateDisplay(document.getElementById('odDateFrom'), document.getElementById('odDateFromOverlay'), 'Select date');
+-    initDateDisplay(document.getElementById('odDateTo'), document.getElementById('odDateToOverlay'), 'Select date');
++    fromEl.min = today;
++    toEl.min = today;
++    initDateDisplay(fromEl, document.getElementById('odDateFromOverlay'), 'Select date');
++    initDateDisplay(toEl, document.getElementById('odDateToOverlay'), 'Select date');
+     {% if form.errors %}document.getElementById('od-inquire').scrollIntoView({ block: 'start' });{% endif %}
++
++    // Picking an available date fills the quote form and takes you there.
++    document.querySelectorAll('.od-date').forEach(function (btn) {
++      btn.addEventListener('click', function () {
++        document.querySelectorAll('.od-date').forEach(function (b) { b.classList.remove('picked'); });
++        btn.classList.add('picked');
++        fromEl.value = btn.dataset.from;
++        toEl.value = btn.dataset.to;
++        fromEl.dispatchEvent(new Event('change'));
++        toEl.dispatchEvent(new Event('change'));
++        document.getElementById('od-inquire').scrollIntoView({ behavior: 'smooth', block: 'start' });
++      });
++    });
++
++    // Full-size viewer for gallery photos and the flier.
++    var viewer = document.getElementById('od-viewer');
++    if (!viewer) return;
++    var sets = {
++      gallery: {{ gallery | map('cloudinary_enhance') | list | tojson }},
++      flier: {{ ([offer.flier_image | cloudinary_enhance] if offer.flier_image else []) | tojson }}
++    };
++    var img = document.getElementById('od-viewer-img');
++    var count = document.getElementById('od-viewer-count');
++    var download = document.getElementById('od-viewer-download');
++    var title = {{ offer.title | tojson }};
++    var current = [], index = 0, lastFocus = null;
++
++    function show() {
++      var src = current[index];
++      src = src.indexOf('http') === 0 ? src : '/uploads/' + src;
++      img.src = src;
++      img.alt = title + ' photo ' + (index + 1) + ' of ' + current.length;
++      download.href = src;
++      count.textContent = current.length > 1 ? (index + 1) + ' / ' + current.length : '';
++      document.getElementById('od-viewer-prev').hidden = current.length < 2;
++      document.getElementById('od-viewer-next').hidden = current.length < 2;
++    }
++    function open(set, i) {
++      current = sets[set];
++      index = i;
++      lastFocus = document.activeElement;
++      show();
++      viewer.classList.add('open');
++      document.body.style.overflow = 'hidden';
++      document.getElementById('od-viewer-close').focus();
++    }
++    function close() {
++      viewer.classList.remove('open');
++      document.body.style.overflow = '';
++      if (lastFocus) lastFocus.focus();
++    }
++    function step(d) {
++      index = (index + d + current.length) % current.length;
++      show();
++    }
++    document.querySelectorAll('[data-viewer]').forEach(function (btn) {
++      btn.addEventListener('click', function () { open(btn.dataset.viewer, parseInt(btn.dataset.index, 10)); });
++    });
++    document.getElementById('od-viewer-close').addEventListener('click', close);
++    document.getElementById('od-viewer-prev').addEventListener('click', function () { step(-1); });
++    document.getElementById('od-viewer-next').addEventListener('click', function () { step(1); });
++    viewer.addEventListener('click', function (e) { if (e.target === viewer) close(); });
++    document.addEventListener('keydown', function (e) {
++      if (!viewer.classList.contains('open')) return;
++      if (e.key === 'Escape') close();
++      if (e.key === 'ArrowRight') step(1);
++      if (e.key === 'ArrowLeft') step(-1);
++    });
+   });
+ </script>
+ {% endblock %}
+diff --git a/tests/test_offers.py b/tests/test_offers.py
+index 31e8cd1..60c3d9d 100644
+--- a/tests/test_offers.py
++++ b/tests/test_offers.py
+@@ -174,3 +174,131 @@ class TestAdminOffers:
+         offer = _make_offer(db)
+         admin_client.post(f"/admin/offers/delete/{offer.id}")
+         assert Offer.query.count() == 0
++
++
++class TestOfferDetails:
++    def test_admin_saves_details_gallery_and_dates(self, app, admin_client):
++        start = date.today() + timedelta(days=20)
++        admin_client.post(
++            "/admin/offers/add",
++            data={
++                "title": "Beach Team Building",
++                "category": "Team Building",
++                "duration": "2D1N",
++                "location": "Laiya, San Juan, Batangas",
++                "highlights": "Amazing race\nBonfire",
++                "inclusions": "Bus transfers\nLunch",
++                "exclusions": "Tips",
++                "flier_image_url": "https://res.cloudinary.com/t/image/upload/v1/f.jpg",
++                "new_gallery_urls": [
++                    "https://res.cloudinary.com/t/image/upload/v1/a.jpg",
++                    "https://res.cloudinary.com/t/image/upload/v1/b.jpg",
++                ],
++                "offer_date_start": [start.isoformat(), ""],
++                "offer_date_end": [(start + timedelta(days=1)).isoformat(), ""],
++                "offer_date_note": ["Early Bird", ""],
++                "is_active": "on",
++            },
++        )
++        offer = Offer.query.one()
++        assert offer.duration == "2D1N"
++        assert offer.flier_image.endswith("f.jpg")
++        assert [i.order for i in offer.images] == [0, 1]
++        assert len(offer.dates) == 1 and offer.dates[0].note == "Early Bird"
++
++    def test_end_before_start_rejected(self, app, admin_client):
++        start = date.today() + timedelta(days=20)
++        admin_client.post(
++            "/admin/offers/add",
++            data={
++                "title": "X",
++                "category": "Other",
++                "offer_date_start": start.isoformat(),
++                "offer_date_end": (start - timedelta(days=1)).isoformat(),
++            },
++        )
++        assert Offer.query.count() == 0
++
++    def test_edit_replaces_dates_and_keeps_gallery(self, app, admin_client):
++        from app import db
++        from models.offer import OfferImage, OfferDate
++
++        offer = _make_offer(db)
++        offer.images.append(OfferImage(path="https://res.cloudinary.com/t/image/upload/v1/a.jpg", order=0))
++        offer.dates.append(OfferDate(date=date.today() + timedelta(days=5)))
++        db.session.commit()
++        new_start = date.today() + timedelta(days=40)
++        admin_client.post(
++            f"/admin/offers/edit/{offer.id}",
++            data={"title": offer.title, "category": offer.category, "offer_date_start": new_start.isoformat()},
++        )
++        db.session.refresh(offer)
++        assert len(offer.images) == 1
++        assert [d.date for d in offer.dates] == [new_start]
++
++    def test_gallery_delete(self, app, admin_client):
++        from app import db
++        from models.offer import OfferImage
++
++        offer = _make_offer(db)
++        offer.images.append(OfferImage(path="https://res.cloudinary.com/t/image/upload/v1/a.jpg", order=0))
++        db.session.commit()
++        img_id = offer.images[0].id
++        assert admin_client.post(f"/admin/offers/gallery/delete/{img_id}").get_json()["success"]
++        assert OfferImage.query.count() == 0
++
++    def test_remove_flier(self, app, admin_client):
++        from app import db
++
++        offer = _make_offer(db, flier_image="https://res.cloudinary.com/t/image/upload/v1/f.jpg")
++        admin_client.post(f"/admin/offers/remove-image/{offer.id}/flier_image")
++        db.session.refresh(offer)
++        assert offer.flier_image is None
++
++    def test_remove_rejects_unknown_field(self, app, admin_client):
++        from app import db
++
++        offer = _make_offer(db)
++        assert admin_client.post(f"/admin/offers/remove-image/{offer.id}/title").status_code == 400
++
++    def test_deleting_offer_removes_children(self, app, admin_client):
++        from app import db
++        from models.offer import OfferImage, OfferDate
++
++        offer = _make_offer(db)
++        offer.images.append(OfferImage(path="https://res.cloudinary.com/t/image/upload/v1/a.jpg", order=0))
++        offer.dates.append(OfferDate(date=date.today()))
++        db.session.commit()
++        admin_client.post(f"/admin/offers/delete/{offer.id}")
++        assert OfferImage.query.count() == 0 and OfferDate.query.count() == 0
++
++    def test_detail_shows_new_sections(self, app, client):
++        from app import db
++        from models.offer import OfferImage, OfferDate
++
++        offer = _make_offer(
++            db,
++            duration="Half day",
++            location="Laiya, San Juan, Batangas",
++            highlights="- Amazing race",
++            inclusions="Lunch",
++            exclusions="Tips",
++            flier_image="https://res.cloudinary.com/t/image/upload/v1/f.jpg",
++        )
++        offer.images.append(OfferImage(path="https://res.cloudinary.com/t/image/upload/v1/a.jpg", order=0))
++        offer.dates.append(OfferDate(date=date.today() + timedelta(days=10), note="Early Bird"))
++        offer.dates.append(OfferDate(date=date.today() - timedelta(days=10), note="Old Date"))
++        db.session.commit()
++        html = client.get(f"/offers/{offer.id}").get_data(as_text=True)
++        for text in ("Half day", "View Flier", "Amazing race", "Not included", "Early Bird", "maps.google.com/maps?q=Laiya"):
++            assert text in html
++        assert "Old Date" not in html
++        assert "- Amazing race" not in html
++
++    def test_detail_hides_empty_sections(self, app, client):
++        from app import db
++
++        offer = _make_offer(db)
++        html = client.get(f"/offers/{offer.id}").get_data(as_text=True)
++        for text in ("View Flier", "Sample activities", "Available dates", "maps.google.com", "id=\"od-viewer\""):
++            assert text not in html
+-- 
+2.43.0
+

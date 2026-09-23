@@ -40,12 +40,55 @@
   .od-submit { width: 100%; justify-content: center; padding: .85rem; font-size: .95rem; margin-top: .5rem; }
   .od-note { font-size: .8rem; color: var(--mist); text-align: center; margin-top: .75rem; }
 
-  .od-jump { display: none; }
+  .od-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 2rem; }
+  .od-section { margin-bottom: 2.5rem; }
+
+  .od-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
+  .od-gallery button { position: relative; aspect-ratio: 4 / 3; border: none; padding: 0; border-radius: 12px; overflow: hidden; cursor: pointer; background: var(--linen); }
+  .od-gallery img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
+  .od-gallery button:hover img { transform: scale(1.05); }
+  .od-gallery button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+  .od-gallery .more { position: absolute; inset: 0; background: rgba(18,52,60,.6); color: #fff; font-size: 1.4rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+
+  .od-highlights { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .6rem; list-style: none; padding: 0; }
+  .od-highlights li { background: var(--white); border-radius: var(--radius); padding: .75rem 1rem; display: flex; gap: .65rem; align-items: flex-start; font-size: .92rem; color: var(--bark); border-left: 3px solid var(--amber); }
+  .od-highlights i { color: var(--amber); margin-top: .2rem; }
+
+  .od-inc { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .od-inc-panel { border-radius: var(--radius); padding: 1.1rem 1.25rem; }
+  .od-inc-yes { background: #e6f4ef; }
+  .od-inc-no { background: #f1eee8; }
+  .od-inc-cap { font-weight: 700; font-size: .88rem; margin-bottom: .6rem; display: flex; align-items: center; gap: .4rem; }
+  .od-inc-line { display: flex; gap: .6rem; align-items: flex-start; font-size: .9rem; padding: .3rem 0; }
+  .od-inc-line i { width: 1rem; text-align: center; margin-top: .2rem; }
+
+  .od-dates { display: flex; flex-direction: column; gap: .5rem; }
+  .od-date { display: flex; align-items: center; gap: 1rem; width: 100%; text-align: left; background: var(--white); border: 1px solid var(--linen); border-radius: var(--radius); padding: .8rem 1rem; cursor: pointer; font-family: inherit; color: var(--bark); transition: border-color .15s; }
+  .od-date:hover, .od-date:focus-visible { border-color: var(--teal); outline: none; }
+  .od-date.picked { border-color: var(--teal); background: rgba(23,89,104,.06); }
+  .od-date i { color: var(--teal); }
+  .od-date strong { flex: 1; font-size: .95rem; }
+  .od-date-note { background: #fdf0e3; color: var(--amber); font-size: .75rem; font-weight: 700; padding: .2rem .6rem; border-radius: 999px; }
+  .od-date-pick { font-size: .8rem; color: var(--teal); font-weight: 600; white-space: nowrap; }
+
+  .od-map { border-radius: var(--radius-lg); overflow: hidden; background: var(--linen); }
+  .od-map iframe { display: block; width: 100%; height: 340px; border: 0; }
+  .od-map-foot { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .75rem 1rem; background: var(--white); font-size: .88rem; flex-wrap: wrap; }
+  .od-map-foot a { color: var(--teal); font-weight: 600; text-decoration: none; }
+
+  .od-viewer { display: none; position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,.95); flex-direction: column; align-items: center; justify-content: center; }
+  .od-viewer.open { display: flex; }
+  .od-viewer img { max-width: 90vw; max-height: 82vh; object-fit: contain; border-radius: 8px; }
+  .od-viewer-btn { position: absolute; background: rgba(255,255,255,.15); border: none; color: #fff; width: 44px; height: 44px; border-radius: 50%; font-size: 1.1rem; cursor: pointer; }
+  .od-viewer-close { top: 1rem; right: 1rem; }
+  .od-viewer-prev { left: 1rem; }
+  .od-viewer-next { right: 1rem; }
+  .od-viewer-foot { color: rgba(255,255,255,.8); font-size: .9rem; margin-top: 1rem; display: flex; gap: 1.25rem; align-items: center; }
+  .od-viewer-foot a { color: #fff; }
 
   @media (max-width: 1024px) {
     .od-body { grid-template-columns: 1fr; }
     .od-form-card { position: static; }
-    .od-jump { display: flex; width: 100%; justify-content: center; margin-bottom: 1.75rem; }
   }
   @media (max-width: 768px) {
     .od-hero { min-height: 320px; }
@@ -54,11 +97,19 @@
     .od-body { padding: 1.75rem 1.25rem 3rem; }
     .od-row { grid-template-columns: 1fr; gap: 0; }
     .od-form { padding: 1.25rem; }
+    .od-inc { grid-template-columns: 1fr; }
+    .od-gallery { grid-template-columns: repeat(2, 1fr); }
+    .od-map iframe { height: 260px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .od-gallery img { transition: none; }
+    .od-gallery button:hover img { transform: none; }
   }
 </style>
 {% endblock %}
 
 {% block content %}
+{% set gallery = offer.images | map(attribute='path') | list %}
 {% set cover = ((offer.image | cloudinary_enhance) if offer.image.startswith('http') else '/uploads/' + offer.image) if offer.image else None %}
 <section class="od-hero" {% if cover %}style="background-image:url('{{ cover }}')"{% endif %}>
   <div class="od-hero-inner">
@@ -88,17 +139,115 @@
         <div><small>Group size</small><strong>Min. {{ offer.min_pax }} people</strong></div>
       </div>
       {% endif %}
+      {% if offer.duration %}
       <div class="od-fact">
-        <i class="fas fa-sliders"></i>
-        <div><small>Itinerary</small><strong>Customizable</strong></div>
+        <i class="fas fa-clock"></i>
+        <div><small>Duration</small><strong>{{ offer.duration }}</strong></div>
       </div>
+      {% endif %}
+      {% if offer.location %}
+      <div class="od-fact">
+        <i class="fas fa-location-dot"></i>
+        <div><small>Location</small><strong>{{ offer.location }}</strong></div>
+      </div>
+      {% endif %}
     </div>
 
-    <a href="#od-inquire" class="btn btn-amber od-jump"><i class="fas fa-paper-plane"></i> Request a Quote</a>
+    {% if offer.flier_image %}
+       <div class="od-actions">
+         <button type="button" class="btn btn-outline" data-viewer="flier" data-index="0"><i class="fas fa-file-image"></i> View Flier</button>
+       </div>
+       {% endif %}
+
+    {% if gallery %}
+    <section class="od-section">
+      <h2 class="od-desc-title">Photos</h2>
+      <div class="od-gallery">
+        {% for path in gallery[:6] %}
+        <button type="button" data-viewer="gallery" data-index="{{ loop.index0 }}" aria-label="View photo {{ loop.index }} of {{ gallery | length }}">
+          <img src="{{ (path | cloudinary_card) if path.startswith('http') else '/uploads/' + path }}" alt="" loading="lazy">
+          {% if loop.last and gallery | length > 6 %}<span class="more">+{{ gallery | length - 6 }}</span>{% endif %}
+        </button>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
 
     {% if offer.description %}
-    <h2 class="od-desc-title">About this offer</h2>
-    <div class="od-desc">{{ offer.description | rich_description }}</div>
+    <section class="od-section">
+      <h2 class="od-desc-title">About this offer</h2>
+      <div class="od-desc">{{ offer.description | rich_description }}</div>
+    </section>
+    {% endif %}
+
+    {% set highlights = offer.highlights.split('\n') | map('trim') | select | list if offer.highlights else [] %}
+    {% if highlights %}
+    <section class="od-section">
+      <h2 class="od-desc-title">Sample activities</h2>
+      <ul class="od-highlights">
+        {% for item in highlights %}
+        <li><i class="fas fa-star" aria-hidden="true"></i><span>{{ item.lstrip('-* ') }}</span></li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+    {% if offer.inclusions or offer.exclusions %}
+    <section class="od-section">
+      <h2 class="od-desc-title">What's included</h2>
+      <div class="od-inc">
+        {% if offer.inclusions %}
+        <div class="od-inc-panel od-inc-yes">
+          <div class="od-inc-cap" style="color:#0f6e56"><i class="fas fa-check" aria-hidden="true"></i> Included</div>
+          {% for item in offer.inclusions.split('\n') if item.strip() %}
+          <div class="od-inc-line" style="color:#04342C">
+            <i class="fas {{ item | inclusion_icon }}" style="color:#0f6e56" aria-hidden="true"></i><span>{{ item.strip().lstrip('-* ') }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if offer.exclusions %}
+        <div class="od-inc-panel od-inc-no">
+          <div class="od-inc-cap" style="color:#8a8578"><i class="fas fa-minus" aria-hidden="true"></i> Not included</div>
+          {% for item in offer.exclusions.split('\n') if item.strip() %}
+          <div class="od-inc-line" style="color:#6d675d">
+            <i class="fas {{ item | inclusion_icon }}" style="color:#a09a8e" aria-hidden="true"></i><span>{{ item.strip().lstrip('-* ') }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if upcoming %}
+    <section class="od-section">
+      <h2 class="od-desc-title">Available dates</h2>
+      <div class="od-dates">
+        {% for d in upcoming %}
+        <button type="button" class="od-date" data-from="{{ d.date.isoformat() }}" data-to="{{ (d.end_date or d.date).isoformat() }}">
+          <i class="fas fa-calendar-day" aria-hidden="true"></i>
+          <strong>{{ d.display_range }}</strong>
+          {% if d.note %}<span class="od-date-note">{{ d.note }}</span>{% endif %}
+          <span class="od-date-pick">Pick date</span>
+        </button>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if offer.location %}
+    <section class="od-section">
+      <h2 class="od-desc-title">Location</h2>
+      <div class="od-map">
+        <iframe src="https://maps.google.com/maps?q={{ offer.location | urlencode }}&z=13&output=embed"
+          title="Map of {{ offer.location }}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        <div class="od-map-foot">
+          <span><i class="fas fa-location-dot" style="color:var(--amber)"></i> {{ offer.location }}</span>
+          <a href="https://www.google.com/maps/search/?api=1&query={{ offer.location | urlencode }}" target="_blank" rel="noopener">Open in Google Maps</a>
+        </div>
+      </div>
+    </section>
     {% endif %}
   </div>
 
@@ -182,13 +331,97 @@
   </aside>
 </div>
 
+{% if gallery or offer.flier_image %}
+<div class="od-viewer" id="od-viewer" role="dialog" aria-modal="true" aria-label="Photo viewer">
+  <button type="button" class="od-viewer-btn od-viewer-close" id="od-viewer-close" aria-label="Close"><i class="fas fa-times"></i></button>
+  <button type="button" class="od-viewer-btn od-viewer-prev" id="od-viewer-prev" aria-label="Previous photo"><i class="fas fa-chevron-left"></i></button>
+  <button type="button" class="od-viewer-btn od-viewer-next" id="od-viewer-next" aria-label="Next photo"><i class="fas fa-chevron-right"></i></button>
+  <img id="od-viewer-img" src="" alt="">
+  <div class="od-viewer-foot">
+    <span id="od-viewer-count"></span>
+    <a id="od-viewer-download" href="" target="_blank" rel="noopener"><i class="fas fa-download"></i> Download</a>
+  </div>
+</div>
+{% endif %}
+
 <script nonce="{{ csp_nonce() }}">
   document.addEventListener('DOMContentLoaded', function () {
+    var fromEl = document.getElementById('odDateFrom');
+    var toEl = document.getElementById('odDateTo');
     var today = new Date().toISOString().split('T')[0];
-    ['odDateFrom', 'odDateTo'].forEach(function (id) { document.getElementById(id).min = today; });
-    initDateDisplay(document.getElementById('odDateFrom'), document.getElementById('odDateFromOverlay'), 'Select date');
-    initDateDisplay(document.getElementById('odDateTo'), document.getElementById('odDateToOverlay'), 'Select date');
+    fromEl.min = today;
+    toEl.min = today;
+    initDateDisplay(fromEl, document.getElementById('odDateFromOverlay'), 'Select date');
+    initDateDisplay(toEl, document.getElementById('odDateToOverlay'), 'Select date');
     {% if form.errors %}document.getElementById('od-inquire').scrollIntoView({ block: 'start' });{% endif %}
+
+    // Picking an available date fills the quote form and takes you there.
+    document.querySelectorAll('.od-date').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.od-date').forEach(function (b) { b.classList.remove('picked'); });
+        btn.classList.add('picked');
+        fromEl.value = btn.dataset.from;
+        toEl.value = btn.dataset.to;
+        fromEl.dispatchEvent(new Event('change'));
+        toEl.dispatchEvent(new Event('change'));
+        document.getElementById('od-inquire').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+
+    // Full-size viewer for gallery photos and the flier.
+    var viewer = document.getElementById('od-viewer');
+    if (!viewer) return;
+    var sets = {
+      gallery: {{ gallery | map('cloudinary_enhance') | list | tojson }},
+      flier: {{ ([offer.flier_image | cloudinary_enhance] if offer.flier_image else []) | tojson }}
+    };
+    var img = document.getElementById('od-viewer-img');
+    var count = document.getElementById('od-viewer-count');
+    var download = document.getElementById('od-viewer-download');
+    var title = {{ offer.title | tojson }};
+    var current = [], index = 0, lastFocus = null;
+
+    function show() {
+      var src = current[index];
+      src = src.indexOf('http') === 0 ? src : '/uploads/' + src;
+      img.src = src;
+      img.alt = title + ' photo ' + (index + 1) + ' of ' + current.length;
+      download.href = src;
+      count.textContent = current.length > 1 ? (index + 1) + ' / ' + current.length : '';
+      document.getElementById('od-viewer-prev').hidden = current.length < 2;
+      document.getElementById('od-viewer-next').hidden = current.length < 2;
+    }
+    function open(set, i) {
+      current = sets[set];
+      index = i;
+      lastFocus = document.activeElement;
+      show();
+      viewer.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      document.getElementById('od-viewer-close').focus();
+    }
+    function close() {
+      viewer.classList.remove('open');
+      document.body.style.overflow = '';
+      if (lastFocus) lastFocus.focus();
+    }
+    function step(d) {
+      index = (index + d + current.length) % current.length;
+      show();
+    }
+    document.querySelectorAll('[data-viewer]').forEach(function (btn) {
+      btn.addEventListener('click', function () { open(btn.dataset.viewer, parseInt(btn.dataset.index, 10)); });
+    });
+    document.getElementById('od-viewer-close').addEventListener('click', close);
+    document.getElementById('od-viewer-prev').addEventListener('click', function () { step(-1); });
+    document.getElementById('od-viewer-next').addEventListener('click', function () { step(1); });
+    viewer.addEventListener('click', function (e) { if (e.target === viewer) close(); });
+    document.addEventListener('keydown', function (e) {
+      if (!viewer.classList.contains('open')) return;
+      if (e.key === 'Escape') close();
+      if (e.key === 'ArrowRight') step(1);
+      if (e.key === 'ArrowLeft') step(-1);
+    });
   });
 </script>
 {% endblock %}

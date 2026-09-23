@@ -3,6 +3,17 @@ from datetime import date as _date
 from app import db
 
 
+def format_date_range(start, end=None) -> str:
+    """Format a single date or a start-end range, shared by package and offer dates."""
+    if not end or end == start:
+        return start.strftime("%B %d, %Y")
+    if end.year != start.year:
+        return f"{start.strftime('%B %d, %Y')} - {end.strftime('%B %d, %Y')}"
+    if end.month != start.month:
+        return f"{start.strftime('%B %d')} - {end.strftime('%B %d, %Y')}"
+    return f"{start.strftime('%B %d')} - {end.strftime('%d, %Y')}"
+
+
 class TravelDate(db.Model):
     """A single scheduled departure date (optionally a range) for a tour package.
 
@@ -32,13 +43,7 @@ class TravelDate(db.Model):
         2026" (same month), "December 28 - January 2, 2027" (crosses a
         month), "December 28, 2026 - January 2, 2027" (crosses a year).
         """
-        if not self.end_date or self.end_date == self.date:
-            return self.date.strftime("%B %d, %Y")
-        if self.end_date.year != self.date.year:
-            return f"{self.date.strftime('%B %d, %Y')} - {self.end_date.strftime('%B %d, %Y')}"
-        if self.end_date.month != self.date.month:
-            return f"{self.date.strftime('%B %d')} - {self.end_date.strftime('%B %d, %Y')}"
-        return f"{self.date.strftime('%B %d')} - {self.end_date.strftime('%d, %Y')}"
+        return format_date_range(self.date, self.end_date)
 
     @property
     def weeks_away(self) -> int:
