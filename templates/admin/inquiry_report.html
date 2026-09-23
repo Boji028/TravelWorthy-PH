@@ -112,6 +112,7 @@
     .badge { font-size: .7rem; padding: .2rem .55rem; border-radius: 10px; font-weight: 600; white-space: nowrap; }
     .badge.package { background: rgba(0, 108, 115, .12); color: var(--teal); }
     .badge.visa { background: rgba(41, 128, 185, .12); color: #2980b9; }
+    .badge.offer { background: rgba(142, 68, 173, .12); color: #8e44ad; }
     .badge.trip { background: rgba(200, 135, 74, .12); color: var(--amber); }
     .footer-row {
       display: flex;
@@ -171,6 +172,7 @@
         <div class="breakdown">
           Package: {{ type_counts.package }}<br>
           Visa: {{ type_counts.visa }}<br>
+          Offer: {{ type_counts.offer }}<br>
           Plan a trip: {{ type_counts.trip }}
         </div>
       </div>
@@ -201,7 +203,7 @@
         <tr>
           <td>{{ inq.created_at.strftime('%b %d, %Y') }}</td>
           <td>{{ inq.name }}<br><span class="row-email">{{ inq.email }}</span></td>
-          <td><span class="badge {{ t }}">{{ {'package': 'Package', 'visa': 'Visa', 'trip': 'Plan a trip'}[t] }}</span></td>
+          <td><span class="badge {{ t }}">{{ {'package': 'Package', 'visa': 'Visa', 'offer': 'Offer', 'trip': 'Plan a trip'}[t] }}</span></td>
           <td>{{ inq.destination }}</td>
           <td>{{ inq.status.title() }}</td>
         </tr>

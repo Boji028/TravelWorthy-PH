@@ -1,0 +1,112 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Offers — Admin{% endblock %}
+{% block admin_styles %}
+<style>
+  .admin-table { width: 100%; border-collapse: collapse; font-size: .87rem; }
+  .admin-table th { text-align: left; padding: 1rem; font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--mist); border-bottom: 1px solid var(--linen); font-weight: 600; }
+  .admin-table td { padding: 1rem; border-bottom: 1px solid var(--linen); color: var(--bark); vertical-align: middle; }
+  .admin-table tr:last-child td { border-bottom: none; }
+  .admin-table tr:hover td { background: #faf6f0; }
+  .offer-cell { display: flex; align-items: center; gap: .75rem; }
+  .offer-thumb { width: 64px; height: 44px; border-radius: 8px; object-fit: cover; background: var(--sand); flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: var(--mist); }
+  .offer-cat { display: inline-block; font-size: .74rem; font-weight: 600; padding: .2rem .6rem; border-radius: 999px; background: rgba(23,89,104,.1); color: var(--teal); white-space: nowrap; }
+  .status-toggle { display: inline-flex; align-items: center; gap: .4rem; border-radius: 999px; padding: .25rem .7rem; font-size: .76rem; font-weight: 600; cursor: pointer; border: none; }
+  .status-toggle .status-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .status-toggle.status-active-on { background: rgba(39,174,96,.12); color: var(--success); }
+  .status-toggle.status-active-on .status-dot { background: var(--success); }
+  .status-toggle.status-active-off { background: rgba(192,57,43,.1); color: var(--danger); }
+  .status-toggle.status-active-off .status-dot { background: var(--danger); }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <h1>Offers</h1>
+  <a href="{{ url_for('admin.offer_add') }}" class="btn btn-amber">
+    <i class="fas fa-plus"></i> Add Offer
+  </a>
+</div>
+
+<div style="background:var(--white);border-radius:var(--radius-lg);box-shadow:0 2px 12px rgba(58,46,34,.07);overflow:hidden;">
+  <div style="overflow-x:auto;">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Offer</th>
+          <th>Category</th>
+          <th>Starting at</th>
+          <th>Min. group</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="offer-rows">
+        {% for offer in offers %}
+        <tr>
+          <td>
+            <div class="offer-cell">
+              {% if offer.image %}
+              <img class="offer-thumb" src="{{ (offer.image | cloudinary_card) if offer.image.startswith('http') else '/uploads/' + offer.image }}" alt="" loading="lazy">
+              {% else %}
+              <span class="offer-thumb"><i class="fas fa-image"></i></span>
+              {% endif %}
+              <strong>{{ offer.title }}</strong>
+            </div>
+          </td>
+          <td><span class="offer-cat">{{ offer.category }}</span></td>
+          <td>{{ '₱{:,.0f}'.format(offer.price) if offer.price is not none else '—' }}</td>
+          <td>{{ offer.min_pax ~ ' pax' if offer.min_pax else '—' }}</td>
+          <td>
+            <button type="button" class="status-toggle {{ 'status-active-on' if offer.is_active else 'status-active-off' }}"
+                    data-toggle-url="{{ url_for('admin.toggle_offer_active', offer_id=offer.id) }}">
+              <span class="status-dot"></span>
+              <span class="status-label">{{ 'Active' if offer.is_active else 'Inactive' }}</span>
+            </button>
+          </td>
+          <td style="white-space:nowrap;">
+            <a href="{{ url_for('admin.offer_edit', offer_id=offer.id) }}" class="btn-sm-edit">
+              <i class="fas fa-edit"></i> Edit
+            </a>
+            <form method="POST" action="{{ url_for('admin.offer_delete', offer_id=offer.id) }}" style="display:inline"
+              data-confirm="Delete this offer?">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button type="submit" class="btn btn-danger btn-sm" aria-label="Delete offer">
+                <i class="fas fa-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" style="text-align:center;padding:3rem;color:var(--mist);">
+            <i class="fas fa-people-group" style="font-size:2rem;opacity:.3;display:block;margin-bottom:.5rem;"></i>
+            No offers yet. Add your first one, like a team building or field trip deal.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+  // Flip active/inactive in place without reloading the page.
+  document.getElementById('offer-rows').addEventListener('click', function (e) {
+    var btn = e.target.closest('.status-toggle');
+    if (!btn) return;
+    var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    fetch(btn.getAttribute('data-toggle-url'), {
+      method: 'POST',
+      headers: { 'X-Requested-With': 'fetch', 'X-CSRFToken': csrfMeta ? csrfMeta.getAttribute('content') : '' }
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.success) return;
+      btn.classList.toggle('status-active-on', data.is_active);
+      btn.classList.toggle('status-active-off', !data.is_active);
+      btn.querySelector('.status-label').textContent = data.is_active ? 'Active' : 'Inactive';
+    })
+    .catch(function () {});
+  });
+</script>
+{% endblock %}

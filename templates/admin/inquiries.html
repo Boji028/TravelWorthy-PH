@@ -199,6 +199,11 @@
     color: #2980b9;
   }
 
+  .badge-type.offer {
+    background: rgba(142, 68, 173, .12);
+    color: #8e44ad;
+  }
+
   /* Status badge (matches original inquiry-status colors exactly) */
   .badge-status {
     font-size: .72rem;
@@ -379,6 +384,7 @@
       <option value="trip" {% if type_filter == 'trip' %}selected{% endif %}>Plan My Trip</option>
       <option value="visa" {% if type_filter == 'visa' %}selected{% endif %}>Visa inquiry</option>
       <option value="package" {% if type_filter == 'package' %}selected{% endif %}>Package inquiry</option>
+      <option value="offer" {% if type_filter == 'offer' %}selected{% endif %}>Offer inquiry</option>
     </select>
 
     <select id="datemode" onchange="applyDateMode(this.value)">
@@ -446,6 +452,8 @@
             <span class="badge-type package">Package inquiry</span>
             {% elif inq.special_requests and inq.special_requests.startswith('[FOR VISA]') %}
             <span class="badge-type visa">Visa inquiry</span>
+            {% elif inq.special_requests and inq.special_requests.startswith('[FOR OFFER]') %}
+            <span class="badge-type offer">Offer inquiry</span>
             {% else %}
             <span class="badge-type trip">Plan My Trip</span>
             {% endif %}

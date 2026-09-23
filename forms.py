@@ -196,6 +196,21 @@ class InquiryForm(FlaskForm):
                 raise ValidationError("Return date must be on or after the departure date.")
 
 
+class OfferInquiryForm(InquiryForm):
+    """Group inquiry for an Offer; destination is set server-side from the offer."""
+
+    destination = None
+    num_children = None
+    num_infants = None
+    num_adults = IntegerField(
+        "Group Size",
+        validators=[DataRequired("Group size is required"), NumberRange(min=1, max=5000, message="Must be 1-5000 people")],
+    )
+    organization = StringField(
+        "Company / School", filters=[_strip], validators=[Optional(), Length(max=150, message="Must be under 150 characters")]
+    )
+
+
 class TourPackageForm(FlaskForm):
     """Tour package form for admin."""
 

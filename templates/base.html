@@ -56,6 +56,8 @@
             %}class="active" {% endif %}>Packages</a></li>
         <li><a href="{{ url_for('packages.visa') }}" {% if request.endpoint=='packages.visa' %}class="active" {% endif
             %}>Visa</a></li>
+        <li><a href="{{ url_for('offers.offer_list') }}" {% if request.endpoint and request.endpoint.startswith('offers.')
+            %}class="active" {% endif %}>Offers</a></li>
         <li><a href="{{ url_for('blog.blog_list') }}" {% if request.endpoint and 'blog' in request.endpoint
             %}class="active" {% endif %}>Stories</a></li>
         <li><a href="{{ url_for('main.about') }}" {% if request.endpoint=='main.about' %}class="active" {% endif %}>About</a></li>
@@ -136,6 +138,9 @@
       </a>
       <a href="{{ url_for('packages.visa') }}" class="mm-tile {% if request.endpoint=='packages.visa' %}mm-active{% endif %}">
         <i class="fas fa-passport"></i><span>Visa</span>
+      </a>
+      <a href="{{ url_for('offers.offer_list') }}" class="mm-tile {% if request.endpoint and request.endpoint.startswith('offers.') %}mm-active{% endif %}">
+        <i class="fas fa-people-group"></i><span>Offers</span>
       </a>
       <a href="{{ url_for('blog.blog_list') }}" class="mm-tile {% if request.endpoint and 'blog' in request.endpoint %}mm-active{% endif %}">
         <i class="fas fa-book-open"></i><span>Stories</span>

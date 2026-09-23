@@ -1,0 +1,190 @@
+{% extends "admin/base_admin.html" %}
+{% set editing = offer is not none %}
+{% block title %}{{ 'Edit' if editing else 'Add' }} Offer — Admin{% endblock %}
+
+{% block admin_styles %}
+<style>
+  .offer-form-card { background: var(--white); border-radius: var(--radius-lg); padding: 2rem; box-shadow: 0 2px 12px rgba(58,46,34,.07); max-width: 720px; }
+  .offer-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .offer-hint { font-size: .78rem; color: var(--mist); margin-top: .3rem; }
+  .photo-picker { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .photo-preview { width: 160px; aspect-ratio: 16 / 10; border-radius: var(--radius); background: var(--sand) center / cover no-repeat; border: 1px dashed var(--linen); display: flex; align-items: center; justify-content: center; color: var(--mist); font-size: 1.4rem; }
+  .photo-preview.has-photo { border-style: solid; }
+  .photo-preview.has-photo i { display: none; }
+  .photo-actions { display: flex; flex-direction: column; gap: .4rem; align-items: flex-start; }
+  .photo-btn { background: var(--teal); color: #fff; border: none; border-radius: var(--radius); padding: .5rem 1rem; cursor: pointer; font-size: .88rem; display: inline-flex; align-items: center; gap: .5rem; }
+  .photo-btn:hover { background: var(--bark); }
+  .photo-remove { background: none; border: none; color: var(--danger); cursor: pointer; font-size: .9rem; padding: .25rem; }
+  #offer-photo-status { font-size: .82rem; color: var(--mist); }
+  @media (max-width: 768px) {
+    .offer-form-card { padding: 1.25rem; }
+    .offer-row-2 { grid-template-columns: 1fr; gap: 0; }
+  }
+</style>
+{% endblock %}
+
+{% macro val(field, fallback='') -%}
+  {%- if form and field in form -%}{{ form[field] }}{%- elif editing and offer[field] is not none -%}{{ offer[field] }}{%- else -%}{{ fallback }}{%- endif -%}
+{%- endmacro %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <h1>{{ 'Edit Offer' if editing else 'Add Offer' }}</h1>
+  <a href="{{ url_for('admin.offer_list') }}" class="btn btn-ghost">
+    <i class="fas fa-arrow-left"></i> Back
+  </a>
+</div>
+
+<div class="offer-form-card">
+  <form method="POST" enctype="multipart/form-data" id="offer-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <input type="hidden" name="image_url" id="image_url" value="" />
+
+    <div class="form-group">
+      <label>Title <span style="color:var(--danger)">*</span></label>
+      <input type="text" name="title" class="form-control" required maxlength="150"
+        placeholder="e.g. Corporate Incentive Trip to Boracay" value="{{ val('title') }}" />
+    </div>
+
+    <div class="offer-row-2">
+      <div class="form-group">
+        <label>Category <span style="color:var(--danger)">*</span></label>
+        {% set current_cat = val('category', 'Other') | trim %}
+        <select name="category" class="form-control" required>
+          {% for c in categories %}
+          <option value="{{ c }}" {{ 'selected' if c == current_cat }}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Minimum Group Size</label>
+        <input type="number" name="min_pax" class="form-control" min="1" placeholder="e.g. 20" value="{{ val('min_pax') }}" />
+        <div class="offer-hint">Leave blank if there's no minimum.</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Starting Price per Person (PHP)</label>
+      <input type="number" name="price" class="form-control" min="0" step="0.01" placeholder="e.g. 4500"
+        value="{{ val('price') }}" />
+      <div class="offer-hint">Leave blank to show "Price upon request".</div>
+    </div>
+
+    <div class="form-group">
+      <label>Short Summary</label>
+      <input type="text" name="summary" class="form-control" maxlength="300"
+        placeholder="One line shown on the offer card" value="{{ val('summary') }}" />
+    </div>
+
+    <div class="form-group">
+      <label>Full Description</label>
+      <textarea name="description" class="form-control" rows="9"
+        placeholder="What's included, sample activities, destinations, who it's for...">{{ val('description') }}</textarea>
+      <div class="offer-hint">Line breaks are kept. Start a line with "- " to make a bullet list.</div>
+    </div>
+
+    <div class="form-group">
+      <label>Cover Photo</label>
+      <div class="photo-picker">
+        {% set img = offer.image if editing else None %}
+        <div class="photo-preview {{ 'has-photo' if img }}" id="offer-photo-preview"
+          {% if img %}style="background-image:url('{{ (img | cloudinary_card) if img.startswith('http') else '/uploads/' + img }}')"{% endif %}>
+          <i class="fas fa-image"></i>
+        </div>
+        <div class="photo-actions">
+          <button type="button" class="photo-btn" id="offer-photo-btn">
+            <i class="fas fa-image"></i> {{ 'Replace Photo' if img else 'Choose Photo' }}
+          </button>
+          <input type="file" name="image" id="offer-photo-input" accept="image/*" hidden />
+          <span id="offer-photo-status">{{ 'Current photo' if img else 'No file chosen' }}</span>
+          {% if img %}
+          <button type="button" class="photo-remove" id="offer-photo-remove"
+            data-url="{{ url_for('admin.remove_offer_image', offer_id=offer.id) }}" title="Remove photo" aria-label="Remove photo">
+            <i class="fas fa-trash"></i>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      <div class="offer-hint">Landscape photos look best. PNG, JPG, WEBP.</div>
+    </div>
+
+    <div class="form-group" style="display:flex;align-items:center;gap:.5rem;margin:1.5rem 0;">
+      {% set active = (form.get('is_active') == 'on') if form else (offer.is_active if editing else True) %}
+      <input type="checkbox" name="is_active" id="is_active" {{ 'checked' if active }} />
+      <label for="is_active" style="margin:0;">Active (visible on the Offers page)</label>
+    </div>
+
+    <div style="display:flex;gap:1rem;">
+      <button type="submit" class="btn btn-amber" id="offer-save-btn">
+        <i class="fas fa-{{ 'save' if editing else 'plus' }}"></i> {{ 'Save Changes' if editing else 'Add Offer' }}
+      </button>
+      <a href="{{ url_for('admin.offer_list') }}" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+  (function () {
+    var input = document.getElementById('offer-photo-input');
+    var urlField = document.getElementById('image_url');
+    var status = document.getElementById('offer-photo-status');
+    var preview = document.getElementById('offer-photo-preview');
+    var saveBtn = document.getElementById('offer-save-btn');
+    var csrf = document.querySelector('#offer-form input[name="csrf_token"]').value;
+
+    document.getElementById('offer-photo-btn').addEventListener('click', function () { input.click(); });
+
+    // Upload straight to Cloudinary so the save itself stays fast, same as package photos.
+    input.addEventListener('change', async function () {
+      var file = input.files[0];
+      if (!file) return;
+      preview.style.backgroundImage = 'url(' + URL.createObjectURL(file) + ')';
+      preview.classList.add('has-photo');
+      status.textContent = 'Uploading ' + file.name + '...';
+      saveBtn.disabled = true;
+      try {
+        var sigRes = await fetch('/admin/cloudinary-signature', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+          body: JSON.stringify({ folder: 'travelworthyph/offer' })
+        });
+        if (!sigRes.ok) throw new Error('signature');
+        var sig = await sigRes.json();
+        var fd = new FormData();
+        fd.append('file', file);
+        fd.append('api_key', sig.api_key);
+        fd.append('timestamp', sig.timestamp);
+        fd.append('signature', sig.signature);
+        fd.append('folder', sig.folder);
+        var up = await fetch('https://api.cloudinary.com/v1_1/' + sig.cloud_name + '/image/upload', { method: 'POST', body: fd });
+        if (!up.ok) throw new Error('upload');
+        urlField.value = (await up.json()).secure_url;
+        status.textContent = 'Uploaded: ' + file.name;
+      } catch (err) {
+        urlField.value = '';
+        status.textContent = file.name + ' (will upload on save)';
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+
+    // A plain button, not a submit, so pressing Enter in a field never removes the photo.
+    var removeBtn = document.getElementById('offer-photo-remove');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', function () {
+        var f = document.createElement('form');
+        f.method = 'POST';
+        f.action = removeBtn.dataset.url;
+        f.innerHTML = '<input type="hidden" name="csrf_token" value="' + csrf + '">';
+        document.body.appendChild(f);
+        f.submit();
+      });
+    }
+
+    // Don't send the raw file through Flask when Cloudinary already has it.
+    document.getElementById('offer-form').addEventListener('submit', function () {
+      if (urlField.value) input.disabled = true;
+    });
+  })();
+</script>
+{% endblock %}

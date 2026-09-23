@@ -906,17 +906,18 @@ def _resolve_itinerary_day_images(day_count: int) -> list:
 
 
 def _inquiry_type(inq) -> str:
-    """Classify an inquiry as 'package', 'visa', or 'trip'.
+    """Classify an inquiry as 'package', 'visa', 'offer', or 'trip'.
 
-    There's no dedicated type column — package inquiries carry a
-    package_id, visa inquiries are tagged with a '[FOR VISA]' prefix
-    on special_requests, and everything else came from the Plan My
-    Trip form.
+    Package inquiries carry a package_id, visa and offer inquiries are
+    tagged with a '[FOR VISA]' / '[FOR OFFER]' prefix on special_requests,
+    and everything else came from the Plan My Trip form.
     """
     if inq.package_id:
         return "package"
     if inq.special_requests and inq.special_requests.startswith("[FOR VISA]"):
         return "visa"
+    if inq.special_requests and inq.special_requests.startswith("[FOR OFFER]"):
+        return "offer"
     return "trip"
 
 
@@ -953,10 +954,15 @@ def _apply_inquiry_filters(query, params: dict):
         query = query.filter(Inquiry.package_id.isnot(None))
     elif params["type"] == "visa":
         query = query.filter(Inquiry.package_id.is_(None), Inquiry.special_requests.like("[FOR VISA]%"))
+    elif params["type"] == "offer":
+        query = query.filter(Inquiry.package_id.is_(None), Inquiry.special_requests.like("[FOR OFFER]%"))
     elif params["type"] == "trip":
         query = query.filter(
             Inquiry.package_id.is_(None),
-            or_(Inquiry.special_requests.is_(None), ~Inquiry.special_requests.like("[FOR VISA]%")),
+            or_(
+                Inquiry.special_requests.is_(None),
+                ~(Inquiry.special_requests.like("[FOR VISA]%") | Inquiry.special_requests.like("[FOR OFFER]%")),
+            ),
         )
 
     if params["search"]:
@@ -1122,7 +1128,7 @@ def inquiry_report():
         Inquiry.query.filter(Inquiry.created_at >= start, Inquiry.created_at < end).order_by(Inquiry.created_at.desc()).all()
     )
 
-    type_counts = {"package": 0, "visa": 0, "trip": 0}
+    type_counts = {"package": 0, "visa": 0, "offer": 0, "trip": 0}
     status_counts = {}
     for inq in report_inquiries:
         type_counts[_inquiry_type(inq)] += 1
@@ -2715,3 +2721,7 @@ def remove_site_image(field):
     setattr(settings, f"{field}_uploaded_at", None)
     db.session.commit()
     return jsonify(success=True, message="Image removed.", field=field)
+
+
+# Offers admin routes live in their own module but register on admin_bp.
+from routes import admin_offers  # noqa: E402,F401

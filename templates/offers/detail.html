@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}{{ offer.title }} — Travel Worthy PH{% endblock %}
+
+{% block extra_styles %}
+<style>
+  .od-hero { position: relative; min-height: 380px; display: flex; align-items: flex-end; color: #fff; background: var(--teal) center / cover no-repeat; }
+  .od-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(18,52,60,.88) 0%, rgba(18,52,60,.35) 55%, rgba(18,52,60,.1) 100%); }
+  .od-hero-inner { position: relative; z-index: 1; width: 100%; max-width: 1200px; margin: 0 auto; padding: 2.5rem 2rem; }
+  .od-crumb { font-size: .82rem; opacity: .85; margin-bottom: .9rem; }
+  .od-crumb a { color: #fff; text-decoration: none; }
+  .od-crumb a:hover { text-decoration: underline; }
+  .od-cat { display: inline-block; background: var(--amber); color: #fff; font-size: .78rem; font-weight: 700; padding: .3rem .8rem; border-radius: 999px; margin-bottom: .75rem; }
+  .od-title { font-family: 'Pogonia', serif; font-size: 2.6rem; font-weight: 700; line-height: 1.15; max-width: 760px; }
+  .od-summary { margin-top: .6rem; max-width: 620px; font-size: 1rem; opacity: .92; line-height: 1.55; }
+
+  .od-body { max-width: 1200px; margin: 0 auto; padding: 2.5rem 2rem 4rem; display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 2.5rem; align-items: start; }
+
+  .od-facts { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 2rem; }
+  .od-fact { background: var(--white); border: 1px solid var(--linen); border-radius: var(--radius); padding: .8rem 1.1rem; display: flex; align-items: center; gap: .75rem; }
+  .od-fact i { color: var(--teal); font-size: 1.1rem; width: 1.25rem; text-align: center; }
+  .od-fact small { display: block; font-size: .74rem; color: var(--mist); }
+  .od-fact strong { color: var(--bark); font-size: .98rem; }
+
+  .od-desc-title { font-family: 'Pogonia', serif; font-size: 1.5rem; color: var(--teal); margin-bottom: .9rem; }
+  .od-desc { font-size: .98rem; line-height: 1.75; color: var(--bark); max-width: 68ch; }
+  .od-desc ul { padding-left: 1.25rem; margin: .5rem 0 1rem; }
+  .od-desc li { margin-bottom: .35rem; }
+  .od-desc p { margin-bottom: 1rem; }
+
+  .od-form-card { background: var(--white); border-radius: var(--radius-lg); box-shadow: 0 8px 32px rgba(58,46,34,.12); overflow: hidden; position: sticky; top: 100px; }
+  .od-form-head { background: var(--teal); color: #fff; padding: 1.25rem 1.5rem; }
+  .od-form-head h2 { font-family: 'Pogonia', serif; font-size: 1.35rem; margin: 0; }
+  .od-form-head p { font-size: .84rem; opacity: .85; margin-top: .25rem; }
+  .od-form { padding: 1.25rem 1.5rem 1.5rem; }
+  .od-form .form-group { margin-bottom: .85rem; }
+  .od-form label { font-size: .82rem; font-weight: 600; color: var(--bark); display: block; margin-bottom: .3rem; }
+  .od-form .opt { font-weight: 400; color: var(--mist); }
+  .od-row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+  .od-err { color: var(--danger); font-size: .8rem; margin-top: .3rem; }
+  .od-submit { width: 100%; justify-content: center; padding: .85rem; font-size: .95rem; margin-top: .5rem; }
+  .od-note { font-size: .8rem; color: var(--mist); text-align: center; margin-top: .75rem; }
+
+  .od-jump { display: none; }
+
+  @media (max-width: 1024px) {
+    .od-body { grid-template-columns: 1fr; }
+    .od-form-card { position: static; }
+    .od-jump { display: flex; width: 100%; justify-content: center; margin-bottom: 1.75rem; }
+  }
+  @media (max-width: 768px) {
+    .od-hero { min-height: 320px; }
+    .od-hero-inner { padding: 2rem 1.25rem; }
+    .od-title { font-size: 1.9rem; }
+    .od-body { padding: 1.75rem 1.25rem 3rem; }
+    .od-row { grid-template-columns: 1fr; gap: 0; }
+    .od-form { padding: 1.25rem; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set cover = ((offer.image | cloudinary_enhance) if offer.image.startswith('http') else '/uploads/' + offer.image) if offer.image else None %}
+<section class="od-hero" {% if cover %}style="background-image:url('{{ cover }}')"{% endif %}>
+  <div class="od-hero-inner">
+    <div class="od-crumb"><a href="{{ url_for('offers.offer_list') }}">Offers</a> / {{ offer.category }}</div>
+    <span class="od-cat">{{ offer.category }}</span>
+    <h1 class="od-title">{{ offer.title }}</h1>
+    {% if offer.summary %}<p class="od-summary">{{ offer.summary }}</p>{% endif %}
+  </div>
+</section>
+
+<div class="od-body">
+  <div>
+    <div class="od-facts">
+      <div class="od-fact">
+        <i class="fas fa-tag"></i>
+        <div>
+          {% if offer.price is not none %}
+          <small>Starting at</small><strong>₱{{ '{:,.0f}'.format(offer.price) }} / person</strong>
+          {% else %}
+          <small>Price</small><strong>Upon request</strong>
+          {% endif %}
+        </div>
+      </div>
+      {% if offer.min_pax %}
+      <div class="od-fact">
+        <i class="fas fa-user-group"></i>
+        <div><small>Group size</small><strong>Min. {{ offer.min_pax }} people</strong></div>
+      </div>
+      {% endif %}
+      <div class="od-fact">
+        <i class="fas fa-sliders"></i>
+        <div><small>Itinerary</small><strong>Customizable</strong></div>
+      </div>
+    </div>
+
+    <a href="#od-inquire" class="btn btn-amber od-jump"><i class="fas fa-paper-plane"></i> Request a Quote</a>
+
+    {% if offer.description %}
+    <h2 class="od-desc-title">About this offer</h2>
+    <div class="od-desc">{{ offer.description | rich_description }}</div>
+    {% endif %}
+  </div>
+
+  <aside class="od-form-card" id="od-inquire">
+    <div class="od-form-head">
+      <h2>Request a Quote</h2>
+      <p>Tell us about your group and we'll send a proposal within 24 hours.</p>
+    </div>
+    <form method="POST" class="od-form" novalidate>
+      {{ form.hidden_tag() }}
+
+      <div class="form-group">
+        <label for="od-name">Contact Person</label>
+        <input id="od-name" type="text" name="name" class="form-control" value="{{ form.name.data or '' }}" placeholder="Juan Dela Cruz" required>
+        {% if form.name.errors %}<div class="od-err">{{ form.name.errors[0] }}</div>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="od-org">Company / School <span class="opt">(optional)</span></label>
+        <input id="od-org" type="text" name="organization" class="form-control" value="{{ form.organization.data or '' }}" placeholder="e.g. ABC Corporation">
+        {% if form.organization.errors %}<div class="od-err">{{ form.organization.errors[0] }}</div>{% endif %}
+      </div>
+
+      <div class="od-row">
+        <div class="form-group">
+          <label for="od-email">Email</label>
+          <input id="od-email" type="email" name="email" class="form-control" value="{{ form.email.data or '' }}" placeholder="you@email.com" required>
+          {% if form.email.errors %}<div class="od-err">{{ form.email.errors[0] }}</div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="od-phone">Contact Number</label>
+          <input id="od-phone" type="tel" name="contact_number" class="form-control" value="{{ form.contact_number.data or '' }}" placeholder="09XXXXXXXXX" required>
+          {% if form.contact_number.errors %}<div class="od-err">{{ form.contact_number.errors[0] }}</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="od-pax">Group Size</label>
+        <input id="od-pax" type="number" name="num_adults" class="form-control" min="1" max="5000"
+          value="{{ form.num_adults.data or offer.min_pax or '' }}" placeholder="Number of people" required>
+        {% if form.num_adults.errors %}<div class="od-err">{{ form.num_adults.errors[0] }}</div>{% endif %}
+      </div>
+
+      <div class="od-row">
+        <div class="form-group">
+          <label for="odDateFrom">Preferred Date From</label>
+          <div class="dstack">
+            <div class="doverlay form-control" id="odDateFromOverlay" aria-hidden="true">Select date</div>
+            <input type="date" id="odDateFrom" name="travel_date_from" class="dstack-input" required value="{{ form.travel_date_from.data or '' }}">
+          </div>
+          {% if form.travel_date_from.errors %}<div class="od-err">{{ form.travel_date_from.errors[0] }}</div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="odDateTo">To</label>
+          <div class="dstack">
+            <div class="doverlay form-control" id="odDateToOverlay" aria-hidden="true">Select date</div>
+            <input type="date" id="odDateTo" name="travel_date_to" class="dstack-input" required value="{{ form.travel_date_to.data or '' }}">
+          </div>
+          {% if form.travel_date_to.errors %}<div class="od-err">{{ form.travel_date_to.errors[0] }}</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="od-msg">Anything else? <span class="opt">(optional)</span></label>
+        <textarea id="od-msg" name="special_requests" class="form-control" rows="3"
+          placeholder="Budget, preferred destination, activities, meals...">{{ form.special_requests.data or '' }}</textarea>
+        {% if form.special_requests.errors %}<div class="od-err">{{ form.special_requests.errors[0] }}</div>{% endif %}
+      </div>
+
+      <div class="form-group consent-group" style="margin-bottom:0;">
+        <label class="consent-label" style="font-weight:400;">
+          <input type="checkbox" name="privacy_consent" value="y" {{ 'checked' if form.privacy_consent.data }}>
+          <span>I agree to the <a href="{{ url_for('main.privacy_policy') }}" target="_blank" rel="noopener">Privacy Policy</a> and consent to Travel Worthy PH using these details to respond to my inquiry.</span>
+        </label>
+        {% if form.privacy_consent.errors %}<div class="od-err">{{ form.privacy_consent.errors[0] }}</div>{% endif %}
+      </div>
+
+      <button type="submit" class="btn btn-amber od-submit"><i class="fas fa-paper-plane"></i> Send Quote Request</button>
+      <p class="od-note">No payment needed. Our team will contact you first.</p>
+    </form>
+  </aside>
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+  document.addEventListener('DOMContentLoaded', function () {
+    var today = new Date().toISOString().split('T')[0];
+    ['odDateFrom', 'odDateTo'].forEach(function (id) { document.getElementById(id).min = today; });
+    initDateDisplay(document.getElementById('odDateFrom'), document.getElementById('odDateFromOverlay'), 'Select date');
+    initDateDisplay(document.getElementById('odDateTo'), document.getElementById('odDateToOverlay'), 'Select date');
+    {% if form.errors %}document.getElementById('od-inquire').scrollIntoView({ block: 'start' });{% endif %}
+  });
+</script>
+{% endblock %}

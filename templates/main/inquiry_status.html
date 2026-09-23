@@ -373,7 +373,7 @@
         {% endif %}
       </div>
 
-      {% set visitor_note = inquiry.special_requests.replace('[FOR VISA] ', '', 1).strip() if inquiry.special_requests else '' %}
+      {% set visitor_note = inquiry.special_requests.replace('[FOR VISA] ', '', 1).replace('[FOR OFFER]', '', 1).strip() if inquiry.special_requests else '' %}
       {% if visitor_note %}
       <div class="track-requests">
         <strong>Your notes:</strong> {{ visitor_note }}
