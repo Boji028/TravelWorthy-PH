@@ -435,12 +435,19 @@
   }
 </script>
 <script nonce="{{ csp_nonce() }}">
-  // Arrived here straight after a package saved successfully - the Add
-  // Package autosave draft has done its job, so remove it.
+  // After a successful Add Package save, remove only the draft that was submitted.
   (function () {
     var params = new URLSearchParams(window.location.search);
     if (!params.has('added')) return;
-    try { localStorage.removeItem('twph:add-package-draft'); } catch (e) {}
+    try {
+      var id = sessionStorage.getItem('twph:add-package-submitted');
+      sessionStorage.removeItem('twph:add-package-submitted');
+      var all = JSON.parse(localStorage.getItem('twph:add-package-drafts') || '{}') || {};
+      if (id && all[id]) {
+        delete all[id];
+        localStorage.setItem('twph:add-package-drafts', JSON.stringify(all));
+      }
+    } catch (e) {}
     params.delete('added');
     var clean = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
     history.replaceState(null, '', clean);

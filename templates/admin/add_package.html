@@ -5,9 +5,8 @@
 <style>
   .draft-banner:not([hidden]) {
     display: flex;
-    align-items: center;
-    gap: .6rem;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: .55rem;
     background: #fdf3e3;
     border: 1px solid #e8c97a;
     color: #7a4a14;
@@ -17,9 +16,41 @@
     font-size: .88rem;
   }
 
-  .draft-banner span {
+  .draft-banner-head {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-weight: 600;
+  }
+
+  .draft-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+  }
+
+  .draft-row {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-wrap: wrap;
+    background: rgba(255, 255, 255, .55);
+    border-radius: 8px;
+    padding: .45rem .6rem;
+  }
+
+  .draft-row-name {
     flex: 1;
-    min-width: 180px;
+    min-width: 160px;
+  }
+
+  .draft-row-name small {
+    display: block;
+    font-size: .78rem;
+    opacity: .75;
   }
 
   /* ── Leave-page popup (replaces the browser's "Leave site?" box for in-site links) ── */
@@ -214,10 +245,11 @@
 
 <div class="form-card">
   <div class="draft-banner" id="draft-banner" hidden>
-    <i class="fas fa-clock-rotate-left" aria-hidden="true"></i>
-    <span id="draft-banner-text">You have an unsaved draft.</span>
-    <button type="button" class="btn btn-amber btn-sm" id="draft-restore">Restore</button>
-    <button type="button" class="btn btn-ghost btn-sm" id="draft-discard">Discard</button>
+    <div class="draft-banner-head">
+      <i class="fas fa-clock-rotate-left" aria-hidden="true"></i>
+      <span id="draft-banner-text">You have unsaved drafts.</span>
+    </div>
+    <ul class="draft-list" id="draft-list"></ul>
   </div>
   <div class="draft-status" id="draft-status" hidden><i class="fas fa-check" aria-hidden="true"></i> Draft saved</div>
   <form method="POST" action="{{ url_for('admin.add_package') }}" enctype="multipart/form-data" id="add-package-form">
@@ -877,13 +909,15 @@
   document.getElementById('add-date-btn').addEventListener('click', () => addDateBlock());
 
   // ── Autosaved draft ──────────────────────────
-  // Everything typed is saved to this browser every few seconds, so an
-  // accidental Back or reload doesn't wipe the form. Reopening the page
-  // offers to restore it. The draft is cleared only after a successful
-  // save (the packages list clears it on ?added=1), so a failed attempt
-  // can still be restored.
+  // Each visit autosaves to its own draft slot, so starting a new package never overwrites an older draft.
+  // Only the draft that was actually submitted is removed, by the packages list on ?added=1.
   (function initDraft() {
-    const KEY = 'twph:add-package-draft';
+    const KEY = 'twph:add-package-drafts';
+    const OLD_KEY = 'twph:add-package-draft';
+    const RESTORE_KEY = 'twph:add-package-restore';
+    const SUBMIT_KEY = 'twph:add-package-submitted';
+    const MAX_DRAFTS = 10;
+    let draftId = 'd' + Date.now();
     const form = document.getElementById('add-package-form');
     const banner = document.getElementById('draft-banner');
     const status = document.getElementById('draft-status');
@@ -943,9 +977,26 @@
       if (snapshot === lastSaved) return;
       lastSaved = snapshot;
       try {
-        localStorage.setItem(KEY, JSON.stringify({ savedAt: Date.now(), data: data }));
+        const all = readDrafts();
+        all[draftId] = { savedAt: Date.now(), data: data };
+        writeDrafts(all);
         status.hidden = false;
       } catch (e) { /* storage full or blocked - just skip */ }
+    }
+
+    function readDrafts() {
+      try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { return {}; }
+    }
+
+    // Keeps only the newest drafts so storage can't grow forever.
+    function writeDrafts(all) {
+      Object.keys(all).sort((a, b) => all[b].savedAt - all[a].savedAt)
+        .slice(MAX_DRAFTS).forEach(id => { delete all[id]; });
+      localStorage.setItem(KEY, JSON.stringify(all));
+    }
+
+    function removeDraft(id) {
+      try { const all = readDrafts(); delete all[id]; writeDrafts(all); } catch (e) {}
     }
 
     function galleryThumb(url) {
@@ -1018,28 +1069,94 @@
     }
 
     function discard() {
-      try { localStorage.removeItem(KEY); } catch (e) {}
-      banner.hidden = true;
+      removeDraft(draftId);
     }
 
-    // Offer an existing draft
-    let existing = null;
-    if (storageOk) {
-      try { existing = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { existing = null; }
-    }
-    if (existing && existing.data && hasContent(existing.data)) {
-      const when = new Date(existing.savedAt);
-      const sameDay = when.toDateString() === new Date().toDateString();
+    function describeTime(ts) {
+      const when = new Date(ts);
       const time = when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-      const title = existing.data.fields.title || 'a package';
-      document.getElementById('draft-banner-text').textContent =
-        `You have an unsaved draft of ${title} from ${sameDay ? 'today at ' + time : when.toLocaleDateString() + ' ' + time}.`;
-      banner.hidden = false;
-      document.getElementById('draft-restore').addEventListener('click', async () => {
-        banner.hidden = true;
-        await restore(existing.data);
+      return when.toDateString() === new Date().toDateString()
+        ? 'today at ' + time : when.toLocaleDateString() + ' ' + time;
+    }
+
+    // Opens a draft in place on an empty form, otherwise saves this one and reloads into the chosen draft.
+    async function openDraft(id) {
+      const entry = readDrafts()[id];
+      if (!entry) { renderBanner(); return; }
+      if (!hasContent(collect())) {
+        draftId = id;
+        renderBanner();
+        await restore(entry.data);
+        return;
+      }
+      save();
+      try { sessionStorage.setItem(RESTORE_KEY, id); } catch (e) { return; }
+      leaving = true;
+      window.location.href = window.location.pathname;
+    }
+
+    function renderBanner() {
+      const list = document.getElementById('draft-list');
+      list.innerHTML = '';
+      const all = storageOk ? readDrafts() : {};
+      const ids = Object.keys(all)
+        .filter(id => id !== draftId && all[id].data && hasContent(all[id].data))
+        .sort((a, b) => all[b].savedAt - all[a].savedAt);
+      ids.forEach(id => {
+        const row = document.createElement('li');
+        row.className = 'draft-row';
+        const name = document.createElement('span');
+        name.className = 'draft-row-name';
+        const strong = document.createElement('strong');
+        strong.textContent = all[id].data.fields.title || 'Untitled package';
+        const small = document.createElement('small');
+        small.textContent = 'Saved ' + describeTime(all[id].savedAt);
+        name.append(strong, small);
+        const restoreBtn = document.createElement('button');
+        restoreBtn.type = 'button';
+        restoreBtn.className = 'btn btn-amber btn-sm';
+        restoreBtn.textContent = 'Restore';
+        restoreBtn.addEventListener('click', () => openDraft(id));
+        const discardBtn = document.createElement('button');
+        discardBtn.type = 'button';
+        discardBtn.className = 'btn btn-ghost btn-sm';
+        discardBtn.textContent = 'Discard';
+        discardBtn.addEventListener('click', () => { removeDraft(id); renderBanner(); });
+        row.append(name, restoreBtn, discardBtn);
+        list.appendChild(row);
       });
-      document.getElementById('draft-discard').addEventListener('click', discard);
+      document.getElementById('draft-banner-text').textContent =
+        ids.length === 1 ? 'You have an unsaved draft.' : `You have ${ids.length} unsaved drafts.`;
+      banner.hidden = ids.length === 0;
+    }
+
+    if (storageOk) {
+      // Move a draft saved by the older single-slot version into the new list.
+      try {
+        const old = JSON.parse(localStorage.getItem(OLD_KEY) || 'null');
+        if (old && old.data) {
+          const all = readDrafts();
+          all['d' + (old.savedAt || Date.now())] = old;
+          writeDrafts(all);
+        }
+        localStorage.removeItem(OLD_KEY);
+      } catch (e) {}
+
+      // Came back from a failed save: keep writing to the same draft instead of starting a new one.
+      let pendingRestore = null;
+      try {
+        const submitted = sessionStorage.getItem(SUBMIT_KEY);
+        if (submitted) { draftId = submitted; sessionStorage.removeItem(SUBMIT_KEY); }
+        pendingRestore = sessionStorage.getItem(RESTORE_KEY);
+        sessionStorage.removeItem(RESTORE_KEY);
+      } catch (e) {}
+
+      const all = readDrafts();
+      if (pendingRestore && all[pendingRestore]) {
+        draftId = pendingRestore;
+        restore(all[pendingRestore].data);
+      }
+      renderBanner();
     }
 
     // Save shortly after typing, plus a periodic check that also catches
@@ -1115,7 +1232,11 @@
     });
 
     // Browser's own warning for tab close / refresh / browser Back arrow.
-    form.addEventListener('submit', () => { submitting = true; });
+    form.addEventListener('submit', () => {
+      save();
+      submitting = true;
+      try { sessionStorage.setItem(SUBMIT_KEY, draftId); } catch (e) {}
+    });
     window.addEventListener('beforeunload', e => {
       if (submitting || leaving) return;
       if (!hasContent(collect())) return;
