@@ -97,14 +97,20 @@ def _parse_price(line):
     _, text = _split_emoji(line)
     match = _PRICE_RE.search(text)
     amount = match.group(0).strip()
+    # A "+" right before the price marks an extra fee, e.g. "Oct 26 - Nov 5 (+USD 100)".
+    addon = text[:match.start()].rstrip().endswith("+")
     per_person = "per person" in text.lower() or "per pax" in text.lower()
     parts = _DASH_RE.split(text, maxsplit=1)
-    if len(parts) == 2 and not _PRICE_RE.search(parts[0]):
+    # "Hotel - P6,999" splits on the dash only when the price starts the right side.
+    if len(parts) == 2 and not _PRICE_RE.search(parts[0]) and _PRICE_RE.match(parts[1].lstrip("(+ ")):
         label = parts[0].strip()
     else:
-        label = _PRICE_RE.sub("", text)
-        label = re.sub(r"(?i)per\s+(person|pax)", "", label).strip(" :—–-")
-    return {"label": label, "amount": amount, "per_person": per_person}
+        label = text[:match.start()].rstrip().rstrip("+") + text[match.end():]
+        label = re.sub(r"(?i)per\s+(person|pax)", "", label)
+        label = re.sub(r"\(\s*\)", "", label).strip(" :—–-")
+    if addon:
+        amount = "+" + amount
+    return {"label": label, "amount": amount, "per_person": per_person, "addon": addon}
 
 
 def _blocks(text):
@@ -195,20 +201,29 @@ def _render_bullets(lines, as_chips):
     return f'<div class="rd-cards">{"".join(cards)}</div>'
 
 
+def _price_unit(p):
+    """Small note under a price: "per person", "additional fee", or both."""
+    notes = []
+    if p["addon"]:
+        notes.append("additional fee")
+    if p["per_person"]:
+        notes.append("per person")
+    return f'<span class="rd-unit">{" ".join(notes)}</span>' if notes else ""
+
+
 def _render_prices(lines):
     prices = [_parse_price(line) for line in lines]
-    unit = '<span class="rd-unit">per person</span>'
     if len(prices) == 1:
         p = prices[0]
         label = _inline(p["label"]) if p["label"] else "Price"
         return (
             f'<div class="rd-price-row"><span class="rd-price-label">{label}</span>'
-            f'<span class="rd-price-amount">{escape(p["amount"])} {unit if p["per_person"] else ""}</span></div>'
+            f'<span class="rd-price-amount">{escape(p["amount"])} {_price_unit(p)}</span></div>'
         )
     cards = "".join(
         f'<div class="rd-hotel"><div class="rd-hotel-name">{_inline(p["label"]) if p["label"] else "Option"}</div>'
         f'<div class="rd-hotel-price">{escape(p["amount"])}</div>'
-        f'{unit if p["per_person"] else ""}</div>'
+        f'{_price_unit(p)}</div>'
         for p in prices
     )
     return f'<div class="rd-hotels">{cards}</div>'

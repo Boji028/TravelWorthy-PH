@@ -869,6 +869,11 @@
   .rd-price-label { font-size: .88rem; }
   .rd-price-amount { font-size: 1.15rem; font-weight: 700; color: var(--teal); text-align: right; }
   .rd-price-amount .rd-unit { display: inline; margin-left: .2rem; }
+  @media (max-width: 768px) {
+    /* Stack the fee note under the amount so the date label keeps room on phones. */
+    .rd-price-amount { white-space: nowrap; }
+    .rd-price-amount .rd-unit { display: block; margin-left: 0; }
+  }
   .rd-chips { display: flex; flex-wrap: wrap; gap: .45rem; }
   .rd-chip {
     background: #e4efe9;

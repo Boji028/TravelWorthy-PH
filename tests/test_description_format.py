@@ -95,6 +95,46 @@ class TestPrices:
         assert "₱5,499" in out
 
 
+TRAVEL_DATES = """Hong Kong Getaway
+
+🗓️ Travel Dates
+From Manila (2026):
+
+Oct 26 – Nov 5 (+USD 100)
+Oct 28 – Nov 7 (+USD 100)
+Nov 18 – 28
+Dec 23 – Jan 2 (+USD 500)
+
+From Clark:
+
+Oct 25 – Nov 4, 2026 (+USD 100)
+Apr 22 – May 2, 2027 (+USD 100)"""
+
+
+class TestAddOnFees:
+    def test_plus_sign_is_kept_on_the_price(self):
+        out = html(TRAVEL_DATES)
+        assert '<div class="rd-hotel-price">+USD 100</div>' in out
+        assert "+USD 500" in out
+
+    def test_add_on_fee_is_labelled(self):
+        assert '<span class="rd-unit">additional fee</span>' in html(TRAVEL_DATES)
+
+    def test_full_date_range_is_kept_as_the_label(self):
+        out = html(TRAVEL_DATES)
+        assert '<div class="rd-hotel-name">Oct 26 – Nov 5</div>' in out
+        assert '<div class="rd-hotel-name">Oct 25 – Nov 4, 2026</div>' in out
+        assert '<span class="rd-price-label">Dec 23 – Jan 2</span>' in out
+
+    def test_leftover_brackets_are_removed_from_the_label(self):
+        assert "()" not in html(TRAVEL_DATES)
+
+    def test_normal_prices_have_no_plus_or_fee_note(self):
+        out = html(BORACAY)
+        assert "+₱" not in out
+        assert "additional fee" not in out
+
+
 class TestMessySpacing:
     def test_section_name_is_a_label_even_without_a_blank_line_above(self):
         """In real descriptions "Package Details" often sits directly under
