@@ -340,6 +340,12 @@
     </div>
 
     <div class="form-group">
+      <label>Downpayment <span class="hint-inline">(optional &mdash; leave empty to hide)</span></label>
+      <input type="text" name="downpayment" class="form-control" maxlength="200"
+        placeholder="e.g. 30% of package price, or PHP 5,000 per pax (non-refundable)" />
+    </div>
+
+    <div class="form-group">
       <label>Inclusions <span style="font-size:.8rem;color:var(--mist)">(one per line)</span></label>
       <textarea name="inclusions" class="form-control" rows="5"
         placeholder="e.g.&#10;Round trip airfare&#10;Hotel accommodation&#10;Daily breakfast"></textarea>
@@ -928,7 +934,7 @@
     catch (e) { storageOk = false; }
 
     const SIMPLE_FIELDS = ['title', 'continent_id', 'country_id', 'assigned_agent_id', 'destination',
-      'description', 'duration_days', 'currency', 'price', 'inclusions', 'exclusions', 'amenities',
+      'description', 'duration_days', 'currency', 'price', 'downpayment', 'inclusions', 'exclusions', 'amenities',
       'location_description', 'latitude', 'longitude', 'image_url', 'flier_image_url'];
     const CHECKBOXES = ['is_active', 'is_featured', 'price_on_request'];
 

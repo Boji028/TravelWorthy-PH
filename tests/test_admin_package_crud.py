@@ -371,6 +371,103 @@ class TestPriceOnRequestPublicPages:
         assert "price-breakdown" in page
 
 
+class TestDownpayment:
+    """Optional free-text downpayment shown in the package page price box."""
+
+    def test_add_package_saves_downpayment(self, app, admin_client):
+        admin_client.post("/admin/packages/add",
+                          data={**_valid_package_form(), "downpayment": "  30% of package price  "})
+        assert TourPackage.query.one().downpayment == "30% of package price"
+
+    def test_empty_downpayment_is_stored_as_none(self, app, admin_client):
+        admin_client.post("/admin/packages/add", data={**_valid_package_form(), "downpayment": "   "})
+        assert TourPackage.query.one().downpayment is None
+
+    def test_edit_can_set_and_clear_downpayment(self, app, admin_client):
+        from app import db
+        pkg = _make_package(db)
+        admin_client.post(f"/admin/packages/edit/{pkg.id}",
+                          data={**_valid_package_form(), "downpayment": "PHP 5,000 per pax"})
+        db.session.refresh(pkg)
+        assert pkg.downpayment == "PHP 5,000 per pax"
+        admin_client.post(f"/admin/packages/edit/{pkg.id}", data={**_valid_package_form(), "downpayment": ""})
+        db.session.refresh(pkg)
+        assert pkg.downpayment is None
+
+    def test_package_page_shows_downpayment_row(self, app, client):
+        from app import db
+        pkg = _make_package(db, downpayment="30% of package price")
+        page = client.get(f"/packages/{pkg.id}").get_data(as_text=True)
+        assert "<span>Downpayment</span><span>30% of package price</span>" in page
+
+    def test_downpayment_shows_on_price_on_request_package(self, app, client):
+        from app import db
+        pkg = _make_package(db, price=None, price_on_request=True, downpayment="PHP 3,000")
+        page = client.get(f"/packages/{pkg.id}").get_data(as_text=True)
+        assert "PHP 3,000" in page
+
+    def test_no_downpayment_row_when_empty(self, app, client):
+        from app import db
+        pkg = _make_package(db)
+        assert "<span>Downpayment</span>" not in client.get(f"/packages/{pkg.id}").get_data(as_text=True)
+
+    def test_downpayment_text_is_escaped(self, app, client):
+        from app import db
+        pkg = _make_package(db, downpayment="<b>50%</b>")
+        page = client.get(f"/packages/{pkg.id}").get_data(as_text=True)
+        assert "<b>50%</b>" not in page and "&lt;b&gt;50%&lt;/b&gt;" in page
+
+
+class TestDownpaymentsPage:
+    """One page to set downpayments for many packages at once."""
+
+    def test_page_lists_every_package_with_its_downpayment(self, app, admin_client):
+        from app import db
+        a = _make_package(db, title="Boracay Trip", downpayment="PHP 3,000 per pax")
+        b = _make_package(db, title="Japan Tour")
+        page = admin_client.get("/admin/packages/downpayments").get_data(as_text=True)
+        assert "Boracay Trip" in page and "Japan Tour" in page
+        assert f'name="downpayment_{a.id}"' in page and f'name="downpayment_{b.id}"' in page
+        assert 'value="PHP 3,000 per pax"' in page
+
+    def test_save_updates_changed_and_clears_empty(self, app, admin_client):
+        from app import db
+        a = _make_package(db, title="A", downpayment="old")
+        b = _make_package(db, title="B")
+        c = _make_package(db, title="C", downpayment="keep")
+        admin_client.post("/admin/packages/downpayments", data={
+            f"downpayment_{a.id}": "  ",
+            f"downpayment_{b.id}": "30% of package price",
+            f"downpayment_{c.id}": "keep",
+        })
+        for pkg in (a, b, c):
+            db.session.refresh(pkg)
+        assert a.downpayment is None
+        assert b.downpayment == "30% of package price"
+        assert c.downpayment == "keep"
+
+    def test_package_missing_from_form_is_left_alone(self, app, admin_client):
+        from app import db
+        a = _make_package(db, title="A", downpayment="untouched")
+        admin_client.post("/admin/packages/downpayments", data={})
+        db.session.refresh(a)
+        assert a.downpayment == "untouched"
+
+    def test_value_is_capped_at_200_characters(self, app, admin_client):
+        from app import db
+        a = _make_package(db, title="A")
+        admin_client.post("/admin/packages/downpayments", data={f"downpayment_{a.id}": "x" * 300})
+        db.session.refresh(a)
+        assert len(a.downpayment) == 200
+
+    def test_packages_list_links_to_the_page(self, app, admin_client):
+        assert "/admin/packages/downpayments" in admin_client.get("/admin/packages").get_data(as_text=True)
+
+    def test_non_admin_cannot_open_page(self, app, client):
+        response = client.get("/admin/packages/downpayments")
+        assert response.status_code in (302, 401, 403)
+
+
 class TestDraftClearing:
     def test_successful_add_redirects_with_added_marker(self, app, admin_client):
         """The packages list clears the browser's autosaved draft when it

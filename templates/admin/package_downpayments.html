@@ -1,0 +1,287 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Downpayments — Admin{% endblock %}
+
+{% block admin_styles %}
+<style>
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .87rem;
+  }
+
+  .admin-table th {
+    text-align: left;
+    padding: .6rem .75rem;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--mist);
+    border-bottom: 1px solid var(--linen);
+    font-weight: 600;
+  }
+
+  .admin-table td {
+    padding: .7rem .75rem;
+    border-bottom: 1px solid var(--linen);
+    color: var(--bark);
+    vertical-align: middle;
+  }
+
+  .admin-table tr:hover td {
+    background: #faf6f0;
+  }
+
+  .table-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(58, 46, 34, .07);
+  }
+
+  .dp-table th:first-child,
+  .dp-table td:first-child {
+    width: 36px;
+  }
+
+  .dp-table th:nth-child(3),
+  .dp-table td:nth-child(3) {
+    white-space: nowrap;
+  }
+
+  .dp-table th:last-child,
+  .dp-table td:last-child {
+    width: 45%;
+  }
+
+  .dp-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .6rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--linen);
+  }
+
+  .dp-search {
+    flex: 1;
+    min-width: 200px;
+    max-width: 320px;
+  }
+
+  .dp-filter {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .82rem;
+    color: var(--bark);
+    cursor: pointer;
+  }
+
+  .dp-apply {
+    display: none;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .6rem;
+    padding: .75rem 1.25rem;
+    background: rgba(45, 122, 111, .08);
+    border-bottom: 1px solid rgba(45, 122, 111, .25);
+    font-size: .85rem;
+    color: #134d46;
+  }
+
+  .dp-apply.visible {
+    display: flex;
+  }
+
+  .dp-apply input[type="text"] {
+    flex: 1;
+    min-width: 200px;
+    max-width: 380px;
+  }
+
+  .dp-table td {
+    vertical-align: middle;
+  }
+
+  .dp-table input[type="text"] {
+    width: 100%;
+    min-width: 220px;
+  }
+
+  .dp-table input.dp-changed {
+    border-color: var(--amber);
+    background: #fdf3e3;
+  }
+
+  .dp-meta {
+    font-size: .72rem;
+    color: var(--mist);
+    margin-top: .15rem;
+  }
+
+  .dp-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .6rem;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid var(--linen);
+    position: sticky;
+    bottom: 0;
+    background: var(--white);
+    font-size: .82rem;
+    color: var(--mist);
+  }
+
+  @media (max-width: 768px) {
+    .dp-table th:nth-child(3),
+    .dp-table td:nth-child(3) {
+      display: none;
+    }
+
+    .dp-table input[type="text"] {
+      min-width: 140px;
+    }
+
+    .dp-table th:last-child,
+    .dp-table td:last-child {
+      width: 55%;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+  <h1>Downpayments</h1>
+  <p>Set the downpayment for many packages at once. Leave a box empty to hide it on that package.</p>
+  <a href="{{ url_for('admin.packages') }}" class="btn btn-ghost"><i class="fas fa-arrow-left"></i> Back to Packages</a>
+</div>
+
+<div class="table-card">
+  <div class="dp-toolbar">
+    <input type="search" class="form-control dp-search" id="dp-search" placeholder="Search packages..." aria-label="Search packages" />
+    <label class="dp-filter"><input type="checkbox" id="dp-empty-only" /> Only packages without a downpayment</label>
+  </div>
+
+  <div class="dp-apply" id="dp-apply">
+    <span id="dp-selected-count">0 selected</span>
+    <input type="text" class="form-control" id="dp-apply-value" maxlength="200"
+      placeholder="e.g. PHP 3,000 per pax" aria-label="Downpayment for selected packages" />
+    <button type="button" class="btn btn-amber btn-sm" id="dp-apply-btn">Apply to selected</button>
+  </div>
+
+  <form method="POST" action="{{ url_for('admin.package_downpayments') }}" id="dp-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <div style="overflow-x:auto">
+      <table class="admin-table dp-table">
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="dp-select-all" aria-label="Select all shown" style="width:14px;height:14px" /></th>
+            <th>Package</th>
+            <th>Price</th>
+            <th>Downpayment</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pkg in packages %}
+          <tr data-title="{{ (pkg.title ~ ' ' ~ pkg.destination)|lower }}">
+            <td><input type="checkbox" class="dp-check" aria-label="Select {{ pkg.title }}" style="width:14px;height:14px" /></td>
+            <td>
+              <strong>{{ pkg.title }}</strong>
+              <div class="dp-meta">{{ pkg.destination }} · {{ pkg.duration_days }}d{% if not pkg.is_active %} · inactive{% endif %}</div>
+            </td>
+            <td>{% if pkg.has_price %}{{ pkg.formatted_price }}{% else %}<span style="color:var(--mist);font-style:italic;">On request</span>{% endif %}</td>
+            <td>
+              <input type="text" class="form-control dp-input" name="downpayment_{{ pkg.id }}" maxlength="200"
+                value="{{ pkg.downpayment or '' }}" data-original="{{ pkg.downpayment or '' }}"
+                aria-label="Downpayment for {{ pkg.title }}" />
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" style="text-align:center;color:var(--mist);padding:2rem">No packages yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="dp-footer">
+      <span id="dp-changed-count">No unsaved changes</span>
+      <button type="submit" class="btn btn-primary"><i class="fas fa-floppy-disk"></i> Save all</button>
+    </div>
+  </form>
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+  (function () {
+    const rows = Array.from(document.querySelectorAll('.dp-table tbody tr[data-title]'));
+    const search = document.getElementById('dp-search');
+    const emptyOnly = document.getElementById('dp-empty-only');
+    const selectAll = document.getElementById('dp-select-all');
+    const applyBar = document.getElementById('dp-apply');
+    const applyValue = document.getElementById('dp-apply-value');
+    const form = document.getElementById('dp-form');
+    let submitting = false;
+
+    function visibleRows() { return rows.filter(r => !r.hidden); }
+    function checkedRows() { return visibleRows().filter(r => r.querySelector('.dp-check').checked); }
+
+    // Highlights edited boxes and counts them, so it's clear what Save will change.
+    function refreshChanged() {
+      let n = 0;
+      rows.forEach(r => {
+        const input = r.querySelector('.dp-input');
+        const changed = input.value.trim() !== input.dataset.original;
+        input.classList.toggle('dp-changed', changed);
+        if (changed) n++;
+      });
+      document.getElementById('dp-changed-count').textContent =
+        n ? `${n} unsaved change${n > 1 ? 's' : ''}` : 'No unsaved changes';
+      return n;
+    }
+
+    function refreshSelection() {
+      const n = checkedRows().length;
+      applyBar.classList.toggle('visible', n > 0);
+      document.getElementById('dp-selected-count').textContent = `${n} selected`;
+      const shown = visibleRows();
+      selectAll.checked = shown.length > 0 && n === shown.length;
+    }
+
+    function filter() {
+      const q = search.value.trim().toLowerCase();
+      rows.forEach(r => {
+        const input = r.querySelector('.dp-input');
+        const matches = !q || r.dataset.title.includes(q);
+        const empty = !input.dataset.original;
+        r.hidden = !(matches && (!emptyOnly.checked || empty));
+        // Hidden rows can't stay ticked, so Apply never touches rows you can't see.
+        if (r.hidden) r.querySelector('.dp-check').checked = false;
+      });
+      refreshSelection();
+    }
+
+    search.addEventListener('input', filter);
+    emptyOnly.addEventListener('change', filter);
+    selectAll.addEventListener('change', () => {
+      visibleRows().forEach(r => { r.querySelector('.dp-check').checked = selectAll.checked; });
+      refreshSelection();
+    });
+    rows.forEach(r => r.querySelector('.dp-check').addEventListener('change', refreshSelection));
+    form.addEventListener('input', refreshChanged);
+
+    document.getElementById('dp-apply-btn').addEventListener('click', () => {
+      const value = applyValue.value.trim();
+      checkedRows().forEach(r => { r.querySelector('.dp-input').value = value; });
+      refreshChanged();
+    });
+
+    form.addEventListener('submit', () => { submitting = true; });
+    window.addEventListener('beforeunload', e => {
+      if (submitting || !refreshChanged()) return;
+      e.preventDefault();
+      e.returnValue = '';
+    });
+  })();
+</script>
+{% endblock %}

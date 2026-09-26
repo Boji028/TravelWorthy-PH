@@ -20,6 +20,8 @@ class TourPackage(db.Model):
     price = db.Column(db.Numeric(12, 2), nullable=True)
     price_on_request: bool = db.Column(db.Boolean, default=False, nullable=False, server_default=db.false())
     currency: str = db.Column(db.String(10), default="PHP")
+    # Free text so admin can write "30% of package price" or "PHP 5,000 per pax"; empty hides it.
+    downpayment: Optional[str] = db.Column(db.String(200), nullable=True)
     image: Optional[str] = db.Column(db.String(300), nullable=True, default="default_tour.jpg")
     image_size_kb: Optional[float] = db.Column(db.Float, nullable=True)  # Track image size (KB)
     image_uploaded_at: Optional[datetime] = db.Column(db.DateTime, nullable=True)  # Track upload time

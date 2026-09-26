@@ -1270,6 +1270,11 @@
     padding: .2rem 0;
   }
 
+  /* Free-text downpayment can be long, so let it wrap on the right instead of squeezing the label. */
+  .pb-downpayment { align-items: flex-start; gap: 1rem; }
+  .pb-downpayment span:first-child { flex-shrink: 0; }
+  .pb-downpayment span:last-child { text-align: right; font-weight: 600; color: var(--bark); }
+  .pb-downpayment-solo { margin-bottom: .9rem; }
   .pb-row.total {
     font-family: 'Pogonia', serif;
     font-size: .95rem;
@@ -2063,6 +2068,9 @@
     {% else %}
     <div class="sidebar-price sidebar-price-request">Price on request</div>
     <p class="sidebar-request-note">Rates depend on your dates, group size, and hotel choice. Send an inquiry and we'll send you a quote.</p>
+    {% if package.downpayment %}
+    <div class="pb-row pb-downpayment pb-downpayment-solo"><span>Downpayment</span><span>{{ package.downpayment }}</span></div>
+    {% endif %}
     {% endif %}
     <div class="sidebar-rating">
       <span class="star">★</span> {{ avg_rating if avg_rating else '—' }} ·
@@ -2086,6 +2094,9 @@
       <div class="pb-row"><span>Price per
           person</span><span>{{ package.formatted_price }}</span>
       </div>
+      {% if package.downpayment %}
+      <div class="pb-row pb-downpayment"><span>Downpayment</span><span>{{ package.downpayment }}</span></div>
+      {% endif %}
       <div class="pb-row" style="color:var(--success)"><span>🎁 No booking fees</span><span>₱0</span></div>
       <div class="pb-row total"><span>Starting
           from</span><span>{{ package.formatted_price }}</span>

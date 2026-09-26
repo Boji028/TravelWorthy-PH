@@ -204,6 +204,28 @@ def packages():
     )
 
 
+@admin_bp.route("/packages/downpayments", methods=["GET", "POST"])
+@admin_required
+def package_downpayments():
+    """Edit every package's downpayment on one page instead of opening each package."""
+    all_packages = TourPackage.query.order_by(TourPackage.title).all()
+    if request.method == "POST":
+        changed = 0
+        for pkg in all_packages:
+            key = f"downpayment_{pkg.id}"
+            if key not in request.form:
+                continue
+            value = request.form.get(key, "").strip()[:200] or None
+            if value != pkg.downpayment:
+                pkg.downpayment = value
+                changed += 1
+        db.session.commit()
+        flash(f"Downpayment updated for {changed} package(s)." if changed else "No changes to save.",
+              "success" if changed else "info")
+        return redirect(url_for("admin.package_downpayments"))
+    return render_template("admin/package_downpayments.html", packages=all_packages)
+
+
 @admin_bp.route("/packages/toggle-active/<int:package_id>", methods=["POST"])
 @admin_required
 def toggle_package_active(package_id):
@@ -367,6 +389,7 @@ def add_package():
                 duration_days=duration_days,
                 price=price,
                 price_on_request=price_on_request,
+                downpayment=request.form.get("downpayment", "").strip()[:200] or None,
                 currency=currency,
                 image=filename,
                 flier_image=flier_filename,
@@ -553,6 +576,7 @@ def edit_package(package_id):
             package.duration_days = duration_days
             package.price = price
             package.price_on_request = price_on_request
+            package.downpayment = request.form.get("downpayment", "").strip()[:200] or None
             package.country_id = country_id
             package.is_active = request.form.get("is_active") == "on"
             package.is_featured = request.form.get("is_featured") == "on"
